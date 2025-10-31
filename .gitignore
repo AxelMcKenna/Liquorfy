@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.env
+.venv/
+poetry.lock
+node_modules/
+web/dist/
+.idea/
