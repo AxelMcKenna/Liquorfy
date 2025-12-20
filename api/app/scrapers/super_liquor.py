@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import asyncio
+import logging
 import pathlib
+from pathlib import Path
 from typing import List
 
 from selectolax.parser import HTMLParser
@@ -8,33 +11,181 @@ from selectolax.parser import HTMLParser
 from app.scrapers.base import Scraper
 from app.services.parser_utils import extract_abv, parse_volume
 
-FIXTURE = pathlib.Path(__file__).with_suffix(".py").with_name("fixtures/super_liquor.html")
+FIXTURE = Path(__file__).parent / "fixtures" / "super_liquor.html"
+
+logger = logging.getLogger(__name__)
+
+# Rate limiting configuration (respectful scraping)
+DELAY_BETWEEN_REQUESTS = 1.0  # seconds between page requests
+DELAY_BETWEEN_CATEGORIES = 2.5  # seconds between different categories
+MAX_RETRIES = 3  # max retries for failed requests
+RETRY_DELAY = 2.0  # initial retry delay (doubles each retry)
 
 
 class SuperLiquorScraper(Scraper):
     chain = "super_liquor"
+    catalog_urls = [
+        # Beer & Cider
+        "https://www.superliquor.co.nz/beer",
+        "https://www.superliquor.co.nz/craft-beer",
+        "https://www.superliquor.co.nz/cider",
+        # Wine & Bubbles
+        "https://www.superliquor.co.nz/wine",
+        "https://www.superliquor.co.nz/white-wine",
+        "https://www.superliquor.co.nz/red-wine-",
+        "https://www.superliquor.co.nz/sparkling-wine",
+        # Spirits
+        "https://www.superliquor.co.nz/spirits",
+        "https://www.superliquor.co.nz/vodka",
+        "https://www.superliquor.co.nz/gin",
+        "https://www.superliquor.co.nz/whisky",
+        "https://www.superliquor.co.nz/rum",
+        "https://www.superliquor.co.nz/bourbon",
+        # RTDs
+        "https://www.superliquor.co.nz/premix",
+    ]
 
-    def __init__(self, chain: str = "super_liquor") -> None:
-        super().__init__()
+    def __init__(self, chain: str = "super_liquor", use_fixtures: bool = True) -> None:
+        super().__init__(use_fixtures=use_fixtures)
         self.chain = chain
 
+        # Set respectful User-Agent header
+        self.client.headers.update({
+            "User-Agent": "Liquorfy/1.0 (Price Comparison Bot; +https://liquorfy.co.nz)"
+        })
+
+    async def _fetch_with_retry(self, url: str, retry_count: int = 0) -> str:
+        """Fetch URL with exponential backoff on errors."""
+        try:
+            response = await self.client.get(url)
+            response.raise_for_status()
+            return response.text
+
+        except Exception as e:
+            if retry_count < MAX_RETRIES:
+                delay = RETRY_DELAY * (2 ** retry_count)  # Exponential backoff
+                logger.warning(f"  Request failed, retrying in {delay}s... ({retry_count + 1}/{MAX_RETRIES})")
+                await asyncio.sleep(delay)
+                return await self._fetch_with_retry(url, retry_count + 1)
+            else:
+                logger.error(f"  Failed after {MAX_RETRIES} retries: {e}")
+                raise
+
     async def fetch_catalog_pages(self) -> List[str]:
-        return [FIXTURE.read_text()]
+        """Fetch catalog pages from fixtures or live HTTP with pagination and rate limiting."""
+        if self.use_fixtures:
+            logger.info(f"Using fixture data for {self.chain}")
+            return [FIXTURE.read_text()]
+
+        # Fetch from real URLs with pagination and rate limiting
+        logger.info(f"Fetching live data from {len(self.catalog_urls)} category URLs")
+        logger.info(f"Rate limiting: {DELAY_BETWEEN_REQUESTS}s between requests, {DELAY_BETWEEN_CATEGORIES}s between categories")
+        pages = []
+
+        for category_idx, base_url in enumerate(self.catalog_urls):
+            try:
+                # Add delay between categories (but not before the first one)
+                if category_idx > 0:
+                    logger.info(f"Waiting {DELAY_BETWEEN_CATEGORIES}s before next category...")
+                    await asyncio.sleep(DELAY_BETWEEN_CATEGORIES)
+
+                # Fetch first page to determine total pages
+                logger.info(f"Fetching {base_url}")
+                first_page = await self._fetch_with_retry(base_url)
+                pages.append(first_page)
+
+                # Parse to find total number of pages
+                total_pages = self._extract_total_pages(first_page)
+
+                if total_pages > 1:
+                    logger.info(f"  Found {total_pages} pages, fetching remaining pages...")
+
+                    # Fetch remaining pages with delays
+                    for page_num in range(2, total_pages + 1):
+                        # Rate limiting: delay between requests
+                        await asyncio.sleep(DELAY_BETWEEN_REQUESTS)
+
+                        page_url = f"{base_url}?pagenumber={page_num}"
+                        try:
+                            page_html = await self._fetch_with_retry(page_url)
+                            pages.append(page_html)
+                            logger.info(f"  Fetched page {page_num}/{total_pages}")
+                        except Exception as e:
+                            logger.error(f"  Failed to fetch page {page_num} after retries: {e}")
+                            # Continue fetching other pages
+                            continue
+                else:
+                    logger.info(f"  Only 1 page found")
+
+            except Exception as e:
+                logger.error(f"Failed to fetch {base_url} after retries: {e}")
+                continue
+
+        logger.info(f"Fetched total of {len(pages)} pages across all categories")
+        return pages
+
+    def _extract_total_pages(self, html: str) -> int:
+        """Extract total number of pages from pagination HTML."""
+        import re
+
+        # Look for pager div with page links
+        pager_match = re.search(r'<div class="pager"[^>]*>(.*?)</div>', html, re.DOTALL)
+        if pager_match:
+            pager_html = pager_match.group(1)
+
+            # Find all page numbers in pagination links
+            page_nums = re.findall(r'pagenumber=(\d+)', pager_html)
+            if page_nums:
+                page_nums = [int(p) for p in page_nums]
+                return max(page_nums)
+
+        # If no pagination found, assume single page
+        return 1
 
     async def parse_products(self, payload: str) -> List[dict]:
         tree = HTMLParser(payload)
         products: List[dict] = []
-        for node in tree.css("div.item"):
-            name = node.css_first("span.title").text()
-            price_text = node.css_first("span.price").text()
-            price = float(price_text.replace("$", ""))
-            abv_text = node.css_first("span.abv").text() if node.css_first("span.abv") else ""
+        for node in tree.css("div.product-item"):
+            # Extract title
+            title_node = node.css_first("h2.product-title a")
+            if not title_node:
+                logger.warning("Product found without title, skipping")
+                continue
+            name = title_node.text().strip()
+
+            # Extract price
+            price_node = node.css_first("span.price.actual-price")
+            if not price_node or not price_node.text():
+                logger.warning(f"Product {name} has no price, skipping")
+                continue
+            price_text = price_node.text().strip()
+            price = float(price_text.replace("$", "").replace(",", ""))
+
+            # Extract product URL
+            url = title_node.attributes.get("href", "")
+            if url and not url.startswith("http"):
+                url = f"https://www.superliquor.co.nz{url}"
+
+            # Extract product ID
+            source_id = node.attributes.get("data-productid", "")
+            if not source_id:
+                source_id = url.split("/")[-1] if url else name
+
+            # Extract image URL
+            img_node = node.css_first("div.picture img")
+            image_url = None
+            if img_node:
+                # Super Liquor uses lazy loading with data-src
+                image_url = img_node.attributes.get("data-src") or img_node.attributes.get("src")
+
+            # Parse volume and ABV from product name
             volume = parse_volume(name)
-            abv = extract_abv(name) or extract_abv(abv_text)
+            abv = extract_abv(name)
+
             products.append(
                 {
                     "chain": self.chain,
-                    "source_id": node.attributes.get("data-sku", name),
+                    "source_id": source_id,
                     "name": name,
                     "price_nzd": price,
                     "promo_price_nzd": None,
@@ -43,8 +194,11 @@ class SuperLiquorScraper(Scraper):
                     "unit_volume_ml": volume.unit_volume_ml,
                     "total_volume_ml": volume.total_volume_ml,
                     "abv_percent": abv,
+                    "url": url,
+                    "image_url": image_url,
                 }
             )
+        logger.info(f"Parsed {len(products)} products from page")
         return products
 
 
