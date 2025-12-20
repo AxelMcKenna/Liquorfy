@@ -4,9 +4,11 @@ import json
 import pathlib
 from typing import List
 
+from pathlib import Path
 from app.scrapers.base import Scraper
 
-FIXTURE = pathlib.Path(__file__).with_suffix(".py").with_name("fixtures/stub.json")
+FIXTURE = Path(__file__).parent / "fixtures" / "stub.json"
+
 
 
 class StubScraper(Scraper):
