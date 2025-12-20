@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import logging
 import pathlib
 from datetime import datetime
+from pathlib import Path
 from typing import List
 
 from selectolax.parser import HTMLParser
@@ -9,18 +11,40 @@ from selectolax.parser import HTMLParser
 from app.scrapers.base import Scraper
 from app.services.parser_utils import extract_abv, parse_volume
 
-FIXTURE = pathlib.Path(__file__).with_suffix(".py").with_name("fixtures/countdown.html")
+FIXTURE = Path(__file__).parent / "fixtures" / "countdown.html"
+
+logger = logging.getLogger(__name__)
 
 
 class CountdownScraper(Scraper):
     chain = "countdown"
+    # Example catalog URLs - in production these would be real Countdown URLs
+    catalog_urls = [
+        "https://www.countdown.co.nz/shop/browse/beer-cider-wine",
+    ]
 
-    def __init__(self, chain: str = "countdown") -> None:
-        super().__init__()
+    def __init__(self, chain: str = "countdown", use_fixtures: bool = True) -> None:
+        super().__init__(use_fixtures=use_fixtures)
         self.chain = chain
 
     async def fetch_catalog_pages(self) -> List[str]:
-        return [FIXTURE.read_text()]  # In production would fetch via HTTP
+        """Fetch catalog pages from fixtures or live HTTP."""
+        if self.use_fixtures:
+            logger.info(f"Using fixture data for {self.chain}")
+            return [FIXTURE.read_text()]
+
+        # Fetch from real URLs
+        logger.info(f"Fetching live data from {len(self.catalog_urls)} URLs")
+        pages = []
+        for url in self.catalog_urls:
+            try:
+                response = await self.client.get(url)
+                response.raise_for_status()
+                pages.append(response.text)
+                logger.info(f"Fetched {url}")
+            except Exception as e:
+                logger.error(f"Failed to fetch {url}: {e}")
+        return pages
 
     async def parse_products(self, payload: str) -> List[dict]:
         tree = HTMLParser(payload)
