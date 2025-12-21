@@ -9,7 +9,7 @@ from typing import List
 from selectolax.parser import HTMLParser
 
 from app.scrapers.base import Scraper
-from app.services.parser_utils import extract_abv, parse_volume
+from app.services.parser_utils import extract_abv, parse_volume, infer_brand, infer_category
 
 FIXTURE = Path(__file__).parent / "fixtures" / "countdown.html"
 
@@ -64,12 +64,42 @@ class CountdownScraper(Scraper):
                     promo_price = float(extracted_price)
                 if promo_node.attributes.get("data-ends"):
                     promo_ends_at = datetime.fromisoformat(promo_node.attributes["data-ends"])
+
+            # Extract image URL (avoid badge images)
+            image_url = None
+            img_nodes = node.css("img")
+
+            # Badge keywords to filter out
+            BADGE_KEYWORDS = [
+                "low-carb", "gluten", "vegan", "organic", "badge", "icon",
+                "promo", "deal", "offer", "special", "2for", "3for", "buy", "save",
+                "2 for", "3 for", "multi", "multipack", "_100", "_50", "label",
+                "zero", "sugar", "zero-sugar", "no-sugar"
+            ]
+
+            for img_node in img_nodes:
+                # Check for lazy-loaded images (data-src) or regular src
+                img_url = img_node.attributes.get("data-src") or img_node.attributes.get("src")
+                if img_url:
+                    # Skip badge images
+                    img_url_lower = img_url.lower()
+                    if any(badge in img_url_lower for badge in BADGE_KEYWORDS):
+                        continue
+                    # Use the first non-badge image
+                    image_url = img_url
+                    break
+
             volume = parse_volume(name)
+            brand = infer_brand(name)
+            category = infer_category(name)
+
             products.append(
                 {
                     "chain": self.chain,
                     "source_id": node.attributes.get("data-id", name),
                     "name": name,
+                    "brand": brand,
+                    "category": category,
                     "price_nzd": price,
                     "promo_price_nzd": promo_price,
                     "promo_text": promo_text,
@@ -79,6 +109,7 @@ class CountdownScraper(Scraper):
                     "total_volume_ml": volume.total_volume_ml,
                     "abv_percent": extract_abv(name),
                     "url": node.css_first("a.link").attributes.get("href"),
+                    "image_url": image_url,
                 }
             )
         return products
