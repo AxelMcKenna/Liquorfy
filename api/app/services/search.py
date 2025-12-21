@@ -12,6 +12,7 @@ from app.db.models import Price, Product, Store
 from app.schemas.products import PriceSchema, ProductDetailSchema, ProductListResponse, ProductSchema, StoreListResponse, StoreSchema
 from app.schemas.queries import ProductQueryParams
 from app.services.geospatial import haversine_distance, within_radius
+from app.services.parser_utils import CATEGORY_HIERARCHY
 from app.services.pricing import compute_pricing_metrics
 
 
@@ -39,7 +40,15 @@ async def fetch_products(
     if params.store:
         filters.append(Store.id.in_([UUID(s) for s in params.store]))
     if params.category:
-        filters.append(Product.category.in_(params.category))
+        # Expand categories to include subcategories
+        # e.g., if filtering by "beer", also include "lager", "ipa", "ale", etc.
+        expanded_categories = set(params.category)
+        for requested_cat in params.category:
+            # Add all subcategories that have this as parent
+            for subcat, parent in CATEGORY_HIERARCHY.items():
+                if parent == requested_cat:
+                    expanded_categories.add(subcat)
+        filters.append(Product.category.in_(list(expanded_categories)))
     if params.abv_min is not None:
         filters.append(Product.abv_percent >= params.abv_min)
     if params.abv_max is not None:

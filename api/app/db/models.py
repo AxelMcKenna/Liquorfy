@@ -45,8 +45,8 @@ class Product(Base):
     pack_count: Mapped[Optional[int]] = mapped_column()
     unit_volume_ml: Mapped[Optional[float]] = mapped_column(Float)
     total_volume_ml: Mapped[Optional[float]] = mapped_column(Float)
-    image_url: Mapped[Optional[str]] = mapped_column(String(255))
-    product_url: Mapped[Optional[str]] = mapped_column(String(255))
+    image_url: Mapped[Optional[str]] = mapped_column(String(512))
+    product_url: Mapped[Optional[str]] = mapped_column(String(512))
 
     prices: Mapped[list["Price"]] = relationship(back_populates="product")
 
