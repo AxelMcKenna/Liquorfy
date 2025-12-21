@@ -1,22 +1,30 @@
 """
 Liquorland scraper using Playwright for JavaScript-rendered content.
+Includes database integration and robots.txt compliance.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 from typing import List
 
-from playwright.async_api import Page
+from playwright.async_api import async_playwright, Browser, BrowserContext, Page
 from selectolax.parser import HTMLParser
 
-from app.scrapers.browser_base import BrowserScraper
-from app.services.parser_utils import extract_abv, parse_volume
+from app.scrapers.base import Scraper
+from app.services.parser_utils import extract_abv, parse_volume, infer_brand, infer_category
 
 logger = logging.getLogger(__name__)
 
+# Rate limiting configuration (respectful scraping per robots.txt)
+DELAY_BETWEEN_REQUESTS = 1.0  # seconds between page requests
+DELAY_BETWEEN_CATEGORIES = 2.5  # seconds between different categories
 
-class LiquorlandScraper(BrowserScraper):
+
+class LiquorlandScraper(Scraper):
+    """Scraper for Liquorland NZ website using Playwright."""
+
     chain = "liquorland"
     catalog_urls = [
         # Beer & Cider
@@ -39,7 +47,106 @@ class LiquorlandScraper(BrowserScraper):
         "https://www.liquorland.co.nz/rtd",
     ]
 
-    async def wait_for_content(self, page: Page) -> None:
+    def __init__(self, use_fixtures: bool = False) -> None:
+        """
+        Initialize Liquorland scraper.
+
+        Args:
+            use_fixtures: Not used for browser-based scraping (always False)
+        """
+        super().__init__(use_fixtures=False)
+        self.browser: Browser | None = None
+        self.context: BrowserContext | None = None
+        self.playwright = None
+
+    async def fetch_catalog_pages(self) -> List[str]:
+        """
+        Fetch catalog pages using Playwright with pagination.
+
+        Returns:
+            List of HTML strings
+        """
+        logger.info(f"Starting browser-based scraping for {self.chain}")
+        logger.info(f"Fetching data from {len(self.catalog_urls)} category URLs")
+        logger.info(f"Rate limiting: {DELAY_BETWEEN_REQUESTS}s between pages, {DELAY_BETWEEN_CATEGORIES}s between categories")
+
+        # Start Playwright browser
+        self.playwright = await async_playwright().start()
+        self.browser = await self.playwright.chromium.launch(headless=True)
+
+        # Create context with respectful user agent (compliant with robots.txt)
+        self.context = await self.browser.new_context(
+            user_agent="Liquorfy/1.0 (Price Comparison Bot; +https://liquorfy.co.nz)",
+            viewport={"width": 1920, "height": 1080},
+        )
+
+        pages_html = []
+
+        try:
+            for category_idx, base_url in enumerate(self.catalog_urls):
+                try:
+                    # Add delay between categories (but not before the first one)
+                    if category_idx > 0:
+                        logger.info(f"Waiting {DELAY_BETWEEN_CATEGORIES}s before next category...")
+                        await asyncio.sleep(DELAY_BETWEEN_CATEGORIES)
+
+                    logger.info(f"Fetching {base_url}")
+
+                    # Fetch first page
+                    page = await self.context.new_page()
+                    try:
+                        await page.goto(base_url, wait_until="domcontentloaded", timeout=60000)
+                        await self._wait_for_content(page)
+
+                        first_page_html = await page.content()
+                        pages_html.append(first_page_html)
+
+                        # Check for pagination
+                        total_pages = await self._extract_total_pages(first_page_html)
+
+                        if total_pages > 1:
+                            logger.info(f"  Found {total_pages} pages, fetching remaining...")
+
+                            # Fetch remaining pages
+                            for page_num in range(2, total_pages + 1):
+                                await asyncio.sleep(DELAY_BETWEEN_REQUESTS)
+
+                                page_url = self._get_page_url(base_url, page_num)
+                                try:
+                                    await page.goto(page_url, wait_until="domcontentloaded", timeout=60000)
+                                    await self._wait_for_content(page)
+
+                                    page_html = await page.content()
+                                    pages_html.append(page_html)
+                                    logger.info(f"  Fetched page {page_num}/{total_pages}")
+
+                                except Exception as e:
+                                    logger.error(f"  Failed to fetch page {page_num}: {e}")
+                                    continue
+                        else:
+                            logger.info(f"  Only 1 page found")
+
+                    finally:
+                        await page.close()
+
+                except Exception as e:
+                    logger.error(f"Failed to fetch {base_url}: {e}")
+                    continue
+
+        finally:
+            # Cleanup browser resources
+            if self.context:
+                await self.context.close()
+            if self.browser:
+                await self.browser.close()
+            if self.playwright:
+                await self.playwright.stop()
+            logger.info(f"Browser closed for {self.chain}")
+
+        logger.info(f"Fetched {len(pages_html)} total pages across all categories")
+        return pages_html
+
+    async def _wait_for_content(self, page: Page) -> None:
         """Wait for Liquorland products to load."""
         try:
             # Wait for product grid to appear
@@ -50,7 +157,7 @@ class LiquorlandScraper(BrowserScraper):
             logger.warning(f"Timeout waiting for products: {e}")
             # Continue anyway, we might still get some data
 
-    async def extract_total_pages(self, html: str) -> int:
+    async def _extract_total_pages(self, html: str) -> int:
         """Extract total pages from Liquorland pagination."""
         tree = HTMLParser(html)
 
@@ -73,7 +180,7 @@ class LiquorlandScraper(BrowserScraper):
 
         return 1
 
-    def get_page_url(self, base_url: str, page_num: int) -> str:
+    def _get_page_url(self, base_url: str, page_num: int) -> str:
         """Construct Liquorland page URL."""
         # Liquorland uses ?page=N format
         separator = '&' if '?' in base_url else '?'
@@ -115,17 +222,35 @@ class LiquorlandScraper(BrowserScraper):
                     continue
                 price = float(price_clean)
 
-                # Extract image
-                img_node = node.css_first('img')
+                # Extract image (avoid badge images)
                 image_url = None
-                if img_node:
-                    image_url = (
+                img_nodes = node.css('img')
+
+                # Badge keywords to filter out
+                BADGE_KEYWORDS = [
+                    "low-carb", "gluten", "vegan", "organic", "badge", "icon",
+                    "promo", "deal", "offer", "special", "2for", "3for", "buy", "save",
+                    "2 for", "3 for", "multi", "multipack", "_100", "_50", "label",
+                    "zero", "sugar", "zero-sugar", "no-sugar"
+                ]
+
+                for img_node in img_nodes:
+                    img_url = (
                         img_node.attributes.get('src') or
                         img_node.attributes.get('data-src') or
                         img_node.attributes.get('data-lazy-src')
                     )
-                    if image_url and not image_url.startswith('http'):
-                        image_url = f"https://www.liquorland.co.nz{image_url}"
+                    if img_url:
+                        # Skip badge images
+                        img_url_lower = img_url.lower()
+                        if any(badge in img_url_lower for badge in BADGE_KEYWORDS):
+                            continue
+                        # Use the first non-badge image
+                        if not img_url.startswith('http'):
+                            image_url = f"https://www.liquorland.co.nz{img_url}"
+                        else:
+                            image_url = img_url
+                        break
 
                 # Extract product ID from URL
                 source_id = url.split('/')[-1] if url else name
@@ -133,11 +258,15 @@ class LiquorlandScraper(BrowserScraper):
                 # Parse volume and ABV from name
                 volume = parse_volume(name)
                 abv = extract_abv(name)
+                brand = infer_brand(name)
+                category = infer_category(name)
 
                 products.append({
                     "chain": self.chain,
                     "source_id": source_id,
                     "name": name,
+                    "brand": brand,
+                    "category": category,
                     "price_nzd": price,
                     "promo_price_nzd": None,  # TODO: Extract promo pricing
                     "promo_text": None,
