@@ -5,11 +5,11 @@ import logging
 import pathlib
 from pathlib import Path
 from typing import List
-
+2
 from selectolax.parser import HTMLParser
 
 from app.scrapers.base import Scraper
-from app.services.parser_utils import extract_abv, parse_volume
+from app.services.parser_utils import extract_abv, parse_volume, infer_brand, infer_category
 
 FIXTURE = Path(__file__).parent / "fixtures" / "super_liquor.html"
 
@@ -153,13 +153,22 @@ class SuperLiquorScraper(Scraper):
                 continue
             name = title_node.text().strip()
 
-            # Extract price
+            # Extract price from span or GA4 data
+            price = None
             price_node = node.css_first("span.price.actual-price")
-            if not price_node or not price_node.text():
+            if price_node and price_node.text():
+                price_text = price_node.text().strip()
+                price = float(price_text.replace("$", "").replace(",", ""))
+            else:
+                # Try to extract from GA4 tracking data as fallback
+                import re
+                ga4_match = re.search(r'price:([\d.]+)', node.html)
+                if ga4_match:
+                    price = float(ga4_match.group(1))
+
+            if price is None:
                 logger.warning(f"Product {name} has no price, skipping")
                 continue
-            price_text = price_node.text().strip()
-            price = float(price_text.replace("$", "").replace(",", ""))
 
             # Extract product URL
             url = title_node.attributes.get("href", "")
@@ -171,22 +180,51 @@ class SuperLiquorScraper(Scraper):
             if not source_id:
                 source_id = url.split("/")[-1] if url else name
 
-            # Extract image URL
-            img_node = node.css_first("div.picture img")
+            # Extract image URL (avoid badge images)
             image_url = None
-            if img_node:
-                # Super Liquor uses lazy loading with data-src
-                image_url = img_node.attributes.get("data-src") or img_node.attributes.get("src")
+            img_nodes = node.css("div.picture img")
 
-            # Parse volume and ABV from product name
+            # Badge keywords to filter out
+            BADGE_KEYWORDS = [
+                "low-carb", "gluten", "vegan", "organic", "badge", "icon",
+                "promo", "deal", "offer", "special", "2for", "3for", "buy", "save",
+                "2 for", "3 for", "multi", "multipack", "_100", "_50", "label",
+                "zero", "sugar", "zero-sugar", "no-sugar"
+            ]
+
+            for img_node in img_nodes:
+                # Super Liquor uses lazy loading with data-src
+                img_url = img_node.attributes.get("data-src") or img_node.attributes.get("src")
+                if img_url:
+                    # Skip badge images
+                    img_url_lower = img_url.lower()
+                    if any(badge in img_url_lower for badge in BADGE_KEYWORDS):
+                        continue
+                    # Use the first non-badge image
+                    image_url = img_url
+                    break
+
+            # Parse volume and ABV from product name and description
             volume = parse_volume(name)
             abv = extract_abv(name)
+
+            # If no ABV found in name, try description
+            if abv is None:
+                desc_node = node.css_first("div.description")
+                if desc_node:
+                    description = desc_node.text().strip()
+                    abv = extract_abv(description)
+
+            brand = infer_brand(name)
+            category = infer_category(name)
 
             products.append(
                 {
                     "chain": self.chain,
                     "source_id": source_id,
                     "name": name,
+                    "brand": brand,
+                    "category": category,
                     "price_nzd": price,
                     "promo_price_nzd": None,
                     "promo_text": None,
