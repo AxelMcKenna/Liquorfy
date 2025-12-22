@@ -6,24 +6,24 @@
   :root {
     /* Light theme - White and Dark Green */
     --background: 0 0% 100%;              /* Pure white */
-    --foreground: 150 80% 15%;            /* Dark green text */
+    --foreground: 150 80% 12%;            /* Darker green text */
 
     --card: 0 0% 100%;                    /* White cards */
-    --card-foreground: 150 80% 15%;
+    --card-foreground: 150 80% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 150 80% 15%;
+    --popover-foreground: 150 80% 12%;
 
-    --primary: 150 80% 25%;               /* Bold dark green */
+    --primary: 150 85% 18%;               /* Darker, richer green */
     --primary-foreground: 0 0% 100%;
 
     --secondary: 150 20% 95%;             /* Very light green tint */
-    --secondary-foreground: 150 80% 15%;
+    --secondary-foreground: 150 80% 12%;
 
     --muted: 150 10% 96%;
-    --muted-foreground: 150 20% 40%;
+    --muted-foreground: 150 20% 35%;
 
-    --accent: 150 80% 25%;                /* Same bold green */
+    --accent: 150 85% 18%;                /* Same darker green */
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 70% 50%;
@@ -31,7 +31,7 @@
 
     --border: 150 20% 90%;                /* Light green-gray border */
     --input: 150 20% 90%;
-    --ring: 150 80% 25%;
+    --ring: 150 85% 18%;
 
     --radius: 0.5rem;
   }
@@ -44,9 +44,9 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif;
     font-optical-sizing: auto;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.015em;
   }
 }
 

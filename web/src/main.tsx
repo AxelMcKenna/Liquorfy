@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { CompareProvider } from "@/contexts/CompareContext";
 import { Landing } from "@/pages/Landing";
 import { Explore } from "@/pages/Explore";
+import "maplibre-gl/dist/maplibre-gl.css";
 import "./styles.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(

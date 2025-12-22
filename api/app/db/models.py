@@ -31,6 +31,8 @@ class Store(Base):
 
     prices: Mapped[list["Price"]] = relationship(back_populates="store")
 
+    __table_args__ = (UniqueConstraint("chain", "name", name="uq_store_chain_name"),)
+
 
 class Product(Base):
     __tablename__ = "products"
