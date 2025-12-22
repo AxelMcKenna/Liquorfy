@@ -80,21 +80,23 @@ CATEGORY_KEYWORDS = {
     "whisky": ["whisky", "whiskey"],
     "bourbon": ["bourbon"],
     "scotch": ["scotch"],
-    "tequila": ["tequila"],
+    "tequila": ["tequila", "blanco", "reposado", "anejo", "añejo"],
     "brandy": ["brandy", "cognac"],
-    "liqueur": ["liqueur", "schnapps", "amaretto", "baileys", "kahlua", "cointreau"],
+    "liqueur": ["liqueur", "schnapps", "amaretto", "baileys", "kahlua", "cointreau", "sambuca", "pimms", "ouzo", "jagermeister", "jägermeister", "limoncello", "amarula", "cream liqueur"],
+    "soju": ["soju"],
 
     # Wine (specific types)
     "champagne": ["champagne", "moet", "veuve clicquot"],
-    "sparkling": ["sparkling", "prosecco", "cava"],
-    "red_wine": ["red wine", "shiraz", "merlot", "cabernet", "pinot noir"],
-    "white_wine": ["white wine", "sauvignon blanc", "chardonnay", "pinot gris", "riesling"],
+    "sparkling": ["sparkling", "prosecco", "cava", "brut", "methode traditionnelle"],
+    "fortified_wine": ["port", "tawny", "sherry", "vermouth", "marsala", "madeira"],
+    "red_wine": ["red wine", "red blend", "shiraz", "syrah", "merlot", "cabernet", "cab sauv", "cab/sauv", "c/sauv", "cabernet sauvignon", "pinot noir", "tempranillo", "malbec", "bordeaux"],
+    "white_wine": ["white wine", "sauvignon blanc", "sauv blanc", "sauvb", "chardonnay", "chard", "pinot gris", "pinot grigio", "pinot grigo", "riesling", "moscato"],
     "rose": ["rose", "rosé"],
 
     # Beer (specific types - order matters for specificity)
     "ipa": ["india pale ale", "ipa", "hazy ipa", "west coast ipa", "new england ipa", "neipa", "double ipa", "triple ipa"],
     "stout": ["stout", "porter", "imperial stout", "guinness"],
-    "lager": ["lager", "pilsner", "pilsener"],
+    "lager": ["lager", "pilsner", "pilsener", "pils"],
     "ale": ["pale ale", "amber ale", "brown ale", "golden ale", "session ale", "ale"],
     "craft_beer": ["craft beer"],
 
@@ -103,8 +105,8 @@ CATEGORY_KEYWORDS = {
     "wine": ["wine"],
     "spirits": ["spirit"],
     "cider": ["cider"],
-    "rtd": ["rtd", "ready to drink", "premix", "cruiser", "cody", "woodstock"],
-    "mixer": ["tonic", "soda", "ginger ale", "cola"],
+    "rtd": ["rtd", "ready to drink", "premix", "cruiser", "cody", "woodstock", "mule", "moscow mule", "g&t", "g & t", "gin & tonic", "vodka & ", "rum & "],
+    "mixer": ["tonic", "soda", "ginger ale", "cola", "bitters"],
     "non_alcoholic": ["non-alcoholic", "alcohol free", "0%", "zero alcohol"],
 }
 
@@ -141,22 +143,57 @@ BRAND_CATEGORY_MAP = {
     # Beer brands
     "heineken": "beer", "corona": "beer", "stella artois": "beer", "budweiser": "beer",
     "carlsberg": "beer", "guinness": "stout", "peroni": "beer", "asahi": "beer",
-    "tui": "beer", "speight's": "beer", "steinlager": "beer", "lion red": "beer",
-    "export gold": "beer", "db": "beer", "monteiths": "beer",
+    "tui": "beer", "speight's": "beer", "speights": "beer", "steinlager": "beer", "lion red": "beer",
+    "export gold": "beer", "export ultra": "beer", "export 33": "beer", "export": "beer",
+    "db": "beer", "monteiths": "beer", "monteith's": "beer",
+    "behemoth": "beer", "canyon": "beer", "garage project": "beer", "g/p": "beer", "parrotdog": "beer",
+    "epic": "beer", "tuatara": "beer", "panhead": "beer", "emerson's": "beer", "emersons": "beer",
+    "fosters": "beer", "foster's": "beer", "kingfisher": "beer",
+    "tiger": "beer", "sapporo": "beer", "kirin": "beer",
+    "victoria bitter": "beer", "waikato": "beer", "waikato draught": "beer",
+    "pure blonde": "beer",
+    "red horse": "beer", "chang": "beer", "wakachangi": "beer",
+    "sawmill": "beer", "boundary road": "beer",
+    "brb": "beer", "brb ultra": "beer",
+    "little fat": "beer", "little number": "beer",
 
     # Wine brands
     "cloudy bay": "wine", "kim crawford": "wine", "oyster bay": "wine",
     "villa maria": "wine", "brancott": "wine", "matua": "wine",
+    "cable bay": "wine", "coppola": "wine", "cleanskin": "wine",
+    "wolf blass": "wine", "berton": "wine", "country dry": "wine",
+    "brown brothers": "wine", "lindauer": "sparkling",
+    "hawkes bay": "wine", "19 crimes": "wine",
+    "mumm": "champagne", "chateau": "wine",
 
     # Spirits brands
     "smirnoff": "vodka", "absolut": "vodka", "grey goose": "vodka",
     "gordon's": "gin", "bombay": "gin", "tanqueray": "gin",
-    "bacardi": "rum", "captain morgan": "rum", "havana club": "rum",
-    "jack daniel's": "whisky", "jim beam": "bourbon", "johnnie walker": "whisky",
-    "jameson": "whisky", "chivas": "whisky",
+    "scapegrace": "gin",
+    "bacardi": "rum", "captain morgan": "rum", "havana club": "rum", "malibu": "rum", "bumbu": "rum",
+    "jack daniel's": "whisky", "jack daniels": "whisky", "gentleman jack": "whisky",
+    "jim beam": "bourbon", "johnnie walker": "whisky",
+    "jameson": "whisky", "chivas": "whisky", "canadian club": "whisky",
+    "wild turkey": "bourbon", "old forester": "bourbon", "ole smoky": "whisky",
+    "glenlivet": "whisky", "glenfiddich": "whisky", "j&b": "whisky",
+    "el jimador": "tequila", "jose cuervo": "tequila", "olmeca": "tequila",
+    "casamigos": "tequila", "casa noble": "tequila",
+    "sourz": "liqueur", "galliano": "liqueur", "pimms": "liqueur",
+    "de kuyper": "liqueur", "jagermeister": "liqueur",
+    "midori": "liqueur", "pallini": "liqueur", "vok": "liqueur",
+    "chasseur": "liqueur", "luxardo": "liqueur", "amarula": "liqueur",
+    "saturdays": "liqueur",
 
-    # RTD brands
+    # RTD brands (specific product lines that are RTD, not their base spirits)
     "cruiser": "rtd", "codys": "rtd", "woodstock": "rtd", "kgb": "rtd",
+    "hyoketsu": "rtd", "kedah": "rtd", "alba": "rtd", "royal dutch": "rtd", "grog": "rtd",
+    "odd co": "rtd", "speights summit": "rtd",
+    "long white": "rtd", "long": "rtd",  # "Long" alone often refers to Long White
+    "hard rated": "rtd", "cheeky": "rtd", "batched": "rtd",
+    "pals": "rtd", "nitro": "rtd", "white claw": "rtd",
+    "clean collective": "rtd", "shots": "rtd",
+    "buzzballz": "rtd", "nectar": "rtd", "alize": "rtd",
+    "kings": "rtd", "haagen": "rtd",
 
     # Cider brands
     "somersby": "cider", "strongbow": "cider", "rekorderlig": "cider",
@@ -212,6 +249,7 @@ CATEGORY_HIERARCHY = {
     "rose": "wine",
     "sparkling": "wine",
     "champagne": "wine",
+    "fortified_wine": "wine",
 
     # Spirits are already top-level (vodka, gin, rum, whisky, etc.)
     # But some have subcategories

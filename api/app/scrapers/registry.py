@@ -5,17 +5,18 @@ from typing import Dict, Type
 from app.scrapers.base import Scraper
 from app.scrapers.countdown import CountdownScraper
 from app.scrapers.liquorland import LiquorlandScraper
+from app.scrapers.liquor_centre import LiquorCentreScraper
 from app.scrapers.super_liquor import SuperLiquorScraper
 from app.scrapers.stub import StubScraper
 
 CHAINS: Dict[str, Type[Scraper]] = {
     "countdown": CountdownScraper,
     "liquorland": LiquorlandScraper,
+    "liquor_centre": LiquorCentreScraper,
     "super_liquor": SuperLiquorScraper,
     "new_world": StubScraper,
     "paknsave": StubScraper,
     "bottle_o": StubScraper,
-    "liquor_centre": StubScraper,
     "glengarry": StubScraper,
 }
 
