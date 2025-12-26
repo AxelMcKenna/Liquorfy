@@ -10,6 +10,12 @@ from selectolax.parser import HTMLParser
 
 from app.scrapers.base import Scraper
 from app.services.parser_utils import extract_abv, parse_volume, infer_brand, infer_category
+from app.services.promo_utils import (
+    parse_promo_price,
+    parse_multi_buy_deal,
+    parse_promo_end_date,
+    detect_member_only,
+)
 
 FIXTURE = Path(__file__).parent / "fixtures" / "countdown.html"
 
@@ -53,17 +59,68 @@ class CountdownScraper(Scraper):
             name = node.css_first("h2").text().strip()
             price_text = node.css_first("span.price").text()
             price = float(price_text.replace("$", ""))
-            promo_node = node.css_first("span.promo")
+
+            # Extract promotional pricing
             promo_price = None
             promo_text = None
             promo_ends_at = None
+            is_member_only = False
+
+            # Look for promo elements
+            promo_node = (
+                node.css_first("span.promo") or
+                node.css_first(".badge-promo") or
+                node.css_first(".special-price") or
+                node.css_first("[class*='promo']") or
+                node.css_first("[class*='special']") or
+                node.css_first("[class*='deal']")
+            )
+
             if promo_node:
-                promo_text = promo_node.text(strip=True)
-                extracted_price = ''.join(ch for ch in promo_text if ch.isdigit() or ch == '.')
-                if extracted_price:
-                    promo_price = float(extracted_price)
-                if promo_node.attributes.get("data-ends"):
-                    promo_ends_at = datetime.fromisoformat(promo_node.attributes["data-ends"])
+                promo_raw_text = promo_node.text(strip=True)
+                if promo_raw_text:
+                    promo_text = promo_raw_text[:255]
+
+                    # Use promo_utils to extract price
+                    extracted_price = parse_promo_price(promo_raw_text)
+                    if extracted_price and extracted_price < price:
+                        promo_price = extracted_price
+
+                    # Check for multi-buy deals
+                    multi_buy = parse_multi_buy_deal(promo_raw_text)
+                    if multi_buy:
+                        if multi_buy.get('unit_price'):
+                            promo_price = multi_buy['unit_price']
+                        promo_text = multi_buy['deal_text'][:255]
+
+                    # Parse end date from text or attribute
+                    if promo_node.attributes.get("data-ends"):
+                        promo_ends_at = datetime.fromisoformat(promo_node.attributes["data-ends"])
+                    else:
+                        promo_ends_at = parse_promo_end_date(promo_raw_text)
+
+                    # Check if member-only
+                    is_member_only = detect_member_only(promo_raw_text)
+
+            # Check for was-price scenario
+            was_price_node = (
+                node.css_first(".was-price") or
+                node.css_first(".old-price") or
+                node.css_first("[class*='was']")
+            )
+
+            if was_price_node and not promo_price:
+                import re
+                was_text = was_price_node.text(strip=True)
+                if was_text:
+                    was_match = re.search(r'\$?([\d.]+)', was_text)
+                    if was_match:
+                        old_price = float(was_match.group(1))
+                        if price < old_price:
+                            promo_price = price
+                            price = old_price
+                            if not promo_text:
+                                promo_text = "Special"[:255]
 
             # Extract image URL (avoid badge images)
             image_url = None
@@ -104,6 +161,7 @@ class CountdownScraper(Scraper):
                     "promo_price_nzd": promo_price,
                     "promo_text": promo_text,
                     "promo_ends_at": promo_ends_at,
+                    "is_member_only": is_member_only,
                     "pack_count": volume.pack_count,
                     "unit_volume_ml": volume.unit_volume_ml,
                     "total_volume_ml": volume.total_volume_ml,

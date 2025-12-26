@@ -10,6 +10,12 @@ from selectolax.parser import HTMLParser
 
 from app.scrapers.base import Scraper
 from app.services.parser_utils import extract_abv, parse_volume, infer_brand, infer_category
+from app.services.promo_utils import (
+    parse_promo_price,
+    parse_multi_buy_deal,
+    parse_promo_end_date,
+    detect_member_only,
+)
 
 FIXTURE = Path(__file__).parent / "fixtures" / "super_liquor.html"
 
@@ -170,6 +176,76 @@ class SuperLiquorScraper(Scraper):
                 logger.warning(f"Product {name} has no price, skipping")
                 continue
 
+            # Extract promotional pricing
+            promo_price = None
+            promo_text = None
+            promo_ends_at = None
+            is_member_only = False
+
+            # Look for promo badges on product
+            promo_badge = (
+                node.css_first('.product-badge') or
+                node.css_first('.badge-special') or
+                node.css_first('.badge') or
+                node.css_first('[class*="badge"]') or
+                node.css_first('[class*="deal"]') or
+                node.css_first('[class*="promo"]') or
+                node.css_first('[class*="special"]')
+            )
+
+            if promo_badge:
+                badge_text = promo_badge.text(strip=True)
+                if badge_text:
+                    promo_text = badge_text[:255]
+
+                    # Extract promo price if present in badge
+                    import re
+                    price_match = re.search(r'\$?([\d.]+)', badge_text)
+                    if price_match:
+                        potential_promo = float(price_match.group(1))
+                        if potential_promo < price:
+                            promo_price = potential_promo
+
+                    # Check for multi-buy deals
+                    multi_buy = parse_multi_buy_deal(badge_text)
+                    if multi_buy:
+                        if multi_buy.get('unit_price'):
+                            promo_price = multi_buy['unit_price']
+                        promo_text = multi_buy['deal_text'][:255]
+
+                    # Parse dates
+                    promo_ends_at = parse_promo_end_date(badge_text)
+                    is_member_only = detect_member_only(badge_text)
+
+            # Check for special price alongside regular price
+            special_price_node = node.css_first('.price.special-price') or node.css_first('.special-price')
+            if special_price_node:
+                special_text = special_price_node.text(strip=True)
+                if special_text:
+                    import re
+                    special_match = re.search(r'\$?([\d.]+)', special_text)
+                    if special_match:
+                        special_price = float(special_match.group(1))
+                        if special_price < price:
+                            promo_price = special_price
+                            if not promo_text:
+                                promo_text = "Special"[:255]
+
+            # Check was-price scenario
+            was_price_node = node.css_first('.price.was-price') or node.css_first('.was-price')
+            if was_price_node and not promo_price:
+                was_text = was_price_node.text(strip=True)
+                if was_text:
+                    import re
+                    was_match = re.search(r'\$?([\d.]+)', was_text)
+                    if was_match:
+                        old_price = float(was_match.group(1))
+                        if price < old_price:
+                            promo_price = price
+                            price = old_price
+                            if not promo_text:
+                                promo_text = "Special"[:255]
+
             # Extract product URL
             url = title_node.attributes.get("href", "")
             if url and not url.startswith("http"):
@@ -226,8 +302,10 @@ class SuperLiquorScraper(Scraper):
                     "brand": brand,
                     "category": category,
                     "price_nzd": price,
-                    "promo_price_nzd": None,
-                    "promo_text": None,
+                    "promo_price_nzd": promo_price,
+                    "promo_text": promo_text,
+                    "promo_ends_at": promo_ends_at,
+                    "is_member_only": is_member_only,
                     "pack_count": volume.pack_count,
                     "unit_volume_ml": volume.unit_volume_ml,
                     "total_volume_ml": volume.total_volume_ml,

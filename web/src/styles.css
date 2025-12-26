@@ -4,36 +4,39 @@
 
 @layer base {
   :root {
-    /* Light theme - White and Dark Green */
-    --background: 0 0% 100%;              /* Pure white */
-    --foreground: 150 80% 12%;            /* Darker green text */
+    /* Dark theme - Charcoal with Green accents */
+    --background: 222 15% 6%;              /* Deep charcoal #0E0E10 */
+    --foreground: 40 10% 96%;              /* Warm white #F9F8F6 */
 
-    --card: 0 0% 100%;                    /* White cards */
-    --card-foreground: 150 80% 12%;
+    --card: 222 15% 8%;                    /* Slightly lighter card #141417 */
+    --card-foreground: 40 10% 96%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 150 80% 12%;
+    --popover: 222 15% 10%;                /* Popover background */
+    --popover-foreground: 40 10% 96%;
 
-    --primary: 150 85% 18%;               /* Darker, richer green */
+    --primary: 142 76% 28%;                /* Darker green #148a3a */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 150 20% 95%;             /* Very light green tint */
-    --secondary-foreground: 150 80% 12%;
+    --secondary: 222 15% 12%;              /* Elevated surface */
+    --secondary-foreground: 40 10% 96%;
 
-    --muted: 150 10% 96%;
-    --muted-foreground: 150 20% 35%;
+    --muted: 222 10% 15%;                  /* Muted elements */
+    --muted-foreground: 40 5% 65%;
 
-    --accent: 150 85% 18%;                /* Same darker green */
+    --accent: 142 71% 35%;                 /* Darker green accent #1a9b47 */
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 70% 50%;
+    --destructive: 0 70% 55%;              /* Red for errors */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 150 20% 90%;                /* Light green-gray border */
-    --input: 150 20% 90%;
-    --ring: 150 85% 18%;
+    --border: 222 15% 18%;                 /* Subtle borders */
+    --input: 222 15% 18%;
+    --ring: 142 76% 28%;
 
-    --radius: 0.5rem;
+    --promo: 14 100% 60%;                  /* Orange for sales #FF6B35 */
+    --gold: 160 84% 30%;                   /* Darker emerald #0d9668 */
+
+    --radius: 0.75rem;                     /* Slightly larger radius */
   }
 }
 
@@ -47,17 +50,58 @@
     font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif;
     font-optical-sizing: auto;
     letter-spacing: -0.015em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "Space Grotesk", "Inter", sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.02em;
   }
 }
 
 @layer utilities {
-  /* Bold geometric shapes */
-  .bold-border {
-    @apply border-2 border-primary;
+  /* Liquid Glass Effect */
+  .glass {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.1),
+      rgba(255, 255, 255, 0.05)
+    );
   }
 
-  /* Smooth transitions */
-  .transition-smooth {
-    @apply transition-all duration-300 ease-in-out;
+  .glass-hover {
+    @apply transition-all duration-300;
+  }
+
+  .glass-hover:hover {
+    @apply bg-white/10 border-white/20 shadow-glass;
+  }
+
+  /* 3D Transform utilities */
+  .transform-3d {
+    transform-style: preserve-3d;
+    perspective: 1000px;
+    will-change: transform;
+  }
+
+  .card-3d-hover {
+    @apply transition-all duration-500 ease-out;
+  }
+
+  .card-3d-hover:hover {
+    transform: translateY(-8px) rotateX(5deg) rotateY(-5deg) scale(1.02);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Performance optimizations */
+  .will-change-transform {
+    will-change: transform;
+  }
+
+  .will-change-bg {
+    will-change: background, border-color;
   }
 }

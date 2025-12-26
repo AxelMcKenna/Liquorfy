@@ -6,3 +6,27 @@ poetry.lock
 node_modules/
 web/dist/
 .idea/
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# IDE
+.vscode/
+*.swp
+*.swo
+*~
+
+# Python
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Project specific
+api/data/*.json
+!api/data/stores_seed.json

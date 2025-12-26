@@ -169,6 +169,7 @@ class Scraper(abc.ABC):
                 if (
                     existing.price_nzd != product_data["price_nzd"]
                     or existing.promo_price_nzd != product_data.get("promo_price_nzd")
+                    or existing.is_member_only != product_data.get("is_member_only", False)
                 ):
                     price_changed = True
                     changed = True
@@ -178,6 +179,7 @@ class Scraper(abc.ABC):
                 existing.promo_price_nzd = product_data.get("promo_price_nzd")
                 existing.promo_text = product_data.get("promo_text")
                 existing.promo_ends_at = product_data.get("promo_ends_at")
+                existing.is_member_only = product_data.get("is_member_only", False)
                 existing.last_seen_at = now
                 if price_changed:
                     existing.price_last_changed_at = now
@@ -191,6 +193,7 @@ class Scraper(abc.ABC):
                     promo_price_nzd=product_data.get("promo_price_nzd"),
                     promo_text=product_data.get("promo_text"),
                     promo_ends_at=product_data.get("promo_ends_at"),
+                    is_member_only=product_data.get("is_member_only", False),
                     last_seen_at=now,
                     price_last_changed_at=now,
                 )
