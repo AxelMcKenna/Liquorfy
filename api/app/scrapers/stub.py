@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import json
-import pathlib
+from pathlib import Path
 from typing import List
 
-from pathlib import Path
 from app.scrapers.base import Scraper
 
 FIXTURE = Path(__file__).parent / "fixtures" / "stub.json"

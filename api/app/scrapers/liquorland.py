@@ -14,6 +14,12 @@ from selectolax.parser import HTMLParser
 
 from app.scrapers.base import Scraper
 from app.services.parser_utils import extract_abv, parse_volume, infer_brand, infer_category
+from app.services.promo_utils import (
+    parse_promo_price,
+    parse_multi_buy_deal,
+    parse_promo_end_date,
+    detect_member_only,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -222,6 +228,68 @@ class LiquorlandScraper(Scraper):
                     continue
                 price = float(price_clean)
 
+                # Extract promotional pricing
+                promo_price = None
+                promo_text = None
+                promo_ends_at = None
+                is_member_only = False
+
+                # Try multiple promo selectors
+                promo_node = (
+                    node.css_first('.s-product__badge') or
+                    node.css_first('.s-product__label') or
+                    node.css_first('.s-product__special') or
+                    node.css_first('.s-product__promo') or
+                    node.css_first('[class*="promo"]') or
+                    node.css_first('[class*="special"]') or
+                    node.css_first('[class*="deal"]') or
+                    node.css_first('[class*="save"]')
+                )
+
+                if promo_node:
+                    promo_raw_text = promo_node.text(strip=True)
+
+                    if promo_raw_text:
+                        # Extract promo price from badge
+                        extracted_price = parse_promo_price(promo_raw_text)
+                        if extracted_price and extracted_price < price:
+                            promo_price = extracted_price
+                            promo_text = promo_raw_text[:255]
+
+                        # Check for multi-buy deals
+                        multi_buy = parse_multi_buy_deal(promo_raw_text)
+                        if multi_buy:
+                            if multi_buy.get('unit_price'):
+                                promo_price = multi_buy['unit_price']
+                            promo_text = multi_buy['deal_text'][:255]
+
+                        # Parse end date
+                        promo_ends_at = parse_promo_end_date(promo_raw_text)
+
+                        # Check member-only
+                        is_member_only = detect_member_only(promo_raw_text)
+
+                # Check for "was price" / crossed-out price scenario
+                was_price_node = (
+                    node.css_first('.s-product__was-price') or
+                    node.css_first('.s-price--was') or
+                    node.css_first('[class*="was-price"]') or
+                    node.css_first('[class*="old-price"]')
+                )
+
+                if was_price_node and not promo_price:
+                    was_text = was_price_node.text(strip=True)
+                    if was_text:
+                        was_match = re.search(r'\$?([\d.]+)', was_text)
+                        if was_match:
+                            old_price = float(was_match.group(1))
+                            if price < old_price:
+                                # Current price IS the promo, was_price is the original
+                                promo_price = price
+                                price = old_price
+                                if not promo_text:
+                                    promo_text = "Special"[:255]
+
                 # Extract image (avoid badge images)
                 image_url = None
                 img_nodes = node.css('img')
@@ -268,8 +336,10 @@ class LiquorlandScraper(Scraper):
                     "brand": brand,
                     "category": category,
                     "price_nzd": price,
-                    "promo_price_nzd": None,  # TODO: Extract promo pricing
-                    "promo_text": None,
+                    "promo_price_nzd": promo_price,
+                    "promo_text": promo_text,
+                    "promo_ends_at": promo_ends_at,
+                    "is_member_only": is_member_only,
                     "pack_count": volume.pack_count,
                     "unit_volume_ml": volume.unit_volume_ml,
                     "total_volume_ml": volume.total_volume_ml,
