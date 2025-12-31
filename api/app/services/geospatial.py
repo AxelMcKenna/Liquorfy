@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from typing import Iterable, List, Sequence, Tuple
+from typing import List, Sequence, Tuple
 
 EARTH_RADIUS_KM = 6371.0
 

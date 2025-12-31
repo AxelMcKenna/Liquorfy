@@ -1,6 +1,13 @@
 __pycache__/
 *.pyc
+
+# Environment files - NEVER commit these!
 .env
+.env.*
+!.env.example
+!.env.production.template
+.secret_key
+
 .venv/
 poetry.lock
 node_modules/

@@ -63,6 +63,38 @@ async def _params(
 
 @router.get("", response_model=ProductListResponse)
 async def list_products(params: ProductQueryParams = Depends(_params)) -> ProductListResponse:
+    # Allow location-optional queries ONLY for small promotional queries (landing page top deals)
+    # Benefits:
+    # - Lighter query that can be efficiently cached in Redis
+    # - Provides immediate value to users before they enable location
+    # - Nationwide deals query is the same for all users (high cache hit rate)
+    # - Still requires location for larger queries to prevent expensive DB operations
+    is_small_promo_query = params.promo_only and params.page_size <= 10 and params.page == 1
+    has_location = params.lat is not None and params.lon is not None and params.radius_km is not None
+
+    # Enforce location requirement for all queries EXCEPT small promo queries
+    if not has_location and not is_small_promo_query:
+        raise HTTPException(
+            status_code=400,
+            detail="Location parameters (lat, lon, radius_km) are required. Please enable location services."
+        )
+
+    # Validate location if provided
+    if has_location:
+        # Validate location is within New Zealand
+        if not (-47 <= params.lat <= -34 and 165 <= params.lon <= 179):
+            raise HTTPException(
+                status_code=400,
+                detail="Location must be within New Zealand"
+            )
+
+        # Enforce reasonable radius limit (max 50km)
+        if params.radius_km > 50:
+            raise HTTPException(
+                status_code=400,
+                detail="Search radius cannot exceed 50km"
+            )
+
     async with get_async_session() as session:
         cache_key = json.dumps(params.dict(), sort_keys=True)
 

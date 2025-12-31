@@ -258,29 +258,11 @@ CATEGORY_HIERARCHY = {
 }
 
 
-def get_parent_category(category: str) -> str | None:
-    """
-    Get the parent category for a given category.
-    Returns None if the category is already a top-level category.
-    """
-    return CATEGORY_HIERARCHY.get(category)
-
-
-def get_category_with_parent(category: str) -> tuple[str, str | None]:
-    """
-    Get both the specific category and its parent category.
-    Returns (category, parent_category) tuple.
-    """
-    return (category, get_parent_category(category))
-
-
 __all__ = [
     "parse_volume",
     "ParsedVolume",
     "extract_abv",
     "infer_brand",
     "infer_category",
-    "get_parent_category",
-    "get_category_with_parent",
     "CATEGORY_HIERARCHY",
 ]
