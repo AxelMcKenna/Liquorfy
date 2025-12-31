@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import logging
 from datetime import datetime
-from typing import Iterable, List
+from typing import Iterable, List, Optional
 from uuid import UUID
 
 from httpx import AsyncClient
@@ -107,6 +107,72 @@ class Scraper(abc.ABC):
                 run.status = "failed"
                 run.finished_at = datetime.utcnow()
             raise
+
+    def build_product_dict(
+        self,
+        *,
+        source_id: str,
+        name: str,
+        price_nzd: float,
+        promo_price_nzd: Optional[float] = None,
+        promo_text: Optional[str] = None,
+        promo_ends_at: Optional[datetime] = None,
+        is_member_only: bool = False,
+        url: Optional[str] = None,
+        image_url: Optional[str] = None,
+        brand: Optional[str] = None,
+        category: Optional[str] = None,
+        **kwargs  # Allow additional fields
+    ) -> dict:
+        """
+        Build standardized product dictionary with auto-parsing.
+
+        Automatically infers brand, category, volume, and ABV from name
+        if not explicitly provided.
+
+        Args:
+            source_id: Product ID from source website
+            name: Full product name
+            price_nzd: Regular price in NZD
+            promo_price_nzd: Promotional price (optional)
+            promo_text: Promotional text (optional)
+            promo_ends_at: Promo end date (optional)
+            is_member_only: Member-only pricing flag
+            url: Product URL
+            image_url: Product image URL
+            brand: Brand name (auto-inferred if None)
+            category: Category (auto-inferred if None)
+            **kwargs: Additional fields to include
+
+        Returns:
+            Standardized product dictionary
+        """
+        from app.services.parser_utils import (
+            parse_volume, extract_abv, infer_brand, infer_category
+        )
+
+        # Parse volume from name
+        volume = parse_volume(name)
+
+        return {
+            "chain": self.chain,
+            "source_id": source_id,
+            "name": name,
+            "brand": brand or infer_brand(name),
+            "category": category or infer_category(name),
+            "price_nzd": price_nzd,
+            "promo_price_nzd": promo_price_nzd,
+            "promo_text": promo_text[:255] if promo_text else None,
+            "promo_ends_at": promo_ends_at,
+            "is_member_only": is_member_only,
+            "pack_count": volume.pack_count,
+            "unit_volume_ml": volume.unit_volume_ml,
+            "total_volume_ml": volume.total_volume_ml,
+            "abv_percent": extract_abv(name),
+            "url": url,
+            "image_url": image_url,
+            **kwargs  # Additional fields
+        }
 
     async def _upsert_product_and_prices(
         self, session, product_data: dict, stores: List[Store]

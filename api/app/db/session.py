@@ -44,7 +44,7 @@ POOL_TIMEOUT = getattr(_settings, "db_pool_timeout", 30)
 
 # Engines
 _async_engine = create_async_engine(
-    _async_url.render_as_string(hide_password=False),
+    _async_url,
     echo=ECHO,
     pool_pre_ping=POOL_PRE_PING,
     pool_size=POOL_SIZE,
@@ -54,7 +54,7 @@ _async_engine = create_async_engine(
 )
 
 _sync_engine = create_engine(
-    _sync_url.render_as_string(hide_password=False),
+    _sync_url,
     echo=ECHO,
     pool_pre_ping=POOL_PRE_PING,
     pool_size=POOL_SIZE,

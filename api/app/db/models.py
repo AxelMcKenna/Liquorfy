@@ -21,6 +21,7 @@ class Store(Base):
     __tablename__ = "stores"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID_TYPE, primary_key=True, default=_uuid)
+    api_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)  # Store ID from API (e.g., PAK'nSAVE, New World APIs)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     chain: Mapped[str] = mapped_column(String(64), nullable=False)
     lat: Mapped[float] = mapped_column(Float, nullable=False)
@@ -31,7 +32,10 @@ class Store(Base):
 
     prices: Mapped[list["Price"]] = relationship(back_populates="store")
 
-    __table_args__ = (UniqueConstraint("chain", "name", name="uq_store_chain_name"),)
+    __table_args__ = (
+        UniqueConstraint("chain", "name", name="uq_store_chain_name"),
+        UniqueConstraint("chain", "api_id", name="uq_store_chain_api_id"),
+    )
 
 
 class Product(Base):

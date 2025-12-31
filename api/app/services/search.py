@@ -26,7 +26,32 @@ async def fetch_products(
         .join(Store, Store.id == Price.store_id)
     )
 
+    # Filter stores by location first if params provided
+    allowed_store_ids = None
+    if params.lat is not None and params.lon is not None and params.radius_km is not None:
+        # Get all stores
+        stores_result = await session.execute(select(Store))
+        all_stores = stores_result.scalars().all()
+
+        # Filter by radius using existing geospatial utility
+        store_distances = within_radius(
+            stores=[(str(store.id), store.lat, store.lon) for store in all_stores],
+            lat=params.lat,
+            lon=params.lon,
+            radius_km=params.radius_km,
+        )
+
+        # Extract store IDs within radius
+        allowed_store_ids = [UUID(store_id) for store_id, _ in store_distances]
+
+        # Early return if no stores in radius
+        if not allowed_store_ids:
+            return ProductListResponse(items=[], total=0, page=params.page, page_size=params.page_size)
+
     filters = []
+    # Add location-based store filter
+    if allowed_store_ids is not None:
+        filters.append(Store.id.in_(allowed_store_ids))
     if params.q:
         pattern = f"%{params.q.lower()}%"
         filters.append(
@@ -66,7 +91,9 @@ async def fetch_products(
     if params.price_max is not None:
         filters.append(Price.price_nzd <= params.price_max)
     if params.promo_only:
+        # Only return products with actual discounts (promo price < regular price)
         filters.append(Price.promo_price_nzd.is_not(None))
+        filters.append(Price.promo_price_nzd < Price.price_nzd)
 
     if filters:
         query = query.where(and_(*filters))

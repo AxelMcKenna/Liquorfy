@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 
 
 class ProductQueryParams(BaseModel):
@@ -24,7 +24,18 @@ class ProductQueryParams(BaseModel):
     page_size: int = 20
     lat: Optional[float] = None
     lon: Optional[float] = None
-    radius_km: Optional[float] = None
+    radius_km: Optional[float] = Field(None, ge=5, le=50)
+
+    @validator('radius_km')
+    @classmethod
+    def validate_location_params(cls, v: Optional[float], values) -> Optional[float]:
+        """Ensure lat and lon are provided when radius_km is set"""
+        if v is not None:
+            lat = values.get('lat')
+            lon = values.get('lon')
+            if lat is None or lon is None:
+                raise ValueError('lat and lon must be provided when radius_km is set')
+        return v
 
 
 __all__ = ["ProductQueryParams"]
