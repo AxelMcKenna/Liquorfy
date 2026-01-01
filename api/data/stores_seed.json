@@ -1,0 +1,227 @@
+[
+  {
+    "chain": "countdown",
+    "name": "Countdown Auckland City",
+    "address": "23 Quay Street, Auckland CBD",
+    "region": "Auckland",
+    "lat": -36.8447,
+    "lon": 174.7631,
+    "url": "https://www.countdown.co.nz/stores/auckland-city"
+  },
+  {
+    "chain": "countdown",
+    "name": "Countdown Newmarket",
+    "address": "277 Broadway, Newmarket, Auckland",
+    "region": "Auckland",
+    "lat": -36.8686,
+    "lon": 174.7761,
+    "url": "https://www.countdown.co.nz/stores/newmarket"
+  },
+  {
+    "chain": "countdown",
+    "name": "Countdown Wellington City",
+    "address": "2 Cable Street, Wellington",
+    "region": "Wellington",
+    "lat": -41.2925,
+    "lon": 174.7787,
+    "url": "https://www.countdown.co.nz/stores/wellington-city"
+  },
+  {
+    "chain": "countdown",
+    "name": "Countdown Christchurch Barrington",
+    "address": "183 Barrington Street, Christchurch",
+    "region": "Canterbury",
+    "lat": -43.5510,
+    "lon": 172.6181,
+    "url": "https://www.countdown.co.nz/stores/barrington"
+  },
+  {
+    "chain": "liquorland",
+    "name": "Liquorland Ponsonby",
+    "address": "140 Ponsonby Road, Auckland",
+    "region": "Auckland",
+    "lat": -36.8542,
+    "lon": 174.7464,
+    "url": "https://www.liquorland.co.nz/stores/ponsonby"
+  },
+  {
+    "chain": "liquorland",
+    "name": "Liquorland Thorndon",
+    "address": "24 Molesworth Street, Wellington",
+    "region": "Wellington",
+    "lat": -41.2765,
+    "lon": 174.7762,
+    "url": "https://www.liquorland.co.nz/stores/thorndon"
+  },
+  {
+    "chain": "liquorland",
+    "name": "Liquorland Riccarton",
+    "address": "129 Riccarton Road, Christchurch",
+    "region": "Canterbury",
+    "lat": -43.5298,
+    "lon": 172.6011,
+    "url": "https://www.liquorland.co.nz/stores/riccarton"
+  },
+  {
+    "chain": "liquorland",
+    "name": "Liquorland Hamilton Central",
+    "address": "391 Victoria Street, Hamilton",
+    "region": "Waikato",
+    "lat": -37.7870,
+    "lon": 175.2793,
+    "url": "https://www.liquorland.co.nz/stores/hamilton"
+  },
+  {
+    "chain": "super_liquor",
+    "name": "Super Liquor Mt Eden",
+    "address": "436 Mt Eden Road, Auckland",
+    "region": "Auckland",
+    "lat": -36.8830,
+    "lon": 174.7603,
+    "url": "https://www.superliquor.co.nz/stores/mt-eden"
+  },
+  {
+    "chain": "super_liquor",
+    "name": "Super Liquor Takapuna",
+    "address": "2 Hurstmere Road, Takapuna, Auckland",
+    "region": "Auckland",
+    "lat": -36.7870,
+    "lon": 174.7696,
+    "url": "https://www.superliquor.co.nz/stores/takapuna"
+  },
+  {
+    "chain": "super_liquor",
+    "name": "Super Liquor Courtenay Place",
+    "address": "88 Courtenay Place, Wellington",
+    "region": "Wellington",
+    "lat": -41.2935,
+    "lon": 174.7794,
+    "url": "https://www.superliquor.co.nz/stores/courtenay-place"
+  },
+  {
+    "chain": "super_liquor",
+    "name": "Super Liquor Merivale",
+    "address": "189 Papanui Road, Christchurch",
+    "region": "Canterbury",
+    "lat": -43.5156,
+    "lon": 172.6204,
+    "url": "https://www.superliquor.co.nz/stores/merivale"
+  },
+  {
+    "chain": "new_world",
+    "name": "New World Ponsonby",
+    "address": "126 Ponsonby Road, Auckland",
+    "region": "Auckland",
+    "lat": -36.8548,
+    "lon": 174.7469,
+    "url": "https://www.newworld.co.nz/stores/ponsonby"
+  },
+  {
+    "chain": "new_world",
+    "name": "New World Thorndon",
+    "address": "52 Molesworth Street, Wellington",
+    "region": "Wellington",
+    "lat": -41.2751,
+    "lon": 174.7757,
+    "url": "https://www.newworld.co.nz/stores/thorndon"
+  },
+  {
+    "chain": "new_world",
+    "name": "New World Ilam",
+    "address": "15 Clyde Road, Christchurch",
+    "region": "Canterbury",
+    "lat": -43.5230,
+    "lon": 172.5777,
+    "url": "https://www.newworld.co.nz/stores/ilam"
+  },
+  {
+    "chain": "pak_n_save",
+    "name": "PAK'nSAVE Sylvia Park",
+    "address": "286 Mt Wellington Highway, Auckland",
+    "region": "Auckland",
+    "lat": -36.9114,
+    "lon": 174.8396,
+    "url": "https://www.paknsave.co.nz/stores/sylvia-park"
+  },
+  {
+    "chain": "pak_n_save",
+    "name": "PAK'nSAVE Petone",
+    "address": "85 Jackson Street, Petone, Wellington",
+    "region": "Wellington",
+    "lat": -41.2274,
+    "lon": 174.8758,
+    "url": "https://www.paknsave.co.nz/stores/petone"
+  },
+  {
+    "chain": "pak_n_save",
+    "name": "PAK'nSAVE Wainoni",
+    "address": "199 Pages Road, Christchurch",
+    "region": "Canterbury",
+    "lat": -43.5198,
+    "lon": 172.6797,
+    "url": "https://www.paknsave.co.nz/stores/wainoni"
+  },
+  {
+    "chain": "bottle_o",
+    "name": "Bottle-O Parnell",
+    "address": "267 Parnell Road, Auckland",
+    "region": "Auckland",
+    "lat": -36.8590,
+    "lon": 174.7774,
+    "url": "https://www.bottle-o.co.nz/stores/parnell"
+  },
+  {
+    "chain": "bottle_o",
+    "name": "Bottle-O Kelburn",
+    "address": "92 Upland Road, Wellington",
+    "region": "Wellington",
+    "lat": -41.2796,
+    "lon": 174.7656,
+    "url": "https://www.bottle-o.co.nz/stores/kelburn"
+  },
+  {
+    "chain": "liquor_centre",
+    "name": "Liquor Centre Botany",
+    "address": "567 Ti Rakau Drive, Auckland",
+    "region": "Auckland",
+    "lat": -36.9234,
+    "lon": 174.9123,
+    "url": "https://www.liquorcentre.co.nz/stores/botany"
+  },
+  {
+    "chain": "liquor_centre",
+    "name": "Liquor Centre Hornby",
+    "address": "68 Main South Road, Christchurch",
+    "region": "Canterbury",
+    "lat": -43.5507,
+    "lon": 172.5207,
+    "url": "https://www.liquorcentre.co.nz/stores/hornby"
+  },
+  {
+    "chain": "glengarry",
+    "name": "Glengarry Victoria Park",
+    "address": "119 Victoria Street West, Auckland",
+    "region": "Auckland",
+    "lat": -36.8525,
+    "lon": 174.7548,
+    "url": "https://www.glengarry.co.nz/stores/victoria-park"
+  },
+  {
+    "chain": "glengarry",
+    "name": "Glengarry Thorndon",
+    "address": "Corner Hill & Tinakori Streets, Wellington",
+    "region": "Wellington",
+    "lat": -41.2743,
+    "lon": 174.7724,
+    "url": "https://www.glengarry.co.nz/stores/thorndon"
+  },
+  {
+    "chain": "glengarry",
+    "name": "Glengarry Dunedin",
+    "address": "342 George Street, Dunedin",
+    "region": "Otago",
+    "lat": -45.8741,
+    "lon": 170.5034,
+    "url": "https://www.glengarry.co.nz/stores/dunedin"
+  }
+]

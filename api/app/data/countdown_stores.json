@@ -1,0 +1,2257 @@
+[
+  {
+    "id": "9011",
+    "name": "Paeroa Woolworths",
+    "suburb": "Paeroa",
+    "state": "WKO",
+    "postcode": "3600",
+    "facilities": [
+      "Rug Doctor",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9013",
+    "name": "Waitangi Woolworths",
+    "suburb": "Paihia",
+    "state": "NTL",
+    "postcode": "204",
+    "facilities": [
+      "Fresh flowers",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9014",
+    "name": "Roselands Mall Woolworths",
+    "suburb": "Papakura",
+    "state": "AUK",
+    "postcode": "2110",
+    "facilities": [
+      "ATM",
+      "Soft plastic recycling",
+      "Rug Doctor",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9030",
+    "name": "Waiheke Island Woolworths",
+    "suburb": "Ostend",
+    "state": "AUK",
+    "postcode": "1081",
+    "facilities": [
+      "EV Charging",
+      "Rug Doctor",
+      "Fresh flowers",
+      "ATM",
+      "Soft plastic recycling"
+    ]
+  },
+  {
+    "id": "9031",
+    "name": "Crofton Downs Woolworths",
+    "suburb": "Crofton Downs",
+    "state": "WGN",
+    "postcode": "6035",
+    "facilities": [
+      "Rug Doctor",
+      "Soft plastic recycling",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9032",
+    "name": "Dargaville Woolworths",
+    "suburb": "Dargaville",
+    "state": "NTL",
+    "postcode": "310",
+    "facilities": [
+      "Soft plastic recycling",
+      "Fresh flowers",
+      "Rug Doctor",
+      "ATM",
+      "Supergold card"
+    ]
+  },
+  {
+    "id": "9033",
+    "name": "Bridge Street Woolworths",
+    "suburb": "Hamilton",
+    "state": "WKO",
+    "postcode": "3204",
+    "facilities": [
+      "EV Charging",
+      "Fresh flowers",
+      "ATM",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9034",
+    "name": "Mount Roskill Woolworths",
+    "suburb": "Mt Roskill, Auckland",
+    "state": "AUK",
+    "postcode": "1041",
+    "facilities": [
+      "Rug Doctor",
+      "ATM",
+      "Fresh flowers",
+      "Soft plastic recycling"
+    ]
+  },
+  {
+    "id": "9037",
+    "name": "Rototuna Woolworths",
+    "suburb": "Rototuna North",
+    "state": "WKO",
+    "postcode": "3210",
+    "facilities": [
+      "Fresh flowers",
+      "Rug Doctor",
+      "Soft plastic recycling",
+      "EV Charging"
+    ]
+  },
+  {
+    "id": "9038",
+    "name": "Lincoln Road Woolworths",
+    "suburb": "Henderson",
+    "state": "AUK",
+    "postcode": "610",
+    "facilities": [
+      "ATM",
+      "Fresh flowers",
+      "Supergold card",
+      "Rug Doctor",
+      "Soft plastic recycling"
+    ]
+  },
+  {
+    "id": "9040",
+    "name": "Richmond Woolworths",
+    "suburb": "Richmond",
+    "state": "NSN",
+    "postcode": "7020",
+    "facilities": [
+      "EV Charging"
+    ]
+  },
+  {
+    "id": "9048",
+    "name": "Regent Woolworths",
+    "suburb": "Regent, Whangarei",
+    "state": "NTL",
+    "postcode": "112",
+    "facilities": [
+      "Fresh flowers",
+      "Supergold card",
+      "Soft plastic recycling",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9049",
+    "name": "Whitianga Woolworths",
+    "suburb": "Whitianga",
+    "state": "WKO",
+    "postcode": "3510",
+    "facilities": [
+      "Rug Doctor",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9050",
+    "name": "Bureta Park Woolworths",
+    "suburb": "Tauranga",
+    "state": "BOP",
+    "postcode": "3110",
+    "facilities": [
+      "Fresh flowers",
+      "Supergold card",
+      "Rug Doctor",
+      "ATM"
+    ]
+  },
+  {
+    "id": "9057",
+    "name": "Ponsonby Woolworths",
+    "suburb": "Ponsonby",
+    "state": "AUK",
+    "postcode": "1021",
+    "facilities": [
+      "Scan and go",
+      "Rug Doctor",
+      "Soft plastic recycling",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9058",
+    "name": "Queenstown Woolworths",
+    "suburb": "Frankton, Queenstown",
+    "state": "OTA",
+    "postcode": "9300",
+    "facilities": [
+      "Fresh flowers",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9060",
+    "name": "Hauraki Corner Woolworths",
+    "suburb": "Hauraki",
+    "state": "AUK",
+    "postcode": "622",
+    "facilities": [
+      "Rug Doctor",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9061",
+    "name": "Orewa Woolworths",
+    "suburb": "Orewa",
+    "state": "AUK",
+    "postcode": "931",
+    "facilities": [
+      "Supergold card",
+      "Fresh flowers",
+      "Rug Doctor",
+      "ATM",
+      "Soft plastic recycling"
+    ]
+  },
+  {
+    "id": "9062",
+    "name": "Stratford Woolworths",
+    "suburb": "Stratford",
+    "state": "TKI",
+    "postcode": "4332",
+    "facilities": [
+      "Soft plastic recycling",
+      "Rug Doctor",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9063",
+    "name": "Vogeltown Woolworths",
+    "suburb": "Vogeltown, New Plymouth",
+    "state": "MWT",
+    "postcode": "4310",
+    "facilities": [
+      "Fresh flowers",
+      "ATM",
+      "Soft plastic recycling",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9064",
+    "name": "Northwest Woolworths",
+    "suburb": "Westgate, Massey",
+    "state": "AUK",
+    "postcode": "814",
+    "facilities": [
+      "Fresh flowers",
+      "Rug Doctor",
+      "Soft plastic recycling"
+    ]
+  },
+  {
+    "id": "9065",
+    "name": "Wainuiomata Woolworths",
+    "suburb": "Lower Hutt",
+    "state": "WGN",
+    "postcode": "5014",
+    "facilities": [
+      "Supergold card"
+    ]
+  },
+  {
+    "id": "9066",
+    "name": "Cable Car Lane Woolworths",
+    "suburb": "Wellington",
+    "state": "WGN",
+    "postcode": "6011",
+    "facilities": [
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9068",
+    "name": "Grey Lynn Woolworths",
+    "suburb": "Grey Lynn, Auckland",
+    "state": "AUK",
+    "postcode": "1022",
+    "facilities": [
+      "ATM",
+      "Fresh flowers",
+      "Soft plastic recycling",
+      "Scan and go",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9069",
+    "name": "Awapuni Woolworths",
+    "suburb": "Palmerston North",
+    "state": "MWT",
+    "postcode": "4412",
+    "facilities": [
+      "Supergold card"
+    ]
+  },
+  {
+    "id": "9077",
+    "name": "Waimakariri Junction Woolworths",
+    "suburb": "Kaiapoi, Waimakariri",
+    "state": "CAN",
+    "postcode": "7630",
+    "facilities": []
+  },
+  {
+    "id": "9090",
+    "name": "Christchurch Airport Woolworths",
+    "suburb": "Christchurch",
+    "state": "CAN",
+    "postcode": "8053",
+    "facilities": [
+      "Soft plastic recycling",
+      "Supergold card",
+      "Rug Doctor",
+      "ATM",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9091",
+    "name": "Onehunga Woolworths",
+    "suburb": "Onehunga, Auckland",
+    "state": "AUK",
+    "postcode": "1061",
+    "facilities": [
+      "Rug Doctor",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9092",
+    "name": "Gore Woolworths",
+    "suburb": "Gore",
+    "state": "STL",
+    "postcode": "9710",
+    "facilities": [
+      "ATM",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9094",
+    "name": "Auckland City Woolworths",
+    "suburb": "Auckland",
+    "state": "AUK",
+    "postcode": "1010",
+    "facilities": [
+      "Rug Doctor",
+      "Scan and go",
+      "Soft plastic recycling",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9095",
+    "name": "Putaruru Woolworths",
+    "suburb": "Putaruru",
+    "state": "WKO",
+    "postcode": "3411",
+    "facilities": [
+      "Fresh flowers",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9096",
+    "name": "Manukau City Mall Woolworths",
+    "suburb": "Manukau",
+    "state": "AUK",
+    "postcode": "2104",
+    "facilities": [
+      "Rug Doctor",
+      "Fresh flowers",
+      "Soft plastic recycling"
+    ]
+  },
+  {
+    "id": "9098",
+    "name": "Masterton Woolworths",
+    "suburb": "Masterton",
+    "state": "WGN",
+    "postcode": "5810",
+    "facilities": [
+      "Rug Doctor",
+      "Supergold card",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9100",
+    "name": "The Palms Woolworths",
+    "suburb": "Shirley",
+    "state": "CAN",
+    "postcode": "8061",
+    "facilities": [
+      "Fresh flowers",
+      "Supergold card",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9102",
+    "name": "Levin Woolworths",
+    "suburb": "Levin",
+    "state": "MWT",
+    "postcode": "5510",
+    "facilities": [
+      "Supergold card",
+      "Fresh flowers",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9103",
+    "name": "St James Woolworths",
+    "suburb": "Rototuna, Hamilton",
+    "state": "WKO",
+    "postcode": "3210",
+    "facilities": [
+      "Rug Doctor",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9106",
+    "name": "Papatoetoe Woolworths",
+    "suburb": "Papatoetoe",
+    "state": "AUK",
+    "postcode": "2025",
+    "facilities": [
+      "Fresh flowers",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9107",
+    "name": "Pukekohe South Woolworths",
+    "suburb": "Pukekohe",
+    "state": "AUK",
+    "postcode": "2120",
+    "facilities": [
+      "Soft plastic recycling",
+      "Fresh flowers",
+      "Rug Doctor",
+      "ATM"
+    ]
+  },
+  {
+    "id": "9113",
+    "name": "Fraser Cove Woolworths",
+    "suburb": "Tauranga",
+    "state": "BOP",
+    "postcode": "3112",
+    "facilities": [
+      "ATM",
+      "Fresh flowers",
+      "Supergold card",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9114",
+    "name": "Morrinsville Woolworths",
+    "suburb": "Morrinsville",
+    "state": "WKO",
+    "postcode": "3300",
+    "facilities": [
+      "Fresh flowers",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9115",
+    "name": "Ashburton South Woolworths",
+    "suburb": "Ashburton",
+    "state": "CAN",
+    "postcode": "7700",
+    "facilities": [
+      "Rug Doctor",
+      "Fresh flowers",
+      "Supergold card",
+      "ATM"
+    ]
+  },
+  {
+    "id": "9117",
+    "name": "Kaikohe Woolworths",
+    "suburb": "Kaikohe",
+    "state": "NTL",
+    "postcode": "405",
+    "facilities": [
+      "Rug Doctor",
+      "Supergold card",
+      "Fresh flowers",
+      "Soft plastic recycling"
+    ]
+  },
+  {
+    "id": "9118",
+    "name": "Mosgiel Woolworths",
+    "suburb": "Mosgiel, Dunedin",
+    "state": "OTA",
+    "postcode": "9024",
+    "facilities": [
+      "Rug Doctor",
+      "Supergold card",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9119",
+    "name": "Rangitikei St Woolworths",
+    "suburb": "Palmerston North",
+    "state": "MWT",
+    "postcode": "4471",
+    "facilities": [
+      "Rug Doctor",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9120",
+    "name": "Matamata Woolworths",
+    "suburb": "Matamata",
+    "state": "WKO",
+    "postcode": "3400",
+    "facilities": [
+      "Fresh flowers",
+      "Soft plastic recycling",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9121",
+    "name": "Hornby Woolworths",
+    "suburb": "Hornby, Christchurch",
+    "state": "CAN",
+    "postcode": "8042",
+    "facilities": [
+      "Rug Doctor",
+      "Soft plastic recycling",
+      "Supergold card",
+      "Fresh flowers",
+      "ATM"
+    ]
+  },
+  {
+    "id": "9123",
+    "name": "Pt Chevalier Woolworths",
+    "suburb": "Point Chevalier, Auckland",
+    "state": "AUK",
+    "postcode": "1022",
+    "facilities": [
+      "Fresh flowers",
+      "Scan and go",
+      "Soft plastic recycling",
+      "ATM",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9124",
+    "name": "Tikipunga Woolworths",
+    "suburb": "Tikipunga, Whangarei",
+    "state": "NTL",
+    "postcode": "112",
+    "facilities": [
+      "ATM",
+      "Supergold card",
+      "Fresh flowers",
+      "Rug Doctor",
+      "Soft plastic recycling"
+    ]
+  },
+  {
+    "id": "9125",
+    "name": "Greerton Woolworths",
+    "suburb": "Tauranga",
+    "state": "BOP",
+    "postcode": "3112",
+    "facilities": [
+      "Supergold card",
+      "Rug Doctor",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9128",
+    "name": "Greenlane Woolworths",
+    "suburb": "Greenlane, Auckland",
+    "state": "AUK",
+    "postcode": "1051",
+    "facilities": [
+      "Fresh flowers",
+      "Rug Doctor",
+      "ATM",
+      "Soft plastic recycling"
+    ]
+  },
+  {
+    "id": "9129",
+    "name": "Victoria Ave Woolworths",
+    "suburb": "Wanganui",
+    "state": "MWT",
+    "postcode": "4500",
+    "facilities": [
+      "Supergold card",
+      "Rug Doctor",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9130",
+    "name": "Carlyle Woolworths",
+    "suburb": "Napier",
+    "state": "HKB",
+    "postcode": "4110",
+    "facilities": [
+      "Rug Doctor",
+      "ATM",
+      "Fresh flowers",
+      "Supergold card"
+    ]
+  },
+  {
+    "id": "9131",
+    "name": "Rolleston Woolworths",
+    "suburb": "Rolleston, Christchurch",
+    "state": "CAN",
+    "postcode": "7614",
+    "facilities": [
+      "Fresh flowers",
+      "Supergold card",
+      "Rug Doctor",
+      "Soft plastic recycling"
+    ]
+  },
+  {
+    "id": "9133",
+    "name": "The Valley Woolworths",
+    "suburb": "Waiwhakaiho, New Plymouth",
+    "state": "TKI",
+    "postcode": "4312",
+    "facilities": [
+      "Rug Doctor",
+      "Fresh flowers",
+      "Soft plastic recycling"
+    ]
+  },
+  {
+    "id": "9136",
+    "name": "Napier Woolworths",
+    "suburb": "Napier",
+    "state": "HKB",
+    "postcode": "4110",
+    "facilities": [
+      "ATM",
+      "Supergold card",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9140",
+    "name": "Lynfield Woolworths",
+    "suburb": "Lynfield",
+    "state": "AUK",
+    "postcode": "1041",
+    "facilities": [
+      "Fresh flowers",
+      "Soft plastic recycling",
+      "Rug Doctor",
+      "ATM"
+    ]
+  },
+  {
+    "id": "9141",
+    "name": "Botany Downs Woolworths",
+    "suburb": "Botany Downs",
+    "state": "AUK",
+    "postcode": "2010",
+    "facilities": [
+      "Rug Doctor",
+      "Soft plastic recycling",
+      "ATM",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9142",
+    "name": "Highland Park Woolworths",
+    "suburb": "Highland Park",
+    "state": "AUK",
+    "postcode": "2010",
+    "facilities": [
+      "Fresh flowers",
+      "ATM",
+      "Rug Doctor",
+      "Soft plastic recycling"
+    ]
+  },
+  {
+    "id": "9143",
+    "name": "Bethlehem Woolworths",
+    "suburb": "Tauranga",
+    "state": "BOP",
+    "postcode": "3110",
+    "facilities": [
+      "Fresh flowers",
+      "Rug Doctor",
+      "ATM",
+      "Soft plastic recycling",
+      "Supergold card"
+    ]
+  },
+  {
+    "id": "9144",
+    "name": "Papakura Woolworths",
+    "suburb": "Papakura",
+    "state": "AUK",
+    "postcode": "2110",
+    "facilities": [
+      "Rug Doctor",
+      "Soft plastic recycling",
+      "ATM",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9145",
+    "name": "Birkenhead Woolworths",
+    "suburb": "Birkenhead",
+    "state": "AUK",
+    "postcode": "626",
+    "facilities": [
+      "Fresh flowers",
+      "Soft plastic recycling",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9146",
+    "name": "Kelston Woolworths",
+    "suburb": "Glen Eden",
+    "state": "AUK",
+    "postcode": "602",
+    "facilities": [
+      "Rug Doctor",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9147",
+    "name": "Westgate Woolworths",
+    "suburb": "Massey",
+    "state": "AUK",
+    "postcode": "614",
+    "facilities": [
+      "Fresh flowers",
+      "ATM",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9149",
+    "name": "Lynnmall Woolworths",
+    "suburb": "New Lynn",
+    "state": "AUK",
+    "postcode": "600",
+    "facilities": [
+      "Soft plastic recycling",
+      "Fresh flowers",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9151",
+    "name": "Whanganui Woolworths",
+    "suburb": "Whanganui",
+    "state": "MWT",
+    "postcode": "4500",
+    "facilities": [
+      "Rug Doctor",
+      "ATM",
+      "Supergold card",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9153",
+    "name": "Cambridge Woolworths",
+    "suburb": "Cambridge",
+    "state": "WKO",
+    "postcode": "3434",
+    "facilities": [
+      "ATM",
+      "Fresh flowers",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9154",
+    "name": "Porirua Woolworths",
+    "suburb": "Porirua",
+    "state": "WGN",
+    "postcode": "5022",
+    "facilities": [
+      "Rug Doctor",
+      "Supergold card",
+      "Fresh flowers",
+      "ATM"
+    ]
+  },
+  {
+    "id": "9155",
+    "name": "Palmerston North Woolworths",
+    "suburb": "Palmerston North",
+    "state": "MWT",
+    "postcode": "4410",
+    "facilities": [
+      "Supergold card",
+      "Fresh flowers",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9156",
+    "name": "Lower Hutt Woolworths",
+    "suburb": "Lower Hutt",
+    "state": "WGN",
+    "postcode": "5010",
+    "facilities": [
+      "Fresh flowers",
+      "ATM",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9157",
+    "name": "Upper Hutt Woolworths",
+    "suburb": "Upper Hutt",
+    "state": "WGN",
+    "postcode": "5372",
+    "facilities": [
+      "ATM",
+      "Supergold card",
+      "Fresh flowers",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9158",
+    "name": "Johnsonville Mall Woolworths",
+    "suburb": "Johnsonville",
+    "state": "WGN",
+    "postcode": "6037",
+    "facilities": [
+      "Fresh flowers",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9159",
+    "name": "Nelson Woolworths",
+    "suburb": "Nelson",
+    "state": "NSN",
+    "postcode": "7010",
+    "facilities": [
+      "ATM",
+      "Fresh flowers",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9160",
+    "name": "Blenheim Woolworths",
+    "suburb": "Blenheim",
+    "state": "MBH",
+    "postcode": "7201",
+    "facilities": [
+      "Rug Doctor",
+      "Fresh flowers",
+      "Supergold card",
+      "ATM"
+    ]
+  },
+  {
+    "id": "9161",
+    "name": "Manukau Woolworths",
+    "suburb": "Manukau",
+    "state": "AUK",
+    "postcode": "2104",
+    "facilities": [
+      "Soft plastic recycling",
+      "Rug Doctor",
+      "Fresh flowers",
+      "ATM"
+    ]
+  },
+  {
+    "id": "9162",
+    "name": "Tauranga Woolworths",
+    "suburb": "Tauranga",
+    "state": "BOP",
+    "postcode": "3112",
+    "facilities": [
+      "Fresh flowers",
+      "Rug Doctor",
+      "Supergold card"
+    ]
+  },
+  {
+    "id": "9163",
+    "name": "Glenfield Woolworths",
+    "suburb": "Glenfield",
+    "state": "AUK",
+    "postcode": "629",
+    "facilities": [
+      "Fresh flowers",
+      "Rug Doctor",
+      "Soft plastic recycling"
+    ]
+  },
+  {
+    "id": "9164",
+    "name": "Huntly Woolworths",
+    "suburb": "Huntly",
+    "state": "WKO",
+    "postcode": "3700",
+    "facilities": [
+      "Rug Doctor",
+      "Fresh flowers",
+      "EV Charging",
+      "Soft plastic recycling"
+    ]
+  },
+  {
+    "id": "9168",
+    "name": "Stoke Woolworths",
+    "suburb": "Stoke",
+    "state": "NSN",
+    "postcode": "7011",
+    "facilities": [
+      "Fresh flowers",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9169",
+    "name": "Moorhouse Ave Woolworths",
+    "suburb": "Christchurch",
+    "state": "CAN",
+    "postcode": "8011",
+    "facilities": [
+      "Supergold card",
+      "Fresh flowers",
+      "Rug Doctor",
+      "Soft plastic recycling"
+    ]
+  },
+  {
+    "id": "9170",
+    "name": "Whakatane Woolworths",
+    "suburb": "Whakatane",
+    "state": "BOP",
+    "postcode": "3120",
+    "facilities": [
+      "Soft plastic recycling",
+      "Fresh flowers",
+      "ATM",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9171",
+    "name": "Greville Road Woolworths",
+    "suburb": "Pinehill",
+    "state": "AUK",
+    "postcode": "632",
+    "facilities": [
+      "Liquor",
+      "Scan and go",
+      "Seafood",
+      "Fresh Bakery"
+    ]
+  },
+  {
+    "id": "9173",
+    "name": "Fairy Springs Woolworths",
+    "suburb": "Rotorua",
+    "state": "BOP",
+    "postcode": "3015",
+    "facilities": [
+      "Fresh flowers",
+      "Rug Doctor",
+      "ATM",
+      "Supergold card"
+    ]
+  },
+  {
+    "id": "9174",
+    "name": "Northlands Woolworths",
+    "suburb": "Papanui, Christchurch",
+    "state": "CAN",
+    "postcode": "8051",
+    "facilities": [
+      "Rug Doctor",
+      "Fresh flowers",
+      "Supergold card"
+    ]
+  },
+  {
+    "id": "9175",
+    "name": "Kaiapoi Woolworths",
+    "suburb": "Kaiapoi",
+    "state": "CAN",
+    "postcode": "7630",
+    "facilities": [
+      "ATM",
+      "Supergold card",
+      "Rug Doctor",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9176",
+    "name": "Church Corner Woolworths",
+    "suburb": "Riccarton, Christchurch",
+    "state": "CAN",
+    "postcode": "8041",
+    "facilities": [
+      "ATM",
+      "Rug Doctor",
+      "Supergold card",
+      "Soft plastic recycling",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9177",
+    "name": "Beachlands Woolworths",
+    "suburb": "Beachlands",
+    "state": "AUK",
+    "postcode": "2018",
+    "facilities": [
+      "Fresh flowers",
+      "Soft plastic recycling",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9178",
+    "name": "Eastgate Woolworths",
+    "suburb": "Linwood, Christchurch",
+    "state": "CAN",
+    "postcode": "8062",
+    "facilities": [
+      "Fresh flowers",
+      "Rug Doctor",
+      "Supergold card"
+    ]
+  },
+  {
+    "id": "9180",
+    "name": "Woolworths Colombo St",
+    "suburb": "Christchurch",
+    "state": "CAN",
+    "postcode": "8023",
+    "facilities": [
+      "Fresh flowers",
+      "Soft plastic recycling",
+      "Supergold card",
+      "ATM",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9181",
+    "name": "Ashburton Woolworths",
+    "suburb": "Ashburton",
+    "state": "CAN",
+    "postcode": "7700",
+    "facilities": [
+      "Fresh flowers",
+      "Supergold card",
+      "Rug Doctor",
+      "ATM"
+    ]
+  },
+  {
+    "id": "9182",
+    "name": "Oamaru Woolworths",
+    "suburb": "Oamaru",
+    "state": "OTA",
+    "postcode": "9400",
+    "facilities": [
+      "Rug Doctor",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9183",
+    "name": "Timaru Woolworths",
+    "suburb": "Timaru",
+    "state": "CAN",
+    "postcode": "7910",
+    "facilities": [
+      "Fresh flowers",
+      "Rug Doctor",
+      "ATM"
+    ]
+  },
+  {
+    "id": "9185",
+    "name": "Mailer St Woolworths",
+    "suburb": "Dunedin",
+    "state": "OTA",
+    "postcode": "9011",
+    "facilities": [
+      "Fresh flowers",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9189",
+    "name": "Rotorua Woolworths",
+    "suburb": "Rotorua",
+    "state": "BOP",
+    "postcode": "3010",
+    "facilities": [
+      "ATM",
+      "Soft plastic recycling",
+      "Rug Doctor",
+      "Supergold card",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9190",
+    "name": "Dunedin Central Woolworths",
+    "suburb": "Dunedin",
+    "state": "OTA",
+    "postcode": "9016",
+    "facilities": [
+      "Rug Doctor",
+      "Fresh flowers",
+      "Supergold card",
+      "ATM"
+    ]
+  },
+  {
+    "id": "9191",
+    "name": "Invercargill Woolworths",
+    "suburb": "Invercargill",
+    "state": "STL",
+    "postcode": "9810",
+    "facilities": [
+      "Supergold card",
+      "Fresh flowers",
+      "Rug Doctor",
+      "ATM"
+    ]
+  },
+  {
+    "id": "9192",
+    "name": "Hamilton Woolworths",
+    "suburb": "Hamilton",
+    "state": "WKO",
+    "postcode": "3204",
+    "facilities": [
+      "Rug Doctor",
+      "EV Charging",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9193",
+    "name": "Mount Wellington Woolworths",
+    "suburb": "Mt Wellington",
+    "state": "AUK",
+    "postcode": "1060",
+    "facilities": [
+      "Fresh flowers",
+      "Rug Doctor",
+      "ATM",
+      "Soft plastic recycling"
+    ]
+  },
+  {
+    "id": "9194",
+    "name": "Henderson Woolworths",
+    "suburb": "Henderson",
+    "state": "AUK",
+    "postcode": "612",
+    "facilities": [
+      "Rug Doctor",
+      "Soft plastic recycling",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9195",
+    "name": "Whangarei Woolworths",
+    "suburb": "Whangarei",
+    "state": "NTL",
+    "postcode": "110",
+    "facilities": [
+      "Fresh flowers",
+      "ATM",
+      "Rug Doctor",
+      "Soft plastic recycling"
+    ]
+  },
+  {
+    "id": "9197",
+    "name": "Sunnynook Woolworths",
+    "suburb": "Sunnynook",
+    "state": "AUK",
+    "postcode": "620",
+    "facilities": [
+      "ATM",
+      "Soft plastic recycling",
+      "Fresh flowers",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9198",
+    "name": "Milford Woolworths",
+    "suburb": "Milford",
+    "state": "AUK",
+    "postcode": "620",
+    "facilities": [
+      "Rug Doctor",
+      "Supergold card",
+      "Fresh flowers",
+      "Soft plastic recycling"
+    ]
+  },
+  {
+    "id": "9199",
+    "name": "Pukekohe Woolworths",
+    "suburb": "Pukekohe",
+    "state": "AUK",
+    "postcode": "2120",
+    "facilities": [
+      "Fresh flowers",
+      "ATM",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9202",
+    "name": "Takanini Woolworths",
+    "suburb": "Takanini",
+    "state": "AUK",
+    "postcode": "2112",
+    "facilities": [
+      "Soft plastic recycling",
+      "Fresh flowers",
+      "Rug Doctor",
+      "ATM",
+      "Liquor"
+    ]
+  },
+  {
+    "id": "9204",
+    "name": "Pakuranga Woolworths",
+    "suburb": "Pakuranga",
+    "state": "AUK",
+    "postcode": "2010",
+    "facilities": [
+      "Rug Doctor",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9206",
+    "name": "Te Atatu South Woolworths",
+    "suburb": "Te Atatu South",
+    "state": "AUK",
+    "postcode": "610",
+    "facilities": [
+      "Rug Doctor",
+      "Fresh flowers",
+      "ATM"
+    ]
+  },
+  {
+    "id": "9211",
+    "name": "Blockhouse Bay Woolworths",
+    "suburb": "Blockhouse Bay",
+    "state": "AUK",
+    "postcode": "600",
+    "facilities": [
+      "Fresh flowers",
+      "Supergold card",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9212",
+    "name": "Redwoodtown Woolworths",
+    "suburb": "Blenheim",
+    "state": "MBH",
+    "postcode": "7201",
+    "facilities": [
+      "Fresh flowers",
+      "Rug Doctor",
+      "Supergold card"
+    ]
+  },
+  {
+    "id": "9213",
+    "name": "Timaru North Woolworths",
+    "suburb": "Timaru",
+    "state": "CAN",
+    "postcode": "7910",
+    "facilities": [
+      "Seafood",
+      "Fresh Bakery",
+      "Liquor"
+    ]
+  },
+  {
+    "id": "9216",
+    "name": "St Lukes Woolworths",
+    "suburb": "Mt Albert, Auckland",
+    "state": "AUK",
+    "postcode": "1025",
+    "facilities": [
+      "Rug Doctor",
+      "Soft plastic recycling",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9221",
+    "name": "Chartwell Woolworths",
+    "suburb": "Chartwell, Hamilton",
+    "state": "WKO",
+    "postcode": "3210",
+    "facilities": [
+      "Rug Doctor",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9224",
+    "name": "Browns Bay Woolworths",
+    "suburb": "Browns Bay",
+    "state": "AUK",
+    "postcode": "630",
+    "facilities": [
+      "Supergold card",
+      "Fresh flowers",
+      "Rug Doctor",
+      "Soft plastic recycling"
+    ]
+  },
+  {
+    "id": "9233",
+    "name": "Pokeno Woolworths",
+    "suburb": "Pokeno",
+    "state": "WKO",
+    "postcode": "2402",
+    "facilities": [
+      "Fresh flowers",
+      "Rug Doctor",
+      "Scan and go",
+      "EV Charging"
+    ]
+  },
+  {
+    "id": "9235",
+    "name": "Mount Eden Woolworths",
+    "suburb": "Mt Eden, Auckland",
+    "state": "AUK",
+    "postcode": "1024",
+    "facilities": [
+      "Soft plastic recycling",
+      "Rug Doctor",
+      "ATM",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9237",
+    "name": "Takapuna Woolworths",
+    "suburb": "Takapuna",
+    "state": "AUK",
+    "postcode": "622",
+    "facilities": [
+      "Fresh flowers",
+      "Rug Doctor",
+      "ATM",
+      "Soft plastic recycling"
+    ]
+  },
+  {
+    "id": "9238",
+    "name": "Gisborne Woolworths",
+    "suburb": "Gisborne",
+    "state": "GIS",
+    "postcode": "4010",
+    "facilities": [
+      "Fresh Bakery",
+      "Liquor",
+      "Seafood"
+    ]
+  },
+  {
+    "id": "9242",
+    "name": "Whangaparaoa Woolworths",
+    "suburb": "Whangaparaoa",
+    "state": "AUK",
+    "postcode": "943",
+    "facilities": [
+      "Fresh flowers",
+      "Rug Doctor",
+      "Soft plastic recycling",
+      "Supergold card"
+    ]
+  },
+  {
+    "id": "9243",
+    "name": "Howick Woolworths",
+    "suburb": "Howick",
+    "state": "AUK",
+    "postcode": "2014",
+    "facilities": [
+      "Rug Doctor",
+      "Fresh flowers",
+      "Supergold card"
+    ]
+  },
+  {
+    "id": "9248",
+    "name": "Mairangi Bay Woolworths",
+    "suburb": "Mairangi Bay",
+    "state": "AUK",
+    "postcode": "630",
+    "facilities": [
+      "Rug Doctor",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9249",
+    "name": "Metro Herne Bay",
+    "suburb": "Herne Bay",
+    "state": "AUK",
+    "postcode": "1011",
+    "facilities": []
+  },
+  {
+    "id": "9282",
+    "name": "Te Rapa Woolworths",
+    "suburb": "Te Rapa, Hamilton",
+    "state": "WKO",
+    "postcode": "3200",
+    "facilities": [
+      "ATM",
+      "Fresh flowers",
+      "Rug Doctor",
+      "Soft plastic recycling"
+    ]
+  },
+  {
+    "id": "9283",
+    "name": "Metro Auckland Victoria Street West",
+    "suburb": "Auckland",
+    "state": "AUK",
+    "postcode": "1010",
+    "facilities": [
+      "Fresh flowers",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9284",
+    "name": "Rangiora East Woolworths",
+    "suburb": "Rangiora, Christchurch",
+    "state": "CAN",
+    "postcode": "7400",
+    "facilities": [
+      "Supergold card",
+      "ATM",
+      "Fresh flowers",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9290",
+    "name": "Nelson Junction Woolworths",
+    "suburb": "Nelson",
+    "state": "NSN",
+    "postcode": "7010",
+    "facilities": []
+  },
+  {
+    "id": "9292",
+    "name": "Ferrymead Woolworths",
+    "suburb": "Ferrymead, Christchurch",
+    "state": "CAN",
+    "postcode": "8023",
+    "facilities": [
+      "Fresh flowers",
+      "Rug Doctor",
+      "Supergold card"
+    ]
+  },
+  {
+    "id": "9293",
+    "name": "Taupo Central Woolworths",
+    "suburb": "Taupo",
+    "state": "WKO",
+    "postcode": "3330",
+    "facilities": [
+      "Fresh Bakery",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9400",
+    "name": "Manurewa Woolworths",
+    "suburb": "Manurewa",
+    "state": "AUK",
+    "postcode": "2102",
+    "facilities": [
+      "ATM",
+      "Fresh flowers",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9405",
+    "name": "Newmarket Woolworths",
+    "suburb": "Newmarket",
+    "state": "AUK",
+    "postcode": "1023",
+    "facilities": [
+      "Soft plastic recycling",
+      "Fresh flowers",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9414",
+    "name": "Taupo South Woolworths",
+    "suburb": "Taupo",
+    "state": "WKO",
+    "postcode": "3330",
+    "facilities": [
+      "Seafood",
+      "Liquor",
+      "Fresh Bakery"
+    ]
+  },
+  {
+    "id": "9415",
+    "name": "Bayfair Woolworths",
+    "suburb": "Mt Maunganui, Tauranga",
+    "state": "BOP",
+    "postcode": "3116",
+    "facilities": [
+      "Fresh flowers",
+      "Rug Doctor",
+      "Supergold card"
+    ]
+  },
+  {
+    "id": "9424",
+    "name": "Kelvin Grove Woolworths",
+    "suburb": "Kelvin Grove, Palmerston North",
+    "state": "MWT",
+    "postcode": "4414",
+    "facilities": [
+      "Fresh flowers",
+      "Rug Doctor",
+      "ATM"
+    ]
+  },
+  {
+    "id": "9425",
+    "name": "Spotswood Woolworths",
+    "suburb": "New Plymouth",
+    "state": "TKI",
+    "postcode": "4310",
+    "facilities": [
+      "Fresh flowers",
+      "Soft plastic recycling",
+      "Rug Doctor",
+      "ATM"
+    ]
+  },
+  {
+    "id": "9427",
+    "name": "Trafalgar Park Woolworths",
+    "suburb": "Nelson",
+    "state": "NSN",
+    "postcode": "7010",
+    "facilities": [
+      "Fresh flowers",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9428",
+    "name": "Auckland Airport Woolworths",
+    "suburb": "Mangere",
+    "state": "AUK",
+    "postcode": "2022",
+    "facilities": [
+      "Fresh flowers",
+      "ATM",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9429",
+    "name": "Waikiwi Woolworths",
+    "suburb": "Waikiwi, Invercargill",
+    "state": "STL",
+    "postcode": "9810",
+    "facilities": [
+      "Fresh flowers",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9430",
+    "name": "Otorohanga Woolworths",
+    "suburb": "Ototohanga",
+    "state": "WKO",
+    "postcode": "3900",
+    "facilities": [
+      "Fresh flowers",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9431",
+    "name": "Hawera Woolworths",
+    "suburb": "Hawera",
+    "state": "TKI",
+    "postcode": "4610",
+    "facilities": [
+      "Soft plastic recycling",
+      "Supergold card",
+      "Rug Doctor",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9432",
+    "name": "Dinsdale Woolworths",
+    "suburb": "Dinsdale, Hamilton",
+    "state": "WKO",
+    "postcode": "3204",
+    "facilities": [
+      "Fresh flowers",
+      "Rug Doctor",
+      "Soft plastic recycling"
+    ]
+  },
+  {
+    "id": "9433",
+    "name": "Hastings Woolworths",
+    "suburb": "Hastings",
+    "state": "HKB",
+    "postcode": "4122",
+    "facilities": [
+      "Rug Doctor",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9435",
+    "name": "Metro Halsey Street",
+    "suburb": "Auckland Central",
+    "state": "AUK",
+    "postcode": "1010",
+    "facilities": [
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9437",
+    "name": "Metro Albert Street Woolworths",
+    "suburb": "Auckland",
+    "state": "AUK",
+    "postcode": "1010",
+    "facilities": []
+  },
+  {
+    "id": "9442",
+    "name": "Andersons Bay Woolworths",
+    "suburb": "Dunedin",
+    "state": "OTA",
+    "postcode": "9012",
+    "facilities": [
+      "Rug Doctor",
+      "ATM",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9444",
+    "name": "Meadowbank Woolworths",
+    "suburb": "Meadowbank",
+    "state": "AUK",
+    "postcode": "1072",
+    "facilities": [
+      "Fresh flowers",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9447",
+    "name": "Maidstone Woolworths",
+    "suburb": "Upper Hutt",
+    "state": "WGN",
+    "postcode": "5018",
+    "facilities": [
+      "Fresh flowers",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9448",
+    "name": "Te Puke Woolworths",
+    "suburb": "Te Puke",
+    "state": "BOP",
+    "postcode": "3119",
+    "facilities": [
+      "Rug Doctor",
+      "Fresh flowers",
+      "Supergold card"
+    ]
+  },
+  {
+    "id": "9449",
+    "name": "Te Awamutu Woolworths",
+    "suburb": "Te Awamutu",
+    "state": "WKO",
+    "postcode": "3800",
+    "facilities": [
+      "Rug Doctor",
+      "Fresh flowers",
+      "ATM"
+    ]
+  },
+  {
+    "id": "9451",
+    "name": "Te Atatu Woolworths",
+    "suburb": "Te Atatu Peninsula",
+    "state": "AUK",
+    "postcode": "610",
+    "facilities": [
+      "Fresh flowers",
+      "Soft plastic recycling",
+      "ATM",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9452",
+    "name": "Te Aroha Woolworths",
+    "suburb": "Te Aroha",
+    "state": "BOP",
+    "postcode": "3320",
+    "facilities": [
+      "Rug Doctor",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9453",
+    "name": "Katikati Woolworths",
+    "suburb": "Katikati",
+    "state": "BOP",
+    "postcode": "3129",
+    "facilities": [
+      "Rug Doctor",
+      "Fresh flowers",
+      "Supergold card"
+    ]
+  },
+  {
+    "id": "9458",
+    "name": "Meadowlands Woolworths",
+    "suburb": "Howick",
+    "state": "AUK",
+    "postcode": "2014",
+    "facilities": [
+      "Soft plastic recycling",
+      "Fresh flowers",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9459",
+    "name": "Balclutha Woolworths",
+    "suburb": "Balclutha",
+    "state": "OTA",
+    "postcode": "9230",
+    "facilities": [
+      "Liquor",
+      "Seafood"
+    ]
+  },
+  {
+    "id": "9460",
+    "name": "Paraparaumu Woolworths",
+    "suburb": "Paraparaumu",
+    "state": "WGN",
+    "postcode": "5032",
+    "facilities": [
+      "Supergold card",
+      "Fresh flowers",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9463",
+    "name": "Waipukurau Woolworths",
+    "suburb": "Waipukurau",
+    "state": "HKB",
+    "postcode": "4200",
+    "facilities": [
+      "Fresh flowers",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9464",
+    "name": "Waiata Shores Woolworths",
+    "suburb": "Takanini",
+    "state": "AUK",
+    "postcode": "2112",
+    "facilities": [
+      "Liquor"
+    ]
+  },
+  {
+    "id": "9465",
+    "name": "Palmerston North Broadway Woolworths",
+    "suburb": "Palmerston North",
+    "state": "MWT",
+    "postcode": "4410",
+    "facilities": [
+      "Rug Doctor",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9469",
+    "name": "Greymouth Woolworths",
+    "suburb": "Greymouth",
+    "state": "WTC",
+    "postcode": "7805",
+    "facilities": [
+      "Rug Doctor",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9472",
+    "name": "Papamoa Woolworths",
+    "suburb": "Papamoa",
+    "state": "BOP",
+    "postcode": "3118",
+    "facilities": [
+      "Rug Doctor",
+      "Supergold card",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9473",
+    "name": "Claudelands Woolworths",
+    "suburb": "Hamilton East",
+    "state": "WKO",
+    "postcode": "3216",
+    "facilities": [
+      "Fresh flowers",
+      "EV Charging",
+      "Rug Doctor",
+      "Soft plastic recycling"
+    ]
+  },
+  {
+    "id": "9474",
+    "name": "Kilbirnie Woolworths",
+    "suburb": "Kilbirnie",
+    "state": "WGN",
+    "postcode": "6022",
+    "facilities": [
+      "Fresh flowers",
+      "Rug Doctor",
+      "Soft plastic recycling",
+      "Supergold card"
+    ]
+  },
+  {
+    "id": "9475",
+    "name": "Tawa Woolworths",
+    "suburb": "Tawa",
+    "state": "WGN",
+    "postcode": "5028",
+    "facilities": [
+      "ATM",
+      "Fresh flowers",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9477",
+    "name": "Northcote Woolworths",
+    "suburb": "Northcote",
+    "state": "AUK",
+    "postcode": "627",
+    "facilities": [
+      "ATM",
+      "Fresh flowers",
+      "Rug Doctor",
+      "Soft plastic recycling"
+    ]
+  },
+  {
+    "id": "9478",
+    "name": "Avonhead Woolworths",
+    "suburb": "Avonhead",
+    "state": "CAN",
+    "postcode": "8042",
+    "facilities": [
+      "Rug Doctor",
+      "Soft plastic recycling",
+      "Fresh flowers",
+      "Supergold card",
+      "Seafood"
+    ]
+  },
+  {
+    "id": "9485",
+    "name": "New Brighton Woolworths",
+    "suburb": "New Brighton, Christchurch",
+    "state": "CAN",
+    "postcode": "8083",
+    "facilities": [
+      "Supergold card",
+      "Rug Doctor",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9486",
+    "name": "Mangere East Woolworths",
+    "suburb": "Mangere",
+    "state": "AUK",
+    "postcode": "2024",
+    "facilities": [
+      "ATM",
+      "Rug Doctor",
+      "Soft plastic recycling",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9489",
+    "name": "Queensgate Woolworths",
+    "suburb": "Lower Hutt",
+    "state": "WGN",
+    "postcode": "5010",
+    "facilities": [
+      "Rug Doctor",
+      "Supergold card",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9495",
+    "name": "Motueka Woolworths",
+    "suburb": "Motueka",
+    "state": "TAS",
+    "postcode": "7120",
+    "facilities": [
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9501",
+    "name": "Feilding Woolworths",
+    "suburb": "Feilding",
+    "state": "MWT",
+    "postcode": "4702",
+    "facilities": [
+      "Supergold card",
+      "Fresh flowers",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9502",
+    "name": "Kerikeri Woolworths",
+    "suburb": "Kerikeri",
+    "state": "NTL",
+    "postcode": "230",
+    "facilities": [
+      "Rug Doctor",
+      "Fresh flowers",
+      "Supergold card"
+    ]
+  },
+  {
+    "id": "9504",
+    "name": "Silverdale Woolworths",
+    "suburb": "Silverdale",
+    "state": "AUK",
+    "postcode": "932",
+    "facilities": [
+      "Rug Doctor",
+      "ATM",
+      "Supergold card",
+      "Fresh flowers",
+      "Soft plastic recycling"
+    ]
+  },
+  {
+    "id": "9508",
+    "name": "Newtown Woolworths",
+    "suburb": "Mount Cook",
+    "state": "WGN",
+    "postcode": "6021",
+    "facilities": [
+      "Soft plastic recycling",
+      "Fresh flowers",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9518",
+    "name": "Amberley Woolworths",
+    "suburb": "Amberley",
+    "state": "CAN",
+    "postcode": "7410",
+    "facilities": [
+      "Supergold card",
+      "Rug Doctor",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9521",
+    "name": "St Johns Woolworths",
+    "suburb": "St Johns",
+    "state": "AUK",
+    "postcode": "1072",
+    "facilities": [
+      "Fresh flowers",
+      "ATM",
+      "Soft plastic recycling",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9522",
+    "name": "Waikanae Woolworths",
+    "suburb": "Waikanae",
+    "state": "WGN",
+    "postcode": "5391",
+    "facilities": [
+      "Rug Doctor",
+      "Fresh flowers",
+      "Supergold card"
+    ]
+  },
+  {
+    "id": "9524",
+    "name": "Dunedin South Woolworths",
+    "suburb": "Dunedin",
+    "state": "OTA",
+    "postcode": "9012",
+    "facilities": [
+      "Rug Doctor",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9528",
+    "name": "New Plymouth Central Woolworths",
+    "suburb": "New Plymouth",
+    "state": "TKI",
+    "postcode": "4310",
+    "facilities": [
+      "ATM",
+      "Fresh flowers",
+      "Soft plastic recycling",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9529",
+    "name": "Three Kings Woolworths",
+    "suburb": "Three Kings, Auckland",
+    "state": "AUK",
+    "postcode": "1042",
+    "facilities": [
+      "Soft plastic recycling",
+      "Rug Doctor",
+      "ATM",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9530",
+    "name": "Karori Woolworths",
+    "suburb": "Karori",
+    "state": "WGN",
+    "postcode": "6012",
+    "facilities": [
+      "Fresh flowers",
+      "Soft plastic recycling",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9533",
+    "name": "Warkworth Woolworths",
+    "suburb": "Warkworth",
+    "state": "AUK",
+    "postcode": "910",
+    "facilities": [
+      "Fresh flowers",
+      "Supergold card",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9534",
+    "name": "Helensville Woolworths",
+    "suburb": "Helensville",
+    "state": "AUK",
+    "postcode": "800",
+    "facilities": [
+      "Fresh flowers",
+      "Rug Doctor",
+      "Soft plastic recycling"
+    ]
+  },
+  {
+    "id": "9535",
+    "name": "Petone Woolworths",
+    "suburb": "Petone",
+    "state": "WGN",
+    "postcode": "5012",
+    "facilities": [
+      "Rug Doctor",
+      "Supergold card",
+      "Soft plastic recycling",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9541",
+    "name": "Tokoroa Woolworths",
+    "suburb": "Tokoroa",
+    "state": "WKO",
+    "postcode": "3420",
+    "facilities": [
+      "Rug Doctor",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9546",
+    "name": "Aotea Woolworths",
+    "suburb": "Porirua",
+    "state": "WGN",
+    "postcode": "5024",
+    "facilities": [
+      "Rug Doctor",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9547",
+    "name": "Johnsonville Woolworths",
+    "suburb": "Johnsonville",
+    "state": "WGN",
+    "postcode": "6037",
+    "facilities": [
+      "Rug Doctor",
+      "Fresh flowers",
+      "ATM"
+    ]
+  },
+  {
+    "id": "9551",
+    "name": "Hobsonville Woolworths",
+    "suburb": "Hobsonville",
+    "state": "AUK",
+    "postcode": "618",
+    "facilities": [
+      "Soft plastic recycling",
+      "Fresh flowers",
+      "Rug Doctor"
+    ]
+  },
+  {
+    "id": "9554",
+    "name": "Belfast Woolworths",
+    "suburb": "Belfast, Christchurch",
+    "state": "CAN",
+    "postcode": "8051",
+    "facilities": [
+      "Supergold card",
+      "Fresh Bakery",
+      "Seafood",
+      "Liquor"
+    ]
+  },
+  {
+    "id": "9578",
+    "name": "Springlands Woolworths",
+    "suburb": "Blenheim",
+    "state": "MBH",
+    "postcode": "7201",
+    "facilities": [
+      "Supergold card",
+      "Rug Doctor",
+      "Fresh flowers"
+    ]
+  },
+  {
+    "id": "9584",
+    "name": "Alexandra Woolworths",
+    "suburb": "Alexandra",
+    "state": "OTA",
+    "postcode": "9320",
+    "facilities": [
+      "Seafood",
+      "Liquor",
+      "Fresh Bakery"
+    ]
+  }
+]
