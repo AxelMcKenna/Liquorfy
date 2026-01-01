@@ -1,47 +1,49 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    /* Apple-inspired Light theme with subtle gray tones */
-    --background: 0 0% 100%;               /* Pure white #FFFFFF */
-    --background-secondary: 0 0% 97%;      /* Off-white #F7F7F7 */
-    --background-tertiary: 0 0% 96%;       /* Light gray #F5F5F5 */
+    /* Modern neutral base with green accents */
+    --background: 30 33% 98%;
+    --background-secondary: 30 22% 95%;
+    --background-tertiary: 30 18% 90%;
 
-    --foreground: 0 0% 13%;                /* Dark gray #212121 */
-    --foreground-secondary: 0 0% 40%;      /* Medium gray #666666 */
-    --foreground-tertiary: 0 0% 60%;       /* Light gray #999999 */
+    --foreground: 222 18% 15%;
+    --foreground-secondary: 222 10% 38%;
+    --foreground-tertiary: 220 8% 55%;
 
-    --card: 0 0% 100%;                     /* White cards */
-    --card-foreground: 0 0% 13%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 18% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 13%;
+    --popover-foreground: 222 18% 15%;
 
-    --primary: 142 76% 38%;                /* Apple-like green #1fb956 */
+    --primary: 148 63% 36%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 97%;                 /* Very light gray #F7F7F7 */
-    --secondary-foreground: 0 0% 13%;
+    --secondary: 30 22% 95%;
+    --secondary-foreground: 222 18% 15%;
 
-    --muted: 0 0% 96%;                     /* Subtle backgrounds #F5F5F5 */
-    --muted-foreground: 0 0% 40%;          /* Medium gray #666666 */
+    --muted: 30 18% 92%;
+    --muted-foreground: 222 10% 38%;
 
-    --accent: 142 71% 45%;                 /* Lighter green for hover */
+    --accent: 150 54% 42%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%;              /* Red for errors */
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 90%;                    /* Subtle border #E5E5E5 */
-    --input: 0 0% 90%;
-    --ring: 142 76% 38%;                   /* Green focus rings */
+    --border: 28 12% 84%;
+    --input: 28 12% 84%;
+    --ring: 148 63% 36%;
 
-    --promo: 14 100% 60%;                  /* Orange for sales #FF6B35 */
-    --gold: 45 100% 51%;                   /* Gold for premium #FFD700 */
+    --promo: 18 95% 55%;
+    --gold: 42 92% 50%;
 
-    --radius: 0.75rem;                     /* Apple-like rounded corners */
+    --radius: 1rem;
   }
 }
 
@@ -51,11 +53,14 @@
   }
 
   body {
-    @apply bg-background text-foreground;
-    /* Apple San Francisco system font stack */
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", "Segoe UI", "Roboto", sans-serif;
+    @apply text-foreground;
+    background:
+      radial-gradient(1200px 520px at 10% -10%, hsl(var(--primary) / 0.12), transparent 60%),
+      radial-gradient(1000px 420px at 95% 0%, hsl(var(--accent) / 0.1), transparent 55%),
+      linear-gradient(180deg, hsl(var(--background)), hsl(var(--background-secondary)));
+    font-family: "Manrope", "Segoe UI", "Helvetica Neue", sans-serif;
     font-optical-sizing: auto;
-    letter-spacing: -0.011em;
+    letter-spacing: -0.01em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 
@@ -73,18 +78,17 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    /* Use same system font for consistency */
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", "Segoe UI", "Roboto", sans-serif;
-    font-weight: 600;
-    letter-spacing: -0.022em;
+    font-family: "Manrope", "Segoe UI", "Helvetica Neue", sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.015em;
   }
 }
 
 @layer utilities {
-  /* Apple-inspired subtle shadows */
+  /* Crisp shadows with slightly lifted depth */
   .card-shadow {
     @apply bg-white border border-border;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.02);
+    box-shadow: 0 12px 30px -24px rgba(15, 23, 42, 0.35), 0 2px 8px -6px rgba(15, 23, 42, 0.25);
   }
 
   .card-shadow-hover {
@@ -92,11 +96,11 @@
   }
 
   .card-shadow-hover:hover {
-    box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.08), 0 2px 4px 0 rgba(0, 0, 0, 0.04);
+    box-shadow: 0 18px 44px -26px rgba(15, 23, 42, 0.4), 0 6px 14px -10px rgba(15, 23, 42, 0.3);
   }
 
   .card-shadow-lg {
-    box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.08), 0 2px 4px 0 rgba(0, 0, 0, 0.04);
+    box-shadow: 0 24px 60px -32px rgba(15, 23, 42, 0.45), 0 10px 24px -18px rgba(15, 23, 42, 0.3);
   }
 
   /* Text color utilities using design system */
@@ -126,7 +130,7 @@
     border-color: hsl(var(--border));
   }
 
-  /* Rounded corners - consistent with Apple design */
+  /* Rounded corners */
   .rounded-card {
     border-radius: var(--radius);
   }
@@ -157,9 +161,24 @@
     @apply glass-card card-shadow-hover hover:-translate-y-1;
   }
 
+  .glass {
+    background: linear-gradient(140deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.35));
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(18px);
+  }
+
+  .glass-hover {
+    @apply transition-all duration-200;
+  }
+
+  .glass-hover:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 18px 48px -32px rgba(15, 23, 42, 0.45);
+  }
+
   /* Promo badge utility */
   .promo-badge {
-    @apply bg-promo text-white px-5 py-1 text-xs font-semibold tracking-wide shadow-md;
+    @apply bg-promo text-white px-4 py-1 text-xs font-semibold tracking-wide shadow-md uppercase;
   }
 
   /* Icon button with background */
@@ -170,4 +189,8 @@
   .icon-badge-large {
     @apply p-6 rounded-full;
   }
+}
+
+::selection {
+  background: hsl(var(--primary) / 0.2);
 }

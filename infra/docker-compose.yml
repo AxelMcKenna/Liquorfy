@@ -43,8 +43,9 @@ services:
       dockerfile: infra/dockerfiles/web.Dockerfile
     volumes:
       - ../web:/app/web
+      - /app/web/node_modules
     ports:
       - "5173:5173"
-    command: npm run dev -- --host 0.0.0.0
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
     depends_on:
       - api
