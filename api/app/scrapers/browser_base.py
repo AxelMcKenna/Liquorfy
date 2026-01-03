@@ -346,16 +346,12 @@ class BrowserScraper(Scraper):
                         products = await self.parse_products(page)
                         total_items += len(products)
 
-                        for product_data in products:
-                            try:
-                                changed = await self._upsert_product_and_prices(
-                                    session, product_data, stores
-                                )
-                                if changed:
-                                    changed_items += 1
-                            except Exception as e:
-                                logger.error(f"Failed to persist product: {e}")
-                                failed_items += 1
+                        # Batch process products for better performance
+                        changed_count = await self._upsert_products_batch(
+                            session, products, stores
+                        )
+                        changed_items += changed_count
+                        failed_items += len(products) - changed_count
 
                     except Exception as e:
                         logger.error(f"Failed to parse page: {e}")
