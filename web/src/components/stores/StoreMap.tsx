@@ -1,33 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import Map, { Marker, Source, Layer, Popup } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { Store as StoreIcon, Navigation } from 'lucide-react';
+import { Navigation } from 'lucide-react';
 import { Store, Location } from '@/types';
+import { chainColors, chainNames, getChainColor, getChainName } from '@/lib/chainConstants';
+import { ChainLogo } from './logos';
 
-// Chain-specific colors
-const chainColors: Record<string, string> = {
-  super_liquor: '#ef4444',
-  liquorland: '#3b82f6',
-  countdown: '#22c55e',
-  new_world: '#a855f7',
-  pak_n_save: '#eab308',
-  bottle_o: '#f97316',
-  liquor_centre: '#6366f1',
-  glengarry: '#ec4899',
-};
-
-const chainNames: Record<string, string> = {
-  super_liquor: 'Super Liquor',
-  liquorland: 'Liquorland',
-  countdown: 'Countdown',
-  new_world: 'New World',
-  pak_n_save: "PAK'nSAVE",
-  bottle_o: 'Bottle-O',
-  liquor_centre: 'Liquor Centre',
-  glengarry: 'Glengarry',
-};
-
-interface StoreMapProps {
+export interface StoreMapProps {
   userLocation: Location;
   stores: Store[];
   selectedStore?: Store | null;
@@ -162,7 +141,7 @@ export const StoreMap: React.FC<StoreMapProps> = ({
 
         {/* Store markers */}
         {stores.map((store) => {
-          const color = chainColors[store.chain] || '#6b7280';
+          const color = getChainColor(store.chain);
           const isSelected = selectedStore?.id === store.id;
 
           return (
@@ -201,7 +180,7 @@ export const StoreMap: React.FC<StoreMapProps> = ({
                     <circle cx="20" cy="18" r="8" fill="white" />
                   </svg>
                   <div className="absolute top-[8px] left-1/2 transform -translate-x-1/2">
-                    <StoreIcon className="h-4 w-4" style={{ color }} />
+                    <ChainLogo chain={store.chain} className="h-4 w-4" color={color} />
                   </div>
                 </div>
               </div>
@@ -224,9 +203,9 @@ export const StoreMap: React.FC<StoreMapProps> = ({
               <div className="mb-2">
                 <div
                   className="inline-block px-2 py-1 rounded text-xs font-semibold text-white mb-2"
-                  style={{ backgroundColor: chainColors[popupInfo.chain] || '#6b7280' }}
+                  style={{ backgroundColor: getChainColor(popupInfo.chain) }}
                 >
-                  {chainNames[popupInfo.chain] || popupInfo.chain}
+                  {getChainName(popupInfo.chain)}
                 </div>
               </div>
               <h3 className="font-bold text-gray-900 mb-1">{popupInfo.name}</h3>

@@ -16,6 +16,7 @@ export function buildProductQueryParams(filters: ProductFilters): URLSearchParam
     params.append("store", filters.store_ids.join(","));
   }
   if (filters.promo_only) params.append("promo_only", "true");
+  if (filters.unique_products) params.append("unique_products", "true");
   if (filters.price_min !== undefined) params.append("price_min", filters.price_min.toString());
   if (filters.price_max !== undefined) params.append("price_max", filters.price_max.toString());
   if (filters.sort) params.append("sort", filters.sort);

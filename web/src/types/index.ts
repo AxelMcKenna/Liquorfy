@@ -83,6 +83,7 @@ export type Category =
   | "non_alcoholic";
 
 export enum SortOption {
+  DISCOUNT = "discount",
   BEST_VALUE = "price_per_100ml",
   CHEAPEST = "total_price",
   BEST_PER_DRINK = "price_per_standard_drink",
@@ -97,6 +98,7 @@ export interface ProductFilters {
   category?: string;
   chains?: ChainType[];
   promo_only?: boolean;
+  unique_products?: boolean;
   price_min?: number;
   price_max?: number;
   sort?: SortOption;

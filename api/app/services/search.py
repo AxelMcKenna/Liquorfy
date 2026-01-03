@@ -4,16 +4,50 @@ from datetime import datetime
 from typing import Any, Iterable, Optional
 from uuid import UUID
 
-from sqlalchemy import Select, and_, func, or_, select
+from sqlalchemy import Select, and_, cast, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
+from geoalchemy2 import Geography
 
+from app.core.config import get_settings
 from app.db.models import Price, Product, Store
 from app.schemas.products import PriceSchema, ProductDetailSchema, ProductListResponse, ProductSchema, StoreListResponse, StoreSchema
 from app.schemas.queries import ProductQueryParams
-from app.services.geospatial import haversine_distance, within_radius
+from app.services.cache import cached_json
+from app.services.geospatial import haversine_distance
 from app.services.parser_utils import CATEGORY_HIERARCHY
 from app.services.pricing import compute_pricing_metrics
+
+settings = get_settings()
+
+
+def _store_bucket_key(lat: float, lon: float, radius_km: float) -> str:
+    return f"stores_nearby:{round(lat, 2)}:{round(lon, 2)}:{round(radius_km, 1)}"
+
+
+async def _get_store_ids_within_radius(
+    session: AsyncSession,
+    *,
+    lat: float,
+    lon: float,
+    radius_km: float,
+) -> list[UUID]:
+    cache_key = _store_bucket_key(lat, lon, radius_km)
+
+    async def producer() -> list[str]:
+        user_point = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326)
+        user_point_geog = cast(user_point, Geography)
+        radius_m = radius_km * 1000
+        query = (
+            select(Store.id)
+            .where(Store.geog.is_not(None))
+            .where(func.ST_DWithin(Store.geog, user_point_geog, radius_m))
+        )
+        result = await session.execute(query)
+        return [str(store_id) for store_id in result.scalars().all()]
+
+    cached_ids = await cached_json(cache_key, settings.api_cache_ttl_seconds, producer)
+    return [UUID(store_id) for store_id in cached_ids]
 
 
 async def fetch_products(
@@ -26,32 +60,20 @@ async def fetch_products(
         .join(Store, Store.id == Price.store_id)
     )
 
-    # Filter stores by location first if params provided
-    allowed_store_ids = None
     if params.lat is not None and params.lon is not None and params.radius_km is not None:
-        # Get all stores
-        stores_result = await session.execute(select(Store))
-        all_stores = stores_result.scalars().all()
-
-        # Filter by radius using existing geospatial utility
-        store_distances = within_radius(
-            stores=[(str(store.id), store.lat, store.lon) for store in all_stores],
+        store_ids = await _get_store_ids_within_radius(
+            session,
             lat=params.lat,
             lon=params.lon,
             radius_km=params.radius_km,
         )
-
-        # Extract store IDs within radius
-        allowed_store_ids = [UUID(store_id) for store_id, _ in store_distances]
-
-        # Early return if no stores in radius
-        if not allowed_store_ids:
+        if not store_ids:
             return ProductListResponse(items=[], total=0, page=params.page, page_size=params.page_size)
 
     filters = []
     # Add location-based store filter
-    if allowed_store_ids is not None:
-        filters.append(Store.id.in_(allowed_store_ids))
+    if params.lat is not None and params.lon is not None and params.radius_km is not None:
+        filters.append(Store.id.in_(store_ids))
     if params.q:
         pattern = f"%{params.q.lower()}%"
         filters.append(
@@ -86,10 +108,11 @@ async def fetch_products(
         filters.append(Product.total_volume_ml >= params.vol_min_ml)
     if params.vol_max_ml is not None:
         filters.append(Product.total_volume_ml <= params.vol_max_ml)
+    effective_price = func.coalesce(Price.promo_price_nzd, Price.price_nzd)
     if params.price_min is not None:
-        filters.append(Price.price_nzd >= params.price_min)
+        filters.append(effective_price >= params.price_min)
     if params.price_max is not None:
-        filters.append(Price.price_nzd <= params.price_max)
+        filters.append(effective_price <= params.price_max)
     if params.promo_only:
         # Only return products with actual discounts (promo price < regular price)
         filters.append(Price.promo_price_nzd.is_not(None))
@@ -98,19 +121,83 @@ async def fetch_products(
     if filters:
         query = query.where(and_(*filters))
 
-    effective_price = func.coalesce(Price.promo_price_nzd, Price.price_nzd)
-    if params.sort == "price_per_standard_drink":
-        query = query.order_by(effective_price / func.nullif(Product.abv_percent, 0))
-    elif params.sort == "total_price":
-        query = query.order_by(effective_price)
-    elif params.sort == "newest":
-        query = query.order_by(Price.price_last_changed_at.desc())
-    else:
-        # default price per 100ml
-        query = query.order_by(effective_price / func.nullif(Product.total_volume_ml, 0))
+    discount_ratio = (
+        (Price.price_nzd - func.coalesce(Price.promo_price_nzd, Price.price_nzd))
+        / func.nullif(Price.price_nzd, 0)
+    ).label("discount_ratio")
 
-    total_result = await session.execute(query.with_only_columns(func.count()).order_by(None))
-    total = total_result.scalar_one()
+    def _order_by_discount(q: Select[Any]) -> Select[Any]:
+        return q.order_by(
+            discount_ratio.desc().nulls_last(),
+            Price.price_last_changed_at.desc(),
+            Product.name.asc(),
+        )
+
+    if params.unique_products:
+        name_key = func.lower(func.trim(Product.name)).label("name_key")
+        inner = (
+            select(
+                Product.id.label("product_id"),
+                Price.id.label("price_id"),
+                Store.id.label("store_id"),
+                discount_ratio,
+                func.row_number()
+                .over(
+                    partition_by=(name_key, Product.pack_count, Product.total_volume_ml),
+                    order_by=discount_ratio.desc(),
+                )
+                .label("rn"),
+            )
+            .select_from(Product)
+            .join(Price, Price.product_id == Product.id)
+            .join(Store, Store.id == Price.store_id)
+        )
+        if filters:
+            inner = inner.where(and_(*filters))
+
+        inner_subq = inner.subquery()
+        query = (
+            select(Product, Price, Store, inner_subq.c.discount_ratio)
+            .select_from(inner_subq)
+            .join(Product, Product.id == inner_subq.c.product_id)
+            .join(Price, Price.id == inner_subq.c.price_id)
+            .join(Store, Store.id == inner_subq.c.store_id)
+            .where(inner_subq.c.rn == 1)
+        )
+
+        if params.sort == "discount":
+            query = query.order_by(
+                inner_subq.c.discount_ratio.desc().nulls_last(),
+                Price.price_last_changed_at.desc(),
+                Product.name.asc(),
+            )
+        elif params.sort == "price_per_standard_drink":
+            query = query.order_by(effective_price / func.nullif(Product.abv_percent, 0))
+        elif params.sort == "total_price":
+            query = query.order_by(effective_price)
+        elif params.sort == "newest":
+            query = query.order_by(Price.price_last_changed_at.desc())
+        else:
+            query = query.order_by(effective_price / func.nullif(Product.total_volume_ml, 0))
+
+        total_result = await session.execute(
+            select(func.count()).select_from(inner_subq).where(inner_subq.c.rn == 1)
+        )
+        total = total_result.scalar_one()
+    else:
+        if params.sort == "discount":
+            query = _order_by_discount(query)
+        elif params.sort == "price_per_standard_drink":
+            query = query.order_by(effective_price / func.nullif(Product.abv_percent, 0))
+        elif params.sort == "total_price":
+            query = query.order_by(effective_price)
+        elif params.sort == "newest":
+            query = query.order_by(Price.price_last_changed_at.desc())
+        else:
+            query = query.order_by(effective_price / func.nullif(Product.total_volume_ml, 0))
+
+        total_result = await session.execute(query.with_only_columns(func.count()).order_by(None))
+        total = total_result.scalar_one()
 
     page = max(params.page, 1)
     page_size = max(min(params.page_size, 100), 1)
@@ -120,7 +207,11 @@ async def fetch_products(
     rows = result.all()
     items: list[ProductSchema] = []
 
-    for product, price, store in rows:
+    for row in rows:
+        if params.unique_products:
+            product, price, store, _ = row
+        else:
+            product, price, store = row
         effective = price.promo_price_nzd or price.price_nzd
         metrics = compute_pricing_metrics(
             total_volume_ml=product.total_volume_ml,
@@ -128,7 +219,7 @@ async def fetch_products(
             effective_price_nzd=effective,
         )
         distance = None
-        if params.lat is not None and params.lon is not None:
+        if params.lat is not None and params.lon is not None and store.lat is not None and store.lon is not None:
             distance = round(haversine_distance(params.lat, params.lon, store.lat, store.lon), 2)
         items.append(
             ProductSchema(
@@ -219,15 +310,20 @@ async def fetch_stores_nearby(
     lon: float,
     radius_km: float,
 ) -> StoreListResponse:
-    result = await session.execute(select(Store))
-    stores = result.scalars().all()
-    store_distances = within_radius(
-        stores=[(str(store.id), store.lat, store.lon) for store in stores],
-        lat=lat,
-        lon=lon,
-        radius_km=radius_km,
+    user_point = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326)
+    user_point_geog = cast(user_point, Geography)
+
+    store_ids = await _get_store_ids_within_radius(session, lat=lat, lon=lon, radius_km=radius_km)
+    if not store_ids:
+        return StoreListResponse(items=[])
+
+    distance_m = func.ST_Distance(Store.geog, user_point_geog).label("distance_m")
+    query = (
+        select(Store, distance_m)
+        .where(Store.id.in_(store_ids))
+        .order_by(distance_m)
     )
-    distance_lookup = {UUID(store_id): distance for store_id, distance in store_distances}
+    result = await session.execute(query)
     items = [
         StoreSchema(
             id=store.id,
@@ -237,10 +333,9 @@ async def fetch_stores_nearby(
             lon=store.lon,
             address=store.address,
             region=store.region,
-            distance_km=round(distance_lookup.get(store.id, 0.0), 2),
+            distance_km=round(distance / 1000, 2),
         )
-        for store in stores
-        if store.id in distance_lookup
+        for store, distance in result.all()
     ]
     return StoreListResponse(items=items)
 

@@ -152,6 +152,7 @@ Physical store locations for each chain.
 | chain | VARCHAR(64) | NOT NULL | Chain identifier |
 | lat | DOUBLE | NOT NULL | Latitude coordinate |
 | lon | DOUBLE | NOT NULL | Longitude coordinate |
+| geog | GEOGRAPHY(Point, 4326) | NULL | Generated geography point for spatial queries |
 | address | VARCHAR(255) | NULL | Street address |
 | region | VARCHAR(64) | NULL | Region/area |
 | url | VARCHAR(255) | NULL | Store-specific URL |

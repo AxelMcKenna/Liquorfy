@@ -1,84 +1,65 @@
 from __future__ import annotations
 
-import asyncio
 import json
-import time
 from typing import Any, Awaitable, Callable, Optional
 
-try:  # pragma: no cover - optional dependency
-    import aioredis
-except Exception:  # pragma: no cover
-    aioredis = None  # type: ignore
+from redis import asyncio as aioredis
 
 from app.core.config import get_settings
 
 _settings = get_settings()
 
 
-class AsyncTTLCache:
-    """Fallback async cache using in-memory dictionary."""
-
-    def __init__(self) -> None:
-        self._data: dict[str, tuple[float, str]] = {}
-        self._lock = asyncio.Lock()
-
-    async def get(self, key: str) -> Optional[str]:
-        async with self._lock:
-            value = self._data.get(key)
-            if not value:
-                return None
-            expires_at, payload = value
-            if expires_at < time.time():
-                self._data.pop(key, None)
-                return None
-            return payload
-
-    async def set(self, key: str, value: str, ttl: int) -> None:
-        async with self._lock:
-            self._data[key] = (time.time() + ttl, value)
-
-
 class CacheClient:
+    """A Redis-only cache client that fails loudly if Redis is unavailable."""
+
     def __init__(self) -> None:
-        self._redis = None
-        if aioredis is not None:
-            try:  # pragma: no cover
-                self._redis = aioredis.from_url(str(_settings.redis_url))
-            except Exception:
-                self._redis = None
-        self._fallback = AsyncTTLCache()
+        # This will raise an exception if the URL is invalid or Redis is not available,
+        # which is desirable to catch configuration issues early.
+        self._redis = aioredis.from_url(str(_settings.redis_url), decode_responses=True)
 
     async def get(self, key: str) -> Optional[str]:
-        if self._redis is not None:
-            try:
-                value = await self._redis.get(key)
-                if value:
-                    return value.decode()
-            except Exception:
-                pass
-        return await self._fallback.get(key)
+        """Gets a value from the cache."""
+        value = await self._redis.get(key)
+        return value
 
     async def set(self, key: str, value: str, ttl: int) -> None:
-        if self._redis is not None:
-            try:
-                await self._redis.set(key, value, ex=ttl)
-                return
-            except Exception:
-                pass
-        await self._fallback.set(key, value, ttl)
+        """Sets a value in the cache with a TTL."""
+        # The 'ex' parameter sets the TTL in seconds.
+        await self._redis.set(key, value, ex=ttl)
 
 
 _cache = CacheClient()
 
 
 async def cached_json(key: str, ttl: Optional[int], producer: Callable[[], Awaitable[Any]]) -> Any:
+    """
+    A decorator-like function to cache the JSON result of an async function.
+    """
+    # A TTL of 0 or None means the cache is bypassed
     if ttl:
-        cached = await _cache.get(key)
-        if cached:
-            return json.loads(cached)
+        try:
+            cached = await _cache.get(key)
+            if cached:
+                return json.loads(cached)
+        except Exception:
+            # If cache fails, log it but proceed to call the producer.
+            # In a real-world scenario, you'd add logging here.
+            pass
+
     result = await producer()
+
+    # A TTL of 0 or None means we don't write to the cache
     if ttl:
-        await _cache.set(key, json.dumps(result), ttl)
+        try:
+            # We assume 'result' is JSON-serializable.
+            # The producer function is responsible for returning a valid structure.
+            await _cache.set(key, json.dumps(result), ttl)
+        except Exception:
+            # If writing to cache fails, log it but don't fail the request.
+            # In a real-world scenario, you'd add logging here.
+            pass
+
     return result
 
 

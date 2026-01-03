@@ -1,42 +1,22 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Navigation, Store as StoreIcon, X, Map } from 'lucide-react';
+import { MapPin, Navigation, X, Map } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
-import { StoreMap } from '@/components/stores/StoreMap';
+import { LazyStoreMap } from '@/components/stores/LazyStoreMap';
 import { useLocation } from '@/hooks/useLocation';
 import { useStores } from '@/hooks/useStores';
 import { Store } from '@/types';
+import { getChainColorClass, getChainName } from '@/lib/chainConstants';
+import { ChainLogo } from '@/components/stores/logos';
 
 interface StoreSelectorProps {
   selectedStore: Store | null;
   onSelectStore: (store: Store | null) => void;
   onClose?: () => void;
 }
-
-const chainColors: Record<string, string> = {
-  super_liquor: 'bg-red-500',
-  liquorland: 'bg-blue-500',
-  countdown: 'bg-green-500',
-  new_world: 'bg-purple-500',
-  pak_n_save: 'bg-yellow-500',
-  bottle_o: 'bg-orange-500',
-  liquor_centre: 'bg-indigo-500',
-  glengarry: 'bg-pink-500',
-};
-
-const chainNames: Record<string, string> = {
-  super_liquor: 'Super Liquor',
-  liquorland: 'Liquorland',
-  countdown: 'Countdown',
-  new_world: 'New World',
-  pak_n_save: "PAK'nSAVE",
-  bottle_o: 'Bottle-O',
-  liquor_centre: 'Liquor Centre',
-  glengarry: 'Glengarry',
-};
 
 export const StoreSelector: React.FC<StoreSelectorProps> = ({
   selectedStore,
@@ -106,8 +86,8 @@ export const StoreSelector: React.FC<StoreSelectorProps> = ({
           <Card className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200">
             <div className="flex items-start justify-between">
               <div className="flex items-start space-x-3">
-                <div className={`p-2 ${chainColors[selectedStore.chain] || 'bg-gray-500'} rounded-lg`}>
-                  <StoreIcon className="h-5 w-5 text-white" />
+                <div className={`p-2 ${getChainColorClass(selectedStore.chain)} rounded-lg`}>
+                  <ChainLogo chain={selectedStore.chain} className="h-5 w-5 text-white" />
                 </div>
                 <div>
                   <h4 className="font-semibold text-gray-900">{selectedStore.name}</h4>
@@ -185,12 +165,13 @@ export const StoreSelector: React.FC<StoreSelectorProps> = ({
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
             >
-              <StoreMap
+              <LazyStoreMap
                 userLocation={location}
                 stores={stores}
                 selectedStore={selectedStore}
                 onStoreClick={handleStoreClick}
                 radiusKm={radiusKm}
+                fallbackClassName="h-[500px]"
               />
             </motion.div>
           )}
@@ -227,14 +208,14 @@ export const StoreSelector: React.FC<StoreSelectorProps> = ({
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-start space-x-3 flex-1">
-                      <div className={`p-2 ${chainColors[store.chain] || 'bg-gray-500'} rounded-lg`}>
-                        <StoreIcon className="h-4 w-4 text-white" />
+                      <div className={`p-2 ${getChainColorClass(store.chain)} rounded-lg`}>
+                        <ChainLogo chain={store.chain} className="h-4 w-4 text-white" />
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <h4 className="font-medium text-gray-900">{store.name}</h4>
                           <Badge variant="secondary" className="text-xs">
-                            {chainNames[store.chain] || store.chain}
+                            {getChainName(store.chain)}
                           </Badge>
                         </div>
                         <p className="text-sm text-gray-600">{store.address}</p>

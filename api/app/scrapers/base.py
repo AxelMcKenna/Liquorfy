@@ -63,16 +63,12 @@ class Scraper(abc.ABC):
                         products = await self.parse_products(page)
                         total_items += len(products)
 
-                        for product_data in products:
-                            try:
-                                changed = await self._upsert_product_and_prices(
-                                    session, product_data, stores
-                                )
-                                if changed:
-                                    changed_items += 1
-                            except Exception as e:
-                                logger.error(f"Failed to persist product: {e}")
-                                failed_items += 1
+                        # Batch process products for better performance
+                        changed_count = await self._upsert_products_batch(
+                            session, products, stores
+                        )
+                        changed_items += changed_count
+                        failed_items += len(products) - changed_count
 
                     except Exception as e:
                         logger.error(f"Failed to parse page: {e}")
@@ -173,6 +169,139 @@ class Scraper(abc.ABC):
             "image_url": image_url,
             **kwargs  # Additional fields
         }
+
+    async def _upsert_products_batch(
+        self, session, products_data: List[dict], stores: List[Store]
+    ) -> int:
+        """
+        Batch upsert products and their prices for better performance.
+        Returns count of changed items.
+        """
+        if not products_data:
+            return 0
+
+        now = datetime.utcnow()
+        changed_count = 0
+
+        # Step 1: Bulk upsert all products
+        product_values = []
+        for product_data in products_data:
+            product_values.append({
+                "chain": product_data["chain"],
+                "source_product_id": product_data["source_id"],
+                "name": product_data["name"],
+                "brand": product_data.get("brand"),
+                "category": product_data.get("category"),
+                "abv_percent": product_data.get("abv_percent"),
+                "pack_count": product_data.get("pack_count"),
+                "unit_volume_ml": product_data.get("unit_volume_ml"),
+                "total_volume_ml": product_data.get("total_volume_ml"),
+                "image_url": product_data.get("image_url"),
+                "product_url": product_data.get("url"),
+            })
+
+        stmt = insert(Product).values(product_values)
+        stmt = stmt.on_conflict_do_update(
+            index_elements=["chain", "source_product_id"],
+            set_={
+                "name": stmt.excluded.name,
+                "brand": stmt.excluded.brand,
+                "category": stmt.excluded.category,
+                "abv_percent": stmt.excluded.abv_percent,
+                "pack_count": stmt.excluded.pack_count,
+                "unit_volume_ml": stmt.excluded.unit_volume_ml,
+                "total_volume_ml": stmt.excluded.total_volume_ml,
+                "image_url": stmt.excluded.image_url,
+                "product_url": stmt.excluded.product_url,
+                "updated_at": now,
+            },
+        )
+        await session.execute(stmt)
+        await session.flush()
+
+        # Step 2: Get product IDs for all upserted products
+        source_ids = [p["source_id"] for p in products_data]
+        result = await session.execute(
+            select(Product.id, Product.source_product_id).where(
+                Product.chain == self.chain,
+                Product.source_product_id.in_(source_ids)
+            )
+        )
+        product_id_map = {row.source_product_id: row.id for row in result}
+
+        # Step 3: Get all existing prices in one query
+        product_ids = list(product_id_map.values())
+        store_ids = [store.id for store in stores]
+
+        existing_prices_result = await session.execute(
+            select(Price).where(
+                Price.product_id.in_(product_ids),
+                Price.store_id.in_(store_ids)
+            )
+        )
+        existing_prices = existing_prices_result.scalars().all()
+
+        # Create lookup map: (product_id, store_id) -> Price
+        existing_prices_map = {
+            (price.product_id, price.store_id): price
+            for price in existing_prices
+        }
+
+        # Step 4: Bulk upsert prices
+        price_values = []
+        for product_data in products_data:
+            product_id = product_id_map.get(product_data["source_id"])
+            if not product_id:
+                continue
+
+            for store in stores:
+                existing_price = existing_prices_map.get((product_id, store.id))
+
+                # Check if price changed
+                price_changed = False
+                if existing_price:
+                    if (
+                        existing_price.price_nzd != product_data["price_nzd"]
+                        or existing_price.promo_price_nzd != product_data.get("promo_price_nzd")
+                        or existing_price.is_member_only != product_data.get("is_member_only", False)
+                    ):
+                        price_changed = True
+                        changed_count += 1
+
+                # Always include in bulk upsert (will update last_seen_at)
+                price_values.append({
+                    "product_id": product_id,
+                    "store_id": store.id,
+                    "price_nzd": product_data["price_nzd"],
+                    "promo_price_nzd": product_data.get("promo_price_nzd"),
+                    "promo_text": product_data.get("promo_text"),
+                    "promo_ends_at": product_data.get("promo_ends_at"),
+                    "is_member_only": product_data.get("is_member_only", False),
+                    "last_seen_at": now,
+                    "price_last_changed_at": now if (price_changed or not existing_price) else (existing_price.price_last_changed_at if existing_price else now),
+                })
+
+                if not existing_price:
+                    changed_count += 1
+
+        # Bulk insert with ON CONFLICT
+        if price_values:
+            stmt = insert(Price).values(price_values)
+            stmt = stmt.on_conflict_do_update(
+                index_elements=["product_id", "store_id"],
+                set_={
+                    "price_nzd": stmt.excluded.price_nzd,
+                    "promo_price_nzd": stmt.excluded.promo_price_nzd,
+                    "promo_text": stmt.excluded.promo_text,
+                    "promo_ends_at": stmt.excluded.promo_ends_at,
+                    "is_member_only": stmt.excluded.is_member_only,
+                    "last_seen_at": stmt.excluded.last_seen_at,
+                    "price_last_changed_at": stmt.excluded.price_last_changed_at,
+                },
+            )
+            await session.execute(stmt)
+
+        return changed_count
 
     async def _upsert_product_and_prices(
         self, session, product_data: dict, stores: List[Store]

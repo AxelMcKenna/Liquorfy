@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Input } from '@/components/ui/input';
+import { Slider } from '@/components/ui/slider';
 
 interface PriceRangeFilterProps {
   min?: number;
@@ -7,54 +7,70 @@ interface PriceRangeFilterProps {
   onChange: (min?: number, max?: number) => void;
 }
 
+const MIN_PRICE = 0;
+const MAX_PRICE = 200;
+const PRICE_STEP = 1;
+
 export const PriceRangeFilter = ({ min, max, onChange }: PriceRangeFilterProps) => {
-  const [localMin, setLocalMin] = useState(min?.toString() ?? '');
-  const [localMax, setLocalMax] = useState(max?.toString() ?? '');
+  const [range, setRange] = useState<[number, number]>([
+    min ?? MIN_PRICE,
+    max ?? MAX_PRICE,
+  ]);
 
   useEffect(() => {
-    setLocalMin(min?.toString() ?? '');
-  }, [min]);
+    const nextMin = typeof min === 'number' ? min : MIN_PRICE;
+    const nextMax = typeof max === 'number' ? max : MAX_PRICE;
+    const normalized: [number, number] = nextMin <= nextMax
+      ? [nextMin, nextMax]
+      : [nextMax, nextMin];
 
-  useEffect(() => {
-    setLocalMax(max?.toString() ?? '');
-  }, [max]);
+    setRange((prev) => (
+      prev[0] === normalized[0] && prev[1] === normalized[1]
+        ? prev
+        : normalized
+    ));
+  }, [min, max]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      const minValue = localMin ? parseFloat(localMin) : undefined;
-      const maxValue = localMax ? parseFloat(localMax) : undefined;
+      const [localMin, localMax] = range;
+      const minValue = localMin !== MIN_PRICE ? localMin : undefined;
+      const maxValue = localMax !== MAX_PRICE ? localMax : undefined;
+      const minMatch = typeof min === 'number' ? min === minValue : minValue === undefined;
+      const maxMatch = typeof max === 'number' ? max === maxValue : maxValue === undefined;
 
-      if (minValue !== min || maxValue !== max) {
-        onChange(minValue, maxValue);
+      if (minMatch && maxMatch) {
+        return;
       }
-    }, 500);
+      onChange(minValue, maxValue);
+    }, 350);
 
     return () => clearTimeout(timer);
-  }, [localMin, localMax]);
+  }, [range, min, max, onChange]);
 
   return (
-    <div className="space-y-3">
-      <h3 className="text-sm font-medium text-foreground">Price Range</h3>
-      <div className="flex items-center gap-2">
-        <Input
-          type="number"
-          placeholder="Min"
-          value={localMin}
-          onChange={(e) => setLocalMin(e.target.value)}
-          className="w-24"
-          min="0"
-          step="0.01"
-        />
-        <span className="text-muted-foreground">-</span>
-        <Input
-          type="number"
-          placeholder="Max"
-          value={localMax}
-          onChange={(e) => setLocalMax(e.target.value)}
-          className="w-24"
-          min="0"
-          step="0.01"
-        />
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-medium text-foreground">Price Range</h3>
+        <span className="text-sm text-tertiary-gray">
+          ${Math.round(range[0])} - ${Math.round(range[1])}
+        </span>
+      </div>
+      <Slider
+        value={range}
+        min={MIN_PRICE}
+        max={MAX_PRICE}
+        step={PRICE_STEP}
+        onValueChange={(value) => {
+          if (value.length < 2) return;
+          const nextMin = Math.min(value[0], value[1]);
+          const nextMax = Math.max(value[0], value[1]);
+          setRange([nextMin, nextMax]);
+        }}
+      />
+      <div className="flex items-center justify-between text-xs text-tertiary-gray">
+        <span>${MIN_PRICE}</span>
+        <span>${MAX_PRICE}+</span>
       </div>
     </div>
   );

@@ -87,15 +87,16 @@ export const ProductDetail = () => {
           Back to Results
         </Button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:items-stretch">
           {/* Product Image */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
+            className="h-full"
           >
-            <Card className="glass-card overflow-hidden">
-              <div className="aspect-square bg-white p-8 flex items-center justify-center">
+            <Card className="glass-card rounded-card-xl overflow-hidden h-full">
+              <div className="aspect-square lg:aspect-auto lg:h-full bg-white p-8 flex items-center justify-center">
                 {product.image_url ? (
                   <img
                     src={product.image_url}
@@ -118,65 +119,73 @@ export const ProductDetail = () => {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="space-y-6"
+            className="h-full"
           >
-            <div>
-              {hasPromo && (
-                <Badge className="mb-3 promo-badge">SALE</Badge>
-              )}
-              <h1 className="text-4xl font-bold text-primary-gray mb-2">{product.name}</h1>
-              {product.brand && (
-                <p className="text-xl text-secondary-gray">{product.brand}</p>
-              )}
-            </div>
-
-            <Card className="glass-card">
-              <CardContent className="p-6">
-                <div className="flex items-baseline gap-3 mb-4">
-                  <span className="text-5xl font-black text-primary">
-                    ${currentPrice.toFixed(2)}
-                  </span>
+            <Card className="glass-card rounded-card-xl h-full flex flex-col">
+              <CardContent className="p-6 space-y-6">
+                <div>
                   {hasPromo && (
-                    <span className="text-xl line-through text-tertiary-gray">
-                      ${product.price.price_nzd.toFixed(2)}
+                    <Badge className="mb-3 promo-badge">SALE</Badge>
+                  )}
+                  <h1 className="text-4xl font-bold text-primary-gray mb-2">{product.name}</h1>
+                  {product.brand && (
+                    <p className="text-xl text-secondary-gray">{product.brand}</p>
+                  )}
+                </div>
+
+                <div>
+                  <div className="flex items-baseline gap-3 mb-4">
+                    <span className="text-5xl font-black text-primary">
+                      ${currentPrice.toFixed(2)}
                     </span>
-                  )}
-                </div>
-
-                {/* Price metrics */}
-                <div className="space-y-2 text-sm">
-                  {product.price.price_per_100ml && (
-                    <p className="text-secondary-gray">
-                      ${product.price.price_per_100ml.toFixed(2)} per 100ml
-                    </p>
-                  )}
-                  {product.price.price_per_standard_drink && (
-                    <p className="text-secondary-gray">
-                      ${product.price.price_per_standard_drink.toFixed(2)} per standard drink
-                    </p>
-                  )}
-                </div>
-
-                {/* Promo badges */}
-                {hasPromo && (
-                  <div className="flex flex-wrap gap-2 mt-4">
-                    {product.price.is_member_only && (
-                      <Badge variant="secondary" className="gap-1 bg-gold/20 text-gold border-gold/30">
-                        <Crown className="h-3 w-3" />
-                        Members Only
-                      </Badge>
-                    )}
-                    {product.price.promo_ends_at && (
-                      <Badge variant="outline" className="gap-1 text-primary border-primary/30">
-                        <Clock className="h-3 w-3" />
-                        {new Date(product.price.promo_ends_at).toLocaleDateString('en-NZ')}
-                      </Badge>
+                    {hasPromo && (
+                      <span className="text-xl line-through text-tertiary-gray">
+                        ${product.price.price_nzd.toFixed(2)}
+                      </span>
                     )}
                   </div>
-                )}
+
+                  {/* Price metrics */}
+                  <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                    {product.price.price_per_100ml && (
+                      <>
+                        <dt className="text-secondary-gray">Per 100ml</dt>
+                        <dd className="font-medium text-primary-gray">
+                          ${product.price.price_per_100ml.toFixed(2)}
+                        </dd>
+                      </>
+                    )}
+                    {product.price.price_per_standard_drink && (
+                      <>
+                        <dt className="text-secondary-gray">Per standard drink</dt>
+                        <dd className="font-medium text-primary-gray">
+                          ${product.price.price_per_standard_drink.toFixed(2)}
+                        </dd>
+                      </>
+                    )}
+                  </dl>
+
+                  {/* Promo badges */}
+                  {hasPromo && (
+                    <div className="flex flex-wrap gap-2 mt-4">
+                      {product.price.is_member_only && (
+                        <Badge variant="secondary" className="gap-1 bg-gold/20 text-gold border-gold/30">
+                          <Crown className="h-3 w-3" />
+                          Members Only
+                        </Badge>
+                      )}
+                      {product.price.promo_ends_at && (
+                        <Badge variant="outline" className="gap-1 text-primary border-primary/30">
+                          <Clock className="h-3 w-3" />
+                          {new Date(product.price.promo_ends_at).toLocaleDateString('en-NZ')}
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+                </div>
 
                 {/* Store info */}
-                <div className="mt-6 pt-6 border-t border-subtle">
+                <div className="pt-6 border-t border-subtle">
                   <div className="flex items-center gap-2 text-secondary-gray mb-4">
                     <Store className="h-5 w-5 text-primary" />
                     <div>
@@ -201,41 +210,48 @@ export const ProductDetail = () => {
                 </div>
               </CardContent>
             </Card>
+          </motion.div>
 
-            {/* Product Details */}
-            <Card className="glass-card">
+          {/* Product Details */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.15 }}
+            className="lg:col-span-2"
+          >
+            <Card className="glass-card rounded-card-xl">
               <CardContent className="p-6">
                 <h2 className="text-xl font-semibold mb-4 text-primary-gray">Product Details</h2>
-                <dl className="space-y-3 text-sm">
+                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
                   {product.category && (
-                    <div className="flex justify-between">
+                    <>
                       <dt className="text-secondary-gray">Category</dt>
                       <dd className="font-medium text-primary-gray capitalize">{product.category.replace('_', ' ')}</dd>
-                    </div>
+                    </>
                   )}
                   {product.abv_percent && (
-                    <div className="flex justify-between">
+                    <>
                       <dt className="text-secondary-gray">Alcohol %</dt>
                       <dd className="font-medium text-primary-gray">{product.abv_percent}%</dd>
-                    </div>
+                    </>
                   )}
                   {product.total_volume_ml && (
-                    <div className="flex justify-between">
+                    <>
                       <dt className="text-secondary-gray">Volume</dt>
                       <dd className="font-medium text-primary-gray">{product.total_volume_ml}ml</dd>
-                    </div>
+                    </>
                   )}
                   {product.pack_count && product.pack_count > 1 && (
-                    <div className="flex justify-between">
+                    <>
                       <dt className="text-secondary-gray">Pack Size</dt>
                       <dd className="font-medium text-primary-gray">{product.pack_count} units</dd>
-                    </div>
+                    </>
                   )}
                   {product.price.standard_drinks && (
-                    <div className="flex justify-between">
+                    <>
                       <dt className="text-secondary-gray">Standard Drinks</dt>
                       <dd className="font-medium text-primary-gray">{product.price.standard_drinks}</dd>
-                    </div>
+                    </>
                   )}
                 </dl>
               </CardContent>

@@ -13,7 +13,8 @@ export const useFilters = () => {
     const promo_only = searchParams.get('promo_only') === 'true' ? true : undefined;
     const price_min = searchParams.get('price_min') ? parseFloat(searchParams.get('price_min')!) : undefined;
     const price_max = searchParams.get('price_max') ? parseFloat(searchParams.get('price_max')!) : undefined;
-    const sort = (searchParams.get('sort') as SortOption) || SortOption.BEST_VALUE;
+    const sortParam = searchParams.get('sort') as SortOption | null;
+    const sort = sortParam || (promo_only ? SortOption.DISCOUNT : SortOption.BEST_VALUE);
     const storeIdsParam = searchParams.get('store_ids');
     const store_ids = storeIdsParam ? storeIdsParam.split(',') : undefined;
 
@@ -31,6 +32,9 @@ export const useFilters = () => {
 
   const updateFilters = useCallback((updates: Partial<ProductFilters>) => {
     const newParams = new URLSearchParams(searchParams);
+    if (Object.keys(updates).length > 0) {
+      newParams.delete('page');
+    }
 
     Object.entries(updates).forEach(([key, value]) => {
       if (value === undefined || value === null || value === '') {

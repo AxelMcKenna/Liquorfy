@@ -5,9 +5,11 @@ from dataclasses import dataclass
 from typing import Optional
 
 VOLUME_PATTERN = re.compile(
-    r"(?P<count>\d+)\s*[x×]\s*(?P<unit>\d+(?:\.\d+)?)\s*(?P<measure>ml|l)"
+    r"(?P<count>\d+)\s*[x×]\s*(?P<unit>\d+(?:\.\d+)?)\s*(?P<measure>ml|l|ltr|litre|litres|liters)"
 )
-SINGLE_VOLUME_PATTERN = re.compile(r"(?P<unit>\d+(?:\.\d+)?)\s*(?P<measure>ml|l)")
+SINGLE_VOLUME_PATTERN = re.compile(
+    r"(?P<unit>\d+(?:\.\d+)?)\s*(?P<measure>ml|l|ltr|litre|litres|liters)"
+)
 ABV_PATTERN = re.compile(r"(?P<abv>\d{1,2}(?:\.\d+)?)\s*%")
 
 
@@ -20,6 +22,7 @@ class ParsedVolume:
 
 def parse_volume(text: str) -> ParsedVolume:
     normalized = text.lower().replace("litre", "l").replace("litres", "l")
+    normalized = normalized.replace("liters", "l").replace("ltr", "l")
     match = VOLUME_PATTERN.search(normalized)
     if match:
         count = int(match.group("count"))
@@ -106,7 +109,14 @@ CATEGORY_KEYWORDS = {
     "spirits": ["spirit"],
     "cider": ["cider"],
     "rtd": ["rtd", "ready to drink", "premix", "cruiser", "cody", "woodstock", "mule", "moscow mule", "g&t", "g & t", "gin & tonic", "vodka & ", "rum & "],
-    "mixer": ["tonic", "soda", "ginger ale", "cola", "bitters"],
+    "mixer": [
+        "tonic", "tonic water", "soda", "soda water", "club soda",
+        "ginger ale", "ginger beer", "dry ginger",
+        "cola", "coke", "coca cola", "coca-cola", "pepsi",
+        "sprite", "7up", "seven up", "fanta",
+        "lemonade", "schweppes", "fever-tree", "fevertree",
+        "bitters",
+    ],
     "non_alcoholic": ["non-alcoholic", "alcohol free", "0%", "zero alcohol"],
 }
 
@@ -198,6 +208,152 @@ BRAND_CATEGORY_MAP = {
     # Cider brands
     "somersby": "cider", "strongbow": "cider", "rekorderlig": "cider",
     "old mout": "cider", "zeffer": "cider",
+
+    # Mixer brands
+    "coca cola": "mixer", "coca-cola": "mixer", "coke": "mixer",
+    "pepsi": "mixer", "sprite": "mixer", "7up": "mixer", "seven up": "mixer",
+    "fanta": "mixer", "schweppes": "mixer", "fever-tree": "mixer", "fevertree": "mixer",
+    "bundaberg": "mixer",
+
+    # Additional brand fixes from data gaps
+    "sheep dog": "whisky",
+    "billy maverick": "bourbon",
+    "bruichladdich": "scotch",
+    "laphroaig": "scotch",
+    "bowmore": "scotch",
+    "dalmore": "scotch",
+    "ballantine": "scotch",
+    "bell's": "scotch",
+    "woodford reserve": "bourbon",
+    "finlandia": "vodka",
+    "ciroc": "vodka",
+    "greenall's": "gin",
+    "greenall’s": "gin",
+    "martell": "brandy",
+    "st-remy": "brandy",
+    "st-rémy": "brandy",
+    "sailor jerry": "rum",
+    "passion pop": "sparkling",
+    "pasqua": "wine",
+    "giesen": "wine",
+    "hardy's": "wine",
+    "hardys": "wine",
+    "country medium": "wine",
+    "sol": "beer",
+    "speight gold": "beer",
+    "fireball": "liqueur",
+    "besos margarita": "rtd",
+    "crimson badger": "beer",
+    "ormond rich": "wine",
+    "balvenie": "scotch",
+    "talisker": "scotch",
+    "cragganmore": "scotch",
+    "dalwhinnie": "scotch",
+    "benriach": "scotch",
+    "tullamore": "whisky",
+    "aperol": "liqueur",
+    "bailey's": "liqueur",
+    "baileys": "liqueur",
+    "canterbury cream": "liqueur",
+    "mount gay": "rum",
+    "beefeater": "gin",
+    "double brown": "beer",
+    "stella": "beer",
+    "flame": "beer",
+    "purple goanna": "rtd",
+    "pal's": "rtd",
+    "pals": "rtd",
+    "diesel": "rtd",
+    "frankys lemon": "mixer",
+    "gordon 4x6pk": "rtd",
+    "tamnavulin": "scotch",
+    "glenkinchie": "scotch",
+    "imperial blue": "whisky",
+    "antiquity blue": "whisky",
+    "toki": "whisky",
+    "sazerac rye": "whisky",
+    "remy martin": "brandy",
+    "rémy martin": "brandy",
+    "pepe lopez": "tequila",
+    "bacardi spiced": "rum",
+    "bacardí spiced": "rum",
+    "mount brewing": "beer",
+    "fat bird": "cider",
+    "mud shake": "rtd",
+    "mudshake": "rtd",
+    "pal’s": "rtd",
+    "nola rich": "wine",
+    "corte vigna": "wine",
+    "velluto rosso": "wine",
+    "taula big": "wine",
+    "de valcourt": "wine",
+    "1800": "tequila",
+    "8pm": "whisky",
+    "aberlour": "scotch",
+    "auchentoshan": "scotch",
+    "blenders pride": "whisky",
+    "campari": "liqueur",
+    "caol ila": "scotch",
+    "country soft": "wine",
+    "daniel le brun": "sparkling",
+    "diplomatico": "rum",
+    "diplomático": "rum",
+    "drambuie": "liqueur",
+    "early times": "bourbon",
+    "estrella damm": "beer",
+    "fiji gold": "beer",
+    "glen grant": "scotch",
+    "glenggrant": "scotch",
+    "glenmorangie": "scotch",
+    "godfather": "beer",
+    "grant's": "whisky",
+    "grants": "whisky",
+    "great northern": "beer",
+    "haymans": "gin",
+    "hayman's": "gin",
+    "highland park": "scotch",
+    "jules taylor": "wine",
+    "jura": "scotch",
+    "kahlua": "liqueur",
+    "kahlúa": "liqueur",
+    "kilkenny": "beer",
+    "king robert": "whisky",
+    "lemsecco": "sparkling",
+    "lion brown": "beer",
+    "los siete": "tequila",
+    "l&p": "mixer",
+    "main divide": "wine",
+    "nola's rich": "wine",
+    "royal challenge": "whisky",
+    "whyte": "whisky",
+    "seagers lime": "rtd",
+    "seager lime": "rtd",
+    "daniel": "sparkling",
+    "oban": "scotch",
+    "mcguigan": "wine",
+    "the balvenie": "scotch",
+    "st-rã©my": "brandy",
+    "st-rémy": "brandy",
+    "nz pure": "vodka",
+    "michelob": "beer",
+    "quick brown": "beer",
+    "matawhero": "wine",
+    "veuve": "champagne",
+    "trinity hill": "wine",
+    "riccadonna": "sparkling",
+    "signature": "whisky",
+    "ranfurly draught": "beer",
+    "taylors": "wine",
+    "mud house": "wine",
+    "nz liquor": "liqueur",
+    "old crow": "bourbon",
+    "o'mara's": "liqueur",
+    "omaras": "liqueur",
+    "paquera": "tequila",
+    "peter lehmann": "wine",
+    "teacher's": "whisky",
+    "te mata": "wine",
+    "the macallan": "scotch",
 }
 
 
@@ -207,6 +363,15 @@ def infer_category(product_name: str) -> Optional[str]:
     Returns the most specific category match (longest keyword match).
     """
     name_lower = product_name.lower()
+
+    def has_alcohol_indicator(text: str) -> bool:
+        return bool(
+            ABV_PATTERN.search(text)
+            or "alcoholic" in text
+            or "alc" in text
+            or "spiked" in text
+            or "hard " in text
+        )
 
     # First, try keyword-based matching (most specific)
     # This catches "India Pale Ale", "Sauvignon Blanc", etc.
@@ -222,7 +387,13 @@ def infer_category(product_name: str) -> Optional[str]:
     # If we found a specific keyword match (longer than 4 chars), use it
     # This prevents generic brand mappings from overriding specific types
     if best_match and best_match_length > 4:
+        if best_match == "mixer" and has_alcohol_indicator(name_lower):
+            return "rtd"
         return best_match
+
+    # Mixer keywords with alcohol indicators should be RTDs, not mixers
+    if best_match == "mixer" and has_alcohol_indicator(name_lower):
+        return "rtd"
 
     # Otherwise, check brand-specific mappings as fallback
     # Only use these for products without clear type indicators

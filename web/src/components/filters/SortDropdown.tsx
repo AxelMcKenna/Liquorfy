@@ -13,6 +13,7 @@ interface SortDropdownProps {
 }
 
 const sortOptions = [
+  { value: SortOption.DISCOUNT, label: 'Largest Discount' },
   { value: SortOption.BEST_VALUE, label: 'Best Value (per 100ml)' },
   { value: SortOption.CHEAPEST, label: 'Cheapest' },
   { value: SortOption.BEST_PER_DRINK, label: 'Best per Drink' },
