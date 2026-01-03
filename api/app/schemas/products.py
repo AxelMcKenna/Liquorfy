@@ -53,8 +53,8 @@ class StoreSchema(BaseModel):
     id: UUID
     name: str
     chain: str
-    lat: float
-    lon: float
+    lat: Optional[float]
+    lon: Optional[float]
     address: Optional[str]
     region: Optional[str]
     distance_km: Optional[float]

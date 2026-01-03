@@ -16,7 +16,7 @@ from app.middleware import (
     _rate_limit_exceeded_handler,
     get_limiter,
 )
-from app.routes import auth, health, ingest, products, stores
+from app.routes import auth, health, ingest, products, stores, worker
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -35,6 +35,7 @@ app.include_router(health.router)
 app.include_router(products.router)
 app.include_router(stores.router)
 app.include_router(ingest.router)
+app.include_router(worker.router)
 
 # Security headers middleware
 app.add_middleware(SecurityHeadersMiddleware)

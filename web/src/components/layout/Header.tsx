@@ -69,7 +69,7 @@ export const Header = ({
     <motion.header
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white border-b border-subtle card-shadow"
+      className="bg-[#0e3f2c] border-b border-[#0e3f2c]"
     >
       <div className="max-w-7xl mx-auto pl-0 pr-4 py-7">
         <div className="flex flex-col md:grid md:grid-cols-[auto,1fr,auto] md:items-center gap-4">
@@ -80,10 +80,10 @@ export const Header = ({
             className="flex-shrink-0 -ml-6 sm:-ml-8 lg:-ml-14"
           >
             <Link to="/" className="block group">
-              <h1 className="text-3xl font-semibold group-hover:text-primary transition-colors text-primary-gray tracking-tight">
+              <h1 className="text-4xl font-semibold group-hover:text-white/80 transition-colors text-white tracking-tight">
                 LIQUORFY
               </h1>
-              <p className="text-xs hidden md:block text-tertiary-gray">
+              <p className="text-sm hidden md:block text-white/80">
                 Cheapest liquor in Aotearoa
               </p>
             </Link>
@@ -96,13 +96,13 @@ export const Header = ({
             className="w-full md:w-full md:max-w-2xl md:justify-self-center"
           >
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-tertiary-gray" />
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-500" />
               <Input
                 placeholder="Search for products..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && onSearch()}
-                className="pl-12 pr-4 py-7 rounded-card-xl border-subtle bg-secondary"
+                className="pl-12 pr-4 py-7 rounded-card-xl border-transparent bg-white text-foreground text-base"
               />
             </div>
           </motion.div>
@@ -116,10 +116,10 @@ export const Header = ({
             <Button
               variant="outline"
               onClick={openLocationModal}
-              className="flex items-center gap-2 rounded-card-xl font-medium border-subtle py-7 px-6"
+              className="flex items-center gap-2 rounded-card-xl font-medium border-white/40 text-white py-7 px-6 hover:bg-white/10 text-base"
             >
-              <MapPin className="h-4 w-4 text-primary" />
-              <span>{isLocationSet ? `${radiusKm}km radius` : 'Set Location'}</span>
+              <MapPin className="h-4 w-4 text-white" />
+              <span>{isLocationSet ? `Search Radius · ${radiusKm} km` : 'Set Location'}</span>
             </Button>
           </motion.div>
         </div>

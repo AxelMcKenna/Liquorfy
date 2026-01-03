@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { MapPin, Navigation, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useLocationContext } from '@/contexts/LocationContext';
-import { StoreMap } from '@/components/stores/StoreMap';
+import { LazyStoreMap } from '@/components/stores/LazyStoreMap';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -201,13 +201,13 @@ export const LocationModal = () => {
                   value={[tempRadius]}
                   onValueChange={(value) => setTempRadius(value[0])}
                   min={5}
-                  max={50}
+                  max={40}
                   step={1}
                   className="w-full"
                 />
                 <div className="flex justify-between text-xs text-gray-500 mt-1">
                   <span>5km</span>
-                  <span>50km</span>
+                  <span>40km</span>
                 </div>
               </div>
 
@@ -241,12 +241,13 @@ export const LocationModal = () => {
               )}
 
               <div className="border rounded-lg overflow-hidden h-[400px]">
-                <StoreMap
+                <LazyStoreMap
                   userLocation={tempLocation || { lat: -41.2924, lon: 174.7787 }}
                   stores={[]}
                   onLocationChange={handleLocationChange}
                   isDraggable={true}
                   radiusKm={tempRadius}
+                  fallbackClassName="h-[400px] border-none"
                 />
               </div>
 
@@ -269,13 +270,13 @@ export const LocationModal = () => {
                   value={[tempRadius]}
                   onValueChange={(value) => setTempRadius(value[0])}
                   min={5}
-                  max={50}
+                  max={40}
                   step={1}
                   className="w-full"
                 />
                 <div className="flex justify-between text-xs text-gray-500 mt-1">
                   <span>5km</span>
-                  <span>50km</span>
+                  <span>40km</span>
                 </div>
               </div>
 

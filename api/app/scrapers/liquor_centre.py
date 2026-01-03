@@ -120,9 +120,17 @@ class LiquorCentreScraper(Scraper):
 
             for store_slug in self.stores:
                 logger.info(f"Scraping store: {store_slug}")
+                consecutive_failures = 0
+                max_failures = 3  # Skip store if 3 consecutive categories fail
 
                 for category in self.CATEGORIES:
+                    # Skip remaining categories if store is unresponsive
+                    if consecutive_failures >= max_failures:
+                        logger.warning(f"  Skipping remaining categories for {store_slug} (too many failures)")
+                        break
+
                     logger.info(f"  Category: {category}")
+                    category_success = False
 
                     # Start with page 1
                     page_num = 1
@@ -138,6 +146,7 @@ class LiquorCentreScraper(Scraper):
                             # Tag HTML with metadata for parsing
                             tagged_html = self._tag_html(html, store_slug, category, page_num)
                             pages.append(tagged_html)
+                            category_success = True
 
                             # Check for pagination
                             has_next = await self._has_next_page(page)
@@ -158,6 +167,12 @@ class LiquorCentreScraper(Scraper):
                         except Exception as e:
                             logger.error(f"    Error loading {url}: {e}")
                             break
+
+                    # Track consecutive failures
+                    if category_success:
+                        consecutive_failures = 0  # Reset on success
+                    else:
+                        consecutive_failures += 1
 
                     # Delay between categories
                     await asyncio.sleep(2.0)
@@ -439,6 +454,174 @@ class LiquorCentreScraper(Scraper):
         # Tag as a single test page
         tagged = self._tag_html(html, "test-store", "beer", 1)
         return [tagged]
+
+    async def _upsert_products_batch(
+        self, session, products_data: list, stores: list
+    ) -> int:
+        """
+        Batch upsert optimized for Liquor Centre's store-specific pricing.
+        Only creates/updates prices for the specific stores that were scraped.
+        """
+        if not products_data:
+            return 0
+
+        now = datetime.utcnow()
+        changed_count = 0
+
+        # Group products by store_identifier
+        products_by_store = {}
+        for product_data in products_data:
+            store_id = product_data.get("store_identifier", "unknown")
+            if store_id not in products_by_store:
+                products_by_store[store_id] = []
+            products_by_store[store_id].append(product_data)
+
+        # Process each store's products
+        for store_identifier, store_products in products_by_store.items():
+            # Find or create the store
+            target_store = None
+            for store in stores:
+                if store.url and store_identifier in store.url:
+                    target_store = store
+                    break
+                store_name_slug = store.name.lower().replace(" ", "-").replace("liquor-centre-", "").replace("liquorcentre", "")
+                if store_identifier in store_name_slug or store_name_slug in store_identifier:
+                    target_store = store
+                    break
+
+            if not target_store:
+                # Check database
+                store_url = f"https://{store_identifier}.shop.liquor-centre.co.nz"
+                existing_store = await session.execute(
+                    select(Store).where(
+                        Store.chain == self.chain,
+                        Store.url == store_url
+                    )
+                )
+                target_store = existing_store.scalar_one_or_none()
+
+                if not target_store:
+                    # Create new store
+                    logger.info(f"Creating new store for identifier: {store_identifier}")
+                    target_store = Store(
+                        name=f"Liquor Centre {store_identifier.title().replace('-', ' ')}",
+                        chain=self.chain,
+                        lat=0.0,
+                        lon=0.0,
+                        url=store_url,
+                    )
+                    session.add(target_store)
+                    await session.flush()
+
+            # Bulk upsert products
+            product_values = []
+            for product_data in store_products:
+                product_values.append({
+                    "chain": product_data["chain"],
+                    "source_product_id": product_data["source_id"],
+                    "name": product_data["name"],
+                    "brand": product_data.get("brand"),
+                    "category": product_data.get("category"),
+                    "abv_percent": product_data.get("abv_percent"),
+                    "pack_count": product_data.get("pack_count"),
+                    "unit_volume_ml": product_data.get("unit_volume_ml"),
+                    "total_volume_ml": product_data.get("total_volume_ml"),
+                    "image_url": product_data.get("image_url"),
+                    "product_url": product_data.get("url"),
+                })
+
+            stmt = insert(Product).values(product_values)
+            stmt = stmt.on_conflict_do_update(
+                index_elements=["chain", "source_product_id"],
+                set_={
+                    "name": stmt.excluded.name,
+                    "brand": stmt.excluded.brand,
+                    "category": stmt.excluded.category,
+                    "abv_percent": stmt.excluded.abv_percent,
+                    "pack_count": stmt.excluded.pack_count,
+                    "unit_volume_ml": stmt.excluded.unit_volume_ml,
+                    "total_volume_ml": stmt.excluded.total_volume_ml,
+                    "image_url": stmt.excluded.image_url,
+                    "product_url": stmt.excluded.product_url,
+                    "updated_at": now,
+                },
+            )
+            await session.execute(stmt)
+            await session.flush()
+
+            # Get product IDs
+            source_ids = [p["source_id"] for p in store_products]
+            result = await session.execute(
+                select(Product.id, Product.source_product_id).where(
+                    Product.chain == self.chain,
+                    Product.source_product_id.in_(source_ids)
+                )
+            )
+            product_id_map = {row.source_product_id: row.id for row in result}
+
+            # Get existing prices for THIS STORE ONLY
+            product_ids = list(product_id_map.values())
+            existing_prices_result = await session.execute(
+                select(Price).where(
+                    Price.product_id.in_(product_ids),
+                    Price.store_id == target_store.id
+                )
+            )
+            existing_prices = existing_prices_result.scalars().all()
+            existing_prices_map = {price.product_id: price for price in existing_prices}
+
+            # Bulk upsert prices for this store
+            price_values = []
+            for product_data in store_products:
+                product_id = product_id_map.get(product_data["source_id"])
+                if not product_id:
+                    continue
+
+                existing_price = existing_prices_map.get(product_id)
+
+                # Check if price changed
+                price_changed = False
+                if existing_price:
+                    if (
+                        existing_price.price_nzd != product_data["price_nzd"]
+                        or existing_price.promo_price_nzd != product_data.get("promo_price_nzd")
+                    ):
+                        price_changed = True
+                        changed_count += 1
+
+                price_values.append({
+                    "product_id": product_id,
+                    "store_id": target_store.id,
+                    "price_nzd": product_data["price_nzd"],
+                    "promo_price_nzd": product_data.get("promo_price_nzd"),
+                    "promo_text": product_data.get("promo_text"),
+                    "promo_ends_at": product_data.get("promo_ends_at"),
+                    "is_member_only": product_data.get("is_member_only", False),
+                    "last_seen_at": now,
+                    "price_last_changed_at": now if (price_changed or not existing_price) else (existing_price.price_last_changed_at if existing_price else now),
+                })
+
+                if not existing_price:
+                    changed_count += 1
+
+            # Bulk insert prices
+            if price_values:
+                stmt = insert(Price).values(price_values)
+                stmt = stmt.on_conflict_do_update(
+                    index_elements=["product_id", "store_id"],
+                    set_={
+                        "price_nzd": stmt.excluded.price_nzd,
+                        "promo_price_nzd": stmt.excluded.promo_price_nzd,
+                        "promo_text": stmt.excluded.promo_text,
+                        "promo_ends_at": stmt.excluded.promo_ends_at,
+                        "is_member_only": stmt.excluded.is_member_only,
+                        "last_seen_at": stmt.excluded.last_seen_at,
+                        "price_last_changed_at": stmt.excluded.price_last_changed_at,
+                    },
+                )
+                await session.execute(stmt)
+
+        return changed_count
 
     async def _upsert_product_and_prices(
         self, session, product_data: dict, stores: list

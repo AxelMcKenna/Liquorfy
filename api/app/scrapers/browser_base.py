@@ -16,6 +16,7 @@ from sqlalchemy.dialects.postgresql import insert
 
 from app.db.models import IngestionRun, Price, Product, Store
 from app.db.session import async_transaction
+from app.scrapers.base import Scraper
 
 try:
     from undetected_playwright.tarnished import Malenia
@@ -33,19 +34,21 @@ RETRY_DELAY = 2.0  # initial retry delay (doubles each retry)
 PAGE_TIMEOUT = 30000  # page load timeout in ms
 
 
-class BrowserScraper(ABC):
+class BrowserScraper(Scraper):
     """Base class for browser-based scrapers using Playwright."""
 
     chain: str = "unknown"
     catalog_urls: List[str] = []
 
-    def __init__(self, headless: bool = True) -> None:
+    def __init__(self, headless: bool = True, use_fixtures: bool = False) -> None:
         """
         Initialize browser scraper.
 
         Args:
             headless: Run browser in headless mode (no UI)
+            use_fixtures: Use fixtures instead of live scraping (from parent Scraper)
         """
+        super().__init__(use_fixtures=use_fixtures)
         self.headless = headless
         self.browser: Optional[Browser] = None
         self.context: Optional[BrowserContext] = None

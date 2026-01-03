@@ -21,7 +21,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 18% 15%;
 
-    --primary: 148 63% 36%;
+    --primary: 157 64% 22%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 30 22% 95%;
@@ -30,7 +30,7 @@
     --muted: 30 18% 92%;
     --muted-foreground: 222 10% 38%;
 
-    --accent: 150 54% 42%;
+    --accent: 157 64% 22%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
@@ -38,7 +38,7 @@
 
     --border: 28 12% 84%;
     --input: 28 12% 84%;
-    --ring: 148 63% 36%;
+    --ring: 157 64% 22%;
 
     --promo: 18 95% 55%;
     --gold: 42 92% 50%;
@@ -75,6 +75,7 @@
   html, body, #root {
     height: 100%;
     overflow-x: hidden;
+    overscroll-behavior: none;
   }
 
   h1, h2, h3, h4, h5, h6 {

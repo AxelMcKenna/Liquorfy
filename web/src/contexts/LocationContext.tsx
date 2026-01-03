@@ -151,8 +151,8 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const setRadiusKm = (radius: number) => {
-    // Enforce 5-50km range (matching backend validation)
-    const clampedRadius = Math.max(5, Math.min(50, radius));
+    // Enforce 5-40km range (matching backend validation)
+    const clampedRadius = Math.max(5, Math.min(40, radius));
 
     if (locationData) {
       setLocationData({

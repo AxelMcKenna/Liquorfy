@@ -31,6 +31,7 @@ async def _params(
     price_min: Optional[float] = Query(None),
     price_max: Optional[float] = Query(None),
     promo_only: bool = Query(False),
+    unique_products: bool = Query(False),
     sort: str = Query("price_per_100ml"),
     page: int = Query(1),
     page_size: int = Query(20),
@@ -52,6 +53,7 @@ async def _params(
         price_min=price_min,
         price_max=price_max,
         promo_only=promo_only,
+        unique_products=unique_products,
         sort=sort,
         page=page,
         page_size=page_size,
@@ -69,7 +71,7 @@ async def list_products(params: ProductQueryParams = Depends(_params)) -> Produc
     # - Provides immediate value to users before they enable location
     # - Nationwide deals query is the same for all users (high cache hit rate)
     # - Still requires location for larger queries to prevent expensive DB operations
-    is_small_promo_query = params.promo_only and params.page_size <= 10 and params.page == 1
+    is_small_promo_query = params.promo_only and params.page_size <= 100 and params.page == 1
     has_location = params.lat is not None and params.lon is not None and params.radius_km is not None
 
     # Enforce location requirement for all queries EXCEPT small promo queries
@@ -88,11 +90,11 @@ async def list_products(params: ProductQueryParams = Depends(_params)) -> Produc
                 detail="Location must be within New Zealand"
             )
 
-        # Enforce reasonable radius limit (max 50km)
-        if params.radius_km > 50:
+        # Enforce reasonable radius limit (max 40km)
+        if params.radius_km > 40:
             raise HTTPException(
                 status_code=400,
-                detail="Search radius cannot exceed 50km"
+                detail="Search radius cannot exceed 40km"
             )
 
     async with get_async_session() as session:

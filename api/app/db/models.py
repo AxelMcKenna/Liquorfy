@@ -4,9 +4,10 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Numeric, String, UniqueConstraint
+from sqlalchemy import Boolean, Computed, DateTime, Float, ForeignKey, Index, Numeric, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from geoalchemy2 import Geography
 
 from .base import Base
 
@@ -24,8 +25,17 @@ class Store(Base):
     api_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)  # Store ID from API (e.g., PAK'nSAVE, New World APIs)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     chain: Mapped[str] = mapped_column(String(64), nullable=False)
-    lat: Mapped[float] = mapped_column(Float, nullable=False)
-    lon: Mapped[float] = mapped_column(Float, nullable=False)
+    lat: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    lon: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    geog: Mapped[Optional[object]] = mapped_column(
+        Geography(geometry_type="POINT", srid=4326),
+        Computed(
+            "CASE WHEN lat IS NULL OR lon IS NULL THEN NULL "
+            "ELSE ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography END",
+            persisted=True,
+        ),
+        nullable=True,
+    )
     address: Mapped[Optional[str]] = mapped_column(String(255))
     region: Mapped[Optional[str]] = mapped_column(String(64))
     url: Mapped[Optional[str]] = mapped_column(String(255))

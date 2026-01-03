@@ -19,12 +19,13 @@ class ProductQueryParams(BaseModel):
     price_min: Optional[float] = None
     price_max: Optional[float] = None
     promo_only: bool = False
+    unique_products: bool = False
     sort: str = "price_per_100ml"
     page: int = 1
     page_size: int = 20
     lat: Optional[float] = None
     lon: Optional[float] = None
-    radius_km: Optional[float] = Field(None, ge=5, le=50)
+    radius_km: Optional[float] = Field(None, ge=5, le=40)
 
     @validator('radius_km')
     @classmethod

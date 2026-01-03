@@ -21,4 +21,6 @@ async def stores_nearby(
         radius = radius_km or settings.default_radius_km
         if radius <= 0:
             raise HTTPException(status_code=400, detail="radius_km must be positive")
+        if radius > 40:
+            raise HTTPException(status_code=400, detail="Search radius cannot exceed 40km")
         return await fetch_stores_nearby(session, lat=lat, lon=lon, radius_km=radius)
