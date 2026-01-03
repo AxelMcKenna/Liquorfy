@@ -1,0 +1,9 @@
+# Exclude test fixtures from GitHub language statistics
+api/app/scrapers/fixtures/*.html linguist-vendored
+
+# Exclude generated files from language statistics
+web/dist/* linguist-generated
+web/ios/App/App/public/* linguist-generated
+
+# Mark documentation
+*.md linguist-documentation
