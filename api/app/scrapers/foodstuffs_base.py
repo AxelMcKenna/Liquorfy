@@ -264,9 +264,10 @@ class FoodstuffsAPIScraper(Scraper, APIAuthBase):
             changed_items = 0
             failed_items = 0
 
-            async with async_transaction() as session:
-                for product_data in products:
-                    try:
+            # Process each product in its own transaction to avoid cascade failures
+            for product_data in products:
+                try:
+                    async with async_transaction() as session:
                         store_api_id = product_data.get('store_id')
                         if store_api_id:
                             result = await session.execute(
@@ -289,9 +290,9 @@ class FoodstuffsAPIScraper(Scraper, APIAuthBase):
                         else:
                             logger.warning(f"Product {product_data.get('name')} has no store_id")
                             failed_items += 1
-                    except Exception as e:
-                        logger.error(f"Failed to persist product {product_data.get('name')}: {e}")
-                        failed_items += 1
+                except Exception as e:
+                    logger.error(f"Failed to persist product {product_data.get('name')}: {e}")
+                    failed_items += 1
 
             async with async_transaction() as session:
                 result = await session.execute(
