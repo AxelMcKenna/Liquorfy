@@ -80,11 +80,22 @@ npm run dev
 poetry run pytest api/app/tests
 ```
 
+## Documentation
+
+Complete documentation is available in the [`docs/`](./docs/) directory:
+
+- **[Setup Guide](./docs/SETUP.md)** - Detailed setup instructions
+- **[Deployment Guide](./docs/DEPLOYMENT.md)** - Production deployment
+- **[API Documentation](./docs/api/)** - Backend API, scrapers, database schema
+- **[Mobile App](./docs/mobile/)** - iOS/Android app documentation
+- **[All Documentation](./docs/README.md)** - Full documentation index
+
 ## Project Structure
 
 ```
 api/        # FastAPI application, services, scrapers, tests
 web/        # React frontend (Vite + Tailwind)
+docs/       # Complete project documentation
 infra/      # Docker compose and infra scripts
 ```
 
