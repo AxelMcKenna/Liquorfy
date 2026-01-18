@@ -62,19 +62,19 @@ const ProductCardComponent = ({
       onClick={handleCardClick}
     >
       {/* Product Image */}
-      <div className="w-full aspect-square bg-secondary relative overflow-hidden">
+      <div className="w-full aspect-square relative overflow-hidden border-b">
         {product.image_url && !imageError ? (
           <img
             src={product.image_url}
             alt={product.name}
-            className="w-full h-full object-contain p-3"
+            className="w-full h-full object-contain p-4"
             loading="lazy"
             decoding="async"
             onError={() => setImageError(true)}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <Wine className="h-12 w-12 text-muted-foreground/30" />
+            <Wine className="h-12 w-12 text-muted-foreground/20" />
           </div>
         )}
 

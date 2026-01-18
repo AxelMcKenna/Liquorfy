@@ -21,8 +21,8 @@
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 9%;
 
-    /* Primary green - slightly deeper for better contrast */
-    --primary: 158 64% 28%;
+    /* Primary green */
+    --primary: 158 55% 23%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 0 0% 96%;
@@ -31,7 +31,7 @@
     --muted: 0 0% 96%;
     --muted-foreground: 0 0% 45%;
 
-    --accent: 158 64% 28%;
+    --accent: 158 55% 23%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
@@ -39,7 +39,7 @@
 
     --border: 0 0% 90%;
     --input: 0 0% 90%;
-    --ring: 158 64% 28%;
+    --ring: 158 55% 23%;
 
     /* Semantic: promo kept for urgency, gold removed */
     --promo: 0 72% 51%;
