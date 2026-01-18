@@ -174,15 +174,6 @@ export const Landing = () => {
 
         {/* Store Map */}
         <section className="py-12 border-t">
-          <div className="text-center mb-8">
-            <h2 className="text-xl font-semibold text-foreground mb-2">
-              Stores Near You
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Find deals from nearby retailers
-            </p>
-          </div>
-
           {!location && (
             <div className="max-w-md mx-auto text-center py-12">
               <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-secondary mb-4">
