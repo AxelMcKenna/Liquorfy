@@ -78,7 +78,7 @@ jobs:
           SECRET_KEY: test-secret-key-for-ci
           ENVIRONMENT: test
         run: |
-          poetry run pytest api/tests/ -v
+          poetry run pytest api/app/tests/ -v
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
