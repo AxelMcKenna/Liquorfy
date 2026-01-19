@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from pydantic import ValidationError
 
 from app.core.config import get_settings
 from app.core.logging import configure_logging
@@ -74,10 +75,19 @@ app.add_middleware(
 
 @app.middleware("http")
 async def add_request_id(request: Request, call_next):
-    request.state.request_id = request.headers.get("x-request-id", datetime.utcnow().isoformat())
+    request.state.request_id = request.headers.get("x-request-id", datetime.now(timezone.utc).isoformat())
     response = await call_next(request)
     response.headers["x-request-id"] = request.state.request_id
     return response
+
+
+@app.exception_handler(ValidationError)
+async def validation_exception_handler(_: Request, exc: ValidationError) -> JSONResponse:
+    """Handle Pydantic validation errors and return 422 with details."""
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors()},
+    )
 
 
 @app.exception_handler(Exception)
