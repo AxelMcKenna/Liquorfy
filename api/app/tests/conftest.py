@@ -119,7 +119,7 @@ def client(mock_redis) -> Iterator[TestClient]:
                                 return mock_redis
 
                             with patch("app.core.auth.get_redis_client", mock_get_redis):
-                                with patch("app.routes.health.redis.from_url", return_value=mock_redis):
+                                with patch("app.routes.health.get_redis_client", mock_get_redis):
                                     with patch("app.services.cache._cache._redis", mock_redis):
                                         from app.main import app
                                         with TestClient(app) as test_client:
@@ -129,8 +129,11 @@ def client(mock_redis) -> Iterator[TestClient]:
 @pytest.fixture
 async def async_client(mock_redis) -> AsyncIterator[AsyncClient]:
     """Create an async test client."""
-    with patch("app.core.auth.get_redis_client", return_value=mock_redis):
-        with patch("app.routes.health.redis.from_url", return_value=mock_redis):
+    async def mock_get_redis():
+        return mock_redis
+
+    with patch("app.core.auth.get_redis_client", mock_get_redis):
+        with patch("app.routes.health.get_redis_client", mock_get_redis):
             with patch("app.services.cache._cache._redis", mock_redis):
                 from app.core.config import get_settings
                 get_settings.cache_clear()
