@@ -28,8 +28,17 @@ class CacheClient:
         # The 'ex' parameter sets the TTL in seconds.
         await self._redis.set(key, value, ex=ttl)
 
+    async def ping(self) -> bool:
+        """Pings the Redis server to check connectivity."""
+        return await self._redis.ping()
+
 
 _cache = CacheClient()
+
+
+async def get_redis_client() -> CacheClient:
+    """Returns the shared Redis cache client for health checks and other uses."""
+    return _cache
 
 
 async def cached_json(key: str, ttl: Optional[int], producer: Callable[[], Awaitable[Any]]) -> Any:
@@ -63,4 +72,4 @@ async def cached_json(key: str, ttl: Optional[int], producer: Callable[[], Await
     return result
 
 
-__all__ = ["cached_json"]
+__all__ = ["cached_json", "get_redis_client"]

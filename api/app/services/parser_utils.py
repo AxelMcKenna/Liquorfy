@@ -429,6 +429,123 @@ CATEGORY_HIERARCHY = {
 }
 
 
+# NZ wine regions for deduplication
+NZ_REGIONS = {
+    "marlborough", "hawkes bay", "hawke's bay", "central otago", "gisborne",
+    "wairarapa", "martinborough", "nelson", "canterbury", "waipara",
+    "auckland", "northland", "waikato", "bay of plenty",
+}
+
+# Words that should stay lowercase in titles (unless first word)
+LOWERCASE_WORDS = {"a", "an", "the", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with", "by"}
+
+# Words that should stay uppercase
+UPPERCASE_WORDS = {"ipa", "abv", "nz", "usa", "uk", "rtd", "ml", "cl", "xl"}
+
+
+def format_product_name(name: str, brand: Optional[str] = None) -> str:
+    """
+    Format a product name for professional display.
+
+    - Applies title case
+    - Removes duplicate brand mentions
+    - Removes duplicate region mentions
+    - Cleans up whitespace
+
+    Example: "stoneleigh marlborough stoneleigh sauvignon blanc marlborough"
+          -> "Stoneleigh Sauvignon Blanc Marlborough"
+    """
+    if not name:
+        return name
+
+    # Normalize whitespace
+    words = name.lower().split()
+    if not words:
+        return name
+
+    # Track seen words for deduplication (case-insensitive)
+    seen_words: set[str] = set()
+    seen_regions: set[str] = set()
+    result_words: list[str] = []
+
+    # Determine brand words to deduplicate
+    brand_words: set[str] = set()
+    if brand:
+        brand_words = {w.lower() for w in brand.split()}
+
+    i = 0
+    while i < len(words):
+        word = words[i]
+        word_lower = word.lower()
+
+        # Check for multi-word regions (e.g., "hawkes bay", "central otago")
+        two_word = f"{word_lower} {words[i+1].lower()}" if i + 1 < len(words) else None
+
+        if two_word and two_word in NZ_REGIONS:
+            if two_word not in seen_regions:
+                seen_regions.add(two_word)
+                # Title case the region
+                result_words.append(words[i].capitalize())
+                result_words.append(words[i+1].capitalize())
+            i += 2
+            continue
+
+        # Check for single-word regions
+        if word_lower in NZ_REGIONS:
+            if word_lower not in seen_regions:
+                seen_regions.add(word_lower)
+                result_words.append(word.capitalize())
+            i += 1
+            continue
+
+        # Skip duplicate brand words (but keep first occurrence)
+        if word_lower in brand_words:
+            if word_lower not in seen_words:
+                seen_words.add(word_lower)
+                result_words.append(_title_case_word(word))
+            i += 1
+            continue
+
+        # Skip exact duplicate words in sequence
+        if word_lower in seen_words and word_lower not in LOWERCASE_WORDS:
+            i += 1
+            continue
+
+        seen_words.add(word_lower)
+        result_words.append(_title_case_word(word))
+        i += 1
+
+    # Apply proper title case rules
+    formatted = []
+    for idx, word in enumerate(result_words):
+        if idx == 0:
+            # First word always capitalized
+            formatted.append(word if word.upper() in {w.upper() for w in UPPERCASE_WORDS} else word.capitalize() if word.islower() else word)
+        elif word.lower() in LOWERCASE_WORDS:
+            formatted.append(word.lower())
+        else:
+            formatted.append(word)
+
+    return " ".join(formatted)
+
+
+def _title_case_word(word: str) -> str:
+    """Apply title case to a single word, respecting special cases."""
+    word_lower = word.lower()
+
+    # Keep certain words uppercase
+    if word_lower in UPPERCASE_WORDS:
+        return word.upper()
+
+    # Handle apostrophes (e.g., "hawke's" -> "Hawke's")
+    if "'" in word:
+        parts = word.split("'")
+        return "'".join(p.capitalize() for p in parts)
+
+    # Standard title case
+    return word.capitalize()
+
+
 __all__ = [
     "parse_volume",
     "ParsedVolume",
@@ -436,4 +553,5 @@ __all__ = [
     "infer_brand",
     "infer_category",
     "CATEGORY_HIERARCHY",
+    "format_product_name",
 ]

@@ -1,11 +1,17 @@
-import { motion } from "framer-motion";
-import { X, ExternalLink, Store, Clock, Crown, Wine, MapPin, ShoppingCart } from "lucide-react";
+import { ExternalLink, Store, Clock, Crown, Wine, MapPin, ShoppingCart } from "lucide-react";
 import { Product } from "@/types";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+import {
+  formatPromoEndDate,
+  formatDistanceAway,
+  getDistanceColorClass,
+  calculateSavingsPercent,
+} from "@/lib/formatters";
 
 interface QuickViewProps {
   product: Product | null;
@@ -30,27 +36,10 @@ export const QuickView = ({
 
   const hasPromo = product.price.promo_price_nzd && product.price.promo_price_nzd < product.price.price_nzd;
   const currentPrice = product.price.promo_price_nzd ?? product.price.price_nzd;
-  const savingsPercent = hasPromo
-    ? Math.round(((product.price.price_nzd - product.price.promo_price_nzd!) / product.price.price_nzd) * 100)
-    : 0;
-
-  const formatPromoEndDate = (endDate: string | null | undefined): string | null => {
-    if (!endDate) return null;
-
-    const end = new Date(endDate);
-    const now = new Date();
-    const diffTime = end.getTime() - now.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays < 0) return "Expired";
-    if (diffDays === 0) return "Ends today";
-    if (diffDays === 1) return "Ends tomorrow";
-    if (diffDays <= 7) return `Ends in ${diffDays} days`;
-
-    return `Ends ${end.toLocaleDateString('en-NZ', { month: 'short', day: 'numeric' })}`;
-  };
-
+  const savingsPercent = calculateSavingsPercent(product.price.price_nzd, product.price.promo_price_nzd);
   const promoEndText = formatPromoEndDate(product.price.promo_ends_at);
+  const distanceText = formatDistanceAway(product.price.distance_km);
+  const distanceColorClass = getDistanceColorClass(product.price.distance_km);
 
   const handleViewDetails = () => {
     onClose();
@@ -65,15 +54,15 @@ export const QuickView = ({
           <div className="md:col-span-2 bg-white p-6 flex items-center justify-center relative">
             {hasPromo && (
               <div className="absolute top-3 left-3 z-10">
-                <Badge className="bg-red-600 text-white font-bold text-xs px-2 py-1">
+                <Badge className="bg-primary text-white font-semibold text-xs">
                   SALE
                 </Badge>
               </div>
             )}
             {hasPromo && savingsPercent > 0 && (
               <div className="absolute top-3 right-3 z-10">
-                <Badge className="bg-green-600 text-white font-bold text-xs px-2 py-1">
-                  Save {savingsPercent}%
+                <Badge className="bg-primary text-white font-semibold text-xs">
+                  {savingsPercent}% off
                 </Badge>
               </div>
             )}
@@ -128,7 +117,7 @@ export const QuickView = ({
             {hasPromo && (
               <div className="flex flex-wrap gap-2 mb-4">
                 {product.price.is_member_only && (
-                  <Badge variant="secondary" className="gap-1 bg-gold/20 text-gold border-gold/30">
+                  <Badge variant="outline" className="gap-1 text-gold border-gold">
                     <Crown className="h-3 w-3" />
                     Members Only
                   </Badge>
@@ -148,22 +137,10 @@ export const QuickView = ({
                 <Store className="h-4 w-4 text-primary" />
                 <span className="font-medium text-primary-gray">{product.price.store_name}</span>
               </div>
-              {product.price.distance_km !== null && product.price.distance_km !== undefined && (
-                <div className="flex items-center gap-2">
-                  <MapPin className={`h-4 w-4 ${
-                    product.price.distance_km < 2 ? 'text-green-600' :
-                    product.price.distance_km < 5 ? 'text-yellow-600' :
-                    'text-gray-400'
-                  }`} />
-                  <span className={`text-sm font-medium ${
-                    product.price.distance_km < 2 ? 'text-green-600' :
-                    product.price.distance_km < 5 ? 'text-yellow-600' :
-                    'text-tertiary-gray'
-                  }`}>
-                    {product.price.distance_km < 1
-                      ? `${Math.round(product.price.distance_km * 1000)}m away`
-                      : `${product.price.distance_km.toFixed(1)}km away`}
-                  </span>
+              {distanceText && (
+                <div className={cn("flex items-center gap-2", distanceColorClass)}>
+                  <MapPin className="h-4 w-4" />
+                  <span className="text-sm font-medium">{distanceText}</span>
                 </div>
               )}
             </div>

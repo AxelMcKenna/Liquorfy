@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, Navigation, X, Map } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,8 @@ import { useStores } from '@/hooks/useStores';
 import { Store } from '@/types';
 import { getChainColorClass, getChainName } from '@/lib/chainConstants';
 import { ChainLogo } from '@/components/stores/logos';
+import { formatDistance, getDistanceColorClass } from '@/lib/formatters';
+import { cn } from '@/lib/utils';
 
 interface StoreSelectorProps {
   selectedStore: Store | null;
@@ -34,18 +36,18 @@ export const StoreSelector: React.FC<StoreSelectorProps> = ({
     }
   }, [location, radiusKm, fetchNearbyStores]);
 
-  const handleRequestLocation = () => {
+  const handleRequestLocation = useCallback(() => {
     requestLocation();
-  };
+  }, [requestLocation]);
 
-  const handleStoreClick = (store: Store) => {
+  const handleStoreClick = useCallback((store: Store) => {
     onSelectStore(store);
     onClose?.();
-  };
+  }, [onSelectStore, onClose]);
 
-  const handleClearSelection = () => {
+  const handleClearSelection = useCallback(() => {
     onSelectStore(null);
-  };
+  }, [onSelectStore]);
 
   return (
     <div className="space-y-4">
@@ -53,12 +55,12 @@ export const StoreSelector: React.FC<StoreSelectorProps> = ({
       {!location && (
         <Card className="p-6">
           <div className="flex flex-col items-center text-center space-y-4">
-            <div className="p-3 bg-blue-100 rounded-full">
-              <Navigation className="h-6 w-6 text-blue-600" />
+            <div className="p-3 bg-location/10 rounded-full">
+              <Navigation className="h-6 w-6 text-location" />
             </div>
             <div>
-              <h3 className="font-semibold text-lg mb-2">Find Stores Near You</h3>
-              <p className="text-gray-600 text-sm mb-4">
+              <h3 className="font-semibold text-lg text-primary-gray mb-2">Find Stores Near You</h3>
+              <p className="text-secondary-gray text-sm mb-4">
                 Enable location to see stores in your area and get accurate pricing
               </p>
               <Button
@@ -70,7 +72,7 @@ export const StoreSelector: React.FC<StoreSelectorProps> = ({
               </Button>
             </div>
             {locationError && (
-              <p className="text-red-600 text-sm">{locationError}</p>
+              <p className="text-destructive text-sm">{locationError}</p>
             )}
           </div>
         </Card>
@@ -83,19 +85,22 @@ export const StoreSelector: React.FC<StoreSelectorProps> = ({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
         >
-          <Card className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200">
+          <Card className="p-4 bg-primary/5 border-primary/20">
             <div className="flex items-start justify-between">
               <div className="flex items-start space-x-3">
                 <div className={`p-2 ${getChainColorClass(selectedStore.chain)} rounded-lg`}>
                   <ChainLogo chain={selectedStore.chain} className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <h4 className="font-semibold text-gray-900">{selectedStore.name}</h4>
-                  <p className="text-sm text-gray-600">{selectedStore.address}</p>
-                  {selectedStore.distance_km !== null && selectedStore.distance_km !== undefined && (
-                    <div className="flex items-center mt-1 text-sm text-gray-500">
+                  <h4 className="font-semibold text-primary-gray">{selectedStore.name}</h4>
+                  <p className="text-sm text-secondary-gray">{selectedStore.address}</p>
+                  {formatDistance(selectedStore.distance_km) && (
+                    <div className={cn(
+                      "flex items-center mt-1 text-sm",
+                      getDistanceColorClass(selectedStore.distance_km)
+                    )}>
                       <MapPin className="h-3 w-3 mr-1" />
-                      {selectedStore.distance_km.toFixed(1)} km away
+                      {formatDistance(selectedStore.distance_km)} away
                     </div>
                   )}
                 </div>
@@ -104,7 +109,7 @@ export const StoreSelector: React.FC<StoreSelectorProps> = ({
                 variant="ghost"
                 size="sm"
                 onClick={handleClearSelection}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-muted-foreground hover:text-foreground"
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -118,7 +123,7 @@ export const StoreSelector: React.FC<StoreSelectorProps> = ({
         <div className="space-y-3">
           {/* Header with Map Toggle */}
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-gray-900">
+            <h3 className="font-semibold text-primary-gray">
               Stores Near You ({stores.length})
             </h3>
             <Button
@@ -133,13 +138,13 @@ export const StoreSelector: React.FC<StoreSelectorProps> = ({
           </div>
 
           {/* Radius Slider */}
-          <Card className="p-4 bg-blue-50 border-blue-200">
+          <Card className="p-4 bg-secondary border-border">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-gray-700">
+                <label className="text-sm font-medium text-secondary-gray">
                   Search Radius
                 </label>
-                <span className="text-sm font-semibold text-blue-600">
+                <span className="text-sm font-semibold text-primary">
                   {radiusKm} km
                 </span>
               </div>
@@ -151,7 +156,7 @@ export const StoreSelector: React.FC<StoreSelectorProps> = ({
                 step={5}
                 className="w-full"
               />
-              <div className="flex justify-between text-xs text-gray-500">
+              <div className="flex justify-between text-xs text-tertiary-gray">
                 <span>0 km</span>
                 <span>40 km</span>
               </div>
@@ -177,20 +182,20 @@ export const StoreSelector: React.FC<StoreSelectorProps> = ({
           )}
 
           {storesLoading && (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-secondary-gray">
               Loading nearby stores...
             </div>
           )}
 
           {storesError && (
-            <div className="text-center py-4 text-red-600">
+            <div className="text-center py-4 text-destructive">
               {storesError}
             </div>
           )}
 
           {!storesLoading && stores.length === 0 && (
             <Card className="p-6 text-center">
-              <p className="text-gray-600">No stores found within 20km of your location</p>
+              <p className="text-secondary-gray">No stores found within {radiusKm}km of your location</p>
             </Card>
           )}
 
@@ -200,10 +205,11 @@ export const StoreSelector: React.FC<StoreSelectorProps> = ({
                 key={store.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
+                // Limit staggered animation to first 10 items to prevent performance issues
+                transition={{ delay: Math.min(index, 10) * 0.03 }}
               >
                 <Card
-                  className="p-4 hover:shadow-md transition-shadow cursor-pointer border-2 hover:border-blue-300"
+                  className="p-4 hover:shadow-md transition-shadow cursor-pointer border hover:border-primary/30"
                   onClick={() => handleStoreClick(store)}
                 >
                   <div className="flex items-start justify-between">
@@ -213,16 +219,19 @@ export const StoreSelector: React.FC<StoreSelectorProps> = ({
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-medium text-gray-900">{store.name}</h4>
+                          <h4 className="font-medium text-primary-gray">{store.name}</h4>
                           <Badge variant="secondary" className="text-xs">
                             {getChainName(store.chain)}
                           </Badge>
                         </div>
-                        <p className="text-sm text-gray-600">{store.address}</p>
-                        {store.distance_km !== null && store.distance_km !== undefined && (
-                          <div className="flex items-center mt-2 text-sm text-gray-500">
+                        <p className="text-sm text-secondary-gray">{store.address}</p>
+                        {formatDistance(store.distance_km) && (
+                          <div className={cn(
+                            "flex items-center mt-2 text-sm",
+                            getDistanceColorClass(store.distance_km)
+                          )}>
                             <MapPin className="h-3 w-3 mr-1" />
-                            {store.distance_km.toFixed(1)} km away
+                            {formatDistance(store.distance_km)} away
                           </div>
                         )}
                       </div>

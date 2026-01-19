@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Boolean, Computed, DateTime, Float, ForeignKey, Index, Numeric, String, UniqueConstraint
+from sqlalchemy import Boolean, Computed, DateTime, Float, ForeignKey, Index, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from geoalchemy2 import Geography
@@ -45,6 +45,7 @@ class Store(Base):
     __table_args__ = (
         UniqueConstraint("chain", "name", name="uq_store_chain_name"),
         UniqueConstraint("chain", "api_id", name="uq_store_chain_api_id"),
+        Index("ix_store_chain", "chain"),  # For chain filtering queries
     )
 
 
@@ -66,7 +67,10 @@ class Product(Base):
 
     prices: Mapped[list["Price"]] = relationship(back_populates="product")
 
-    __table_args__ = (UniqueConstraint("chain", "source_product_id", name="uq_product_source"),)
+    __table_args__ = (
+        UniqueConstraint("chain", "source_product_id", name="uq_product_source"),
+        Index("ix_product_chain", "chain"),  # For chain filtering queries
+    )
 
 
 class Price(Base):
@@ -91,6 +95,10 @@ class Price(Base):
         Index("ix_price_price_nzd", "price_nzd"),
         Index("ix_price_promo_price_nzd", "promo_price_nzd"),
         Index("ix_price_last_changed", "price_last_changed_at"),
+        Index("ix_price_product_id", "product_id"),  # FK index for JOINs
+        Index("ix_price_store_id", "store_id"),  # FK index for JOINs
+        Index("ix_price_product_store", "product_id", "store_id"),  # Composite for lookups
+        Index("ix_price_last_seen", "last_seen_at"),  # For cleanup queries
     )
 
 
@@ -106,6 +114,11 @@ class IngestionRun(Base):
     items_changed: Mapped[int] = mapped_column(default=0)
     items_failed: Mapped[int] = mapped_column(default=0)
     log_url: Mapped[Optional[str]] = mapped_column(String(255))
+
+    __table_args__ = (
+        Index("ix_ingestion_run_chain_status", "chain", "status"),  # For status queries
+        Index("ix_ingestion_run_chain_started", "chain", "started_at"),  # For recent run queries
+    )
 
 
 __all__ = ["Store", "Product", "Price", "IngestionRun"]

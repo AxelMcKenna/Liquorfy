@@ -52,7 +52,9 @@ export const Explore = () => {
     };
 
     fetchProducts(fetchFilters, page);
-  }, [filters, location, radiusKm, page, isLocationSet, fetchProducts]);
+    // fetchProducts is stable (wrapped in useCallback with empty deps), so omitting from deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, location, radiusKm, page, isLocationSet]);
 
   const handlePageChange = (newPage: number) => {
     const newParams = new URLSearchParams(searchParams);

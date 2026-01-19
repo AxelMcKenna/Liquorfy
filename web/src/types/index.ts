@@ -91,7 +91,7 @@ export enum SortOption {
   NEWEST = "newest"
 }
 
-export type ChainType = "super_liquor" | "liquorland" | "bottle_o" | "countdown" | "new_world" | "paknsave" | "liquor_centre" | "glengarry" | "thirsty_liquor" | "black_bull";
+export type ChainType = "super_liquor" | "liquorland" | "bottle_o" | "countdown" | "new_world" | "paknsave" | "liquor_centre" | "glengarry" | "thirsty_liquor" | "black_bull" | "big_barrel";
 
 export interface ProductFilters {
   query?: string;

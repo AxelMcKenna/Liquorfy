@@ -11,6 +11,7 @@ import { LiquorCentreLogo } from './LiquorCentreLogo';
 import { GlengarryLogo } from './GlengarryLogo';
 import { ThirstyLiquorLogo } from './ThirstyLiquorLogo';
 import { BlackBullLogo } from './BlackBullLogo';
+import { BigBarrelLogo } from './BigBarrelLogo';
 
 interface ChainLogoProps {
   chain: string;
@@ -38,6 +39,7 @@ export const ChainLogo: React.FC<ChainLogoProps> = ({ chain, className, color })
     glengarry: GlengarryLogo,
     thirsty_liquor: ThirstyLiquorLogo,
     black_bull: BlackBullLogo,
+    big_barrel: BigBarrelLogo,
   };
 
   const LogoComponent = logoComponents[chain as ChainType];

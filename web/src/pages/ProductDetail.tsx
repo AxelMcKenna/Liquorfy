@@ -7,6 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Header } from '@/components/layout/Header';
+import { cn } from '@/lib/utils';
+import {
+  formatPromoEndDate,
+  formatDistanceAway,
+  getDistanceColorClass,
+} from '@/lib/formatters';
 
 export const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -76,6 +82,9 @@ export const ProductDetail = () => {
 
   const hasPromo = product.price.promo_price_nzd && product.price.promo_price_nzd < product.price.price_nzd;
   const currentPrice = product.price.promo_price_nzd ?? product.price.price_nzd;
+  const promoEndText = formatPromoEndDate(product.price.promo_ends_at);
+  const distanceText = formatDistanceAway(product.price.distance_km);
+  const distanceColorClass = getDistanceColorClass(product.price.distance_km);
 
   return (
     <div className="min-h-screen bg-secondary">
@@ -169,15 +178,15 @@ export const ProductDetail = () => {
                   {hasPromo && (
                     <div className="flex flex-wrap gap-2 mt-4">
                       {product.price.is_member_only && (
-                        <Badge variant="secondary" className="gap-1 bg-gold/20 text-gold border-gold/30">
+                        <Badge variant="outline" className="gap-1 text-gold border-gold">
                           <Crown className="h-3 w-3" />
                           Members Only
                         </Badge>
                       )}
-                      {product.price.promo_ends_at && (
+                      {promoEndText && (
                         <Badge variant="outline" className="gap-1 text-primary border-primary/30">
                           <Clock className="h-3 w-3" />
-                          {new Date(product.price.promo_ends_at).toLocaleDateString('en-NZ')}
+                          {promoEndText}
                         </Badge>
                       )}
                     </div>
@@ -186,13 +195,19 @@ export const ProductDetail = () => {
 
                 {/* Store info */}
                 <div className="pt-6 border-t border-subtle">
-                  <div className="flex items-center gap-2 text-secondary-gray mb-4">
+                  <div className="flex items-center gap-2 text-secondary-gray mb-2">
                     <Store className="h-5 w-5 text-primary" />
                     <div>
                       <p className="font-semibold text-primary-gray">{product.price.store_name}</p>
                       <p className="text-sm">{product.chain}</p>
                     </div>
                   </div>
+                  {distanceText && (
+                    <div className={cn("flex items-center gap-2 mb-4", distanceColorClass)}>
+                      <MapPin className="h-4 w-4" />
+                      <span className="text-sm font-medium">{distanceText}</span>
+                    </div>
+                  )}
 
                   {product.product_url && (
                     <Button asChild className="w-full bg-primary hover:bg-accent text-white" size="lg">

@@ -1,10 +1,44 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import Map, { Marker, Source, Layer, Popup } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { Navigation } from 'lucide-react';
+import { Navigation, MapPin } from 'lucide-react';
 import { Store, Location } from '@/types';
-import { chainColors, chainNames, getChainColor, getChainName } from '@/lib/chainConstants';
+import { getChainColor, getChainName } from '@/lib/chainConstants';
 import { ChainLogo } from './logos';
+import { formatDistance, getDistanceColorClass } from '@/lib/formatters';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+
+// Memoized circle calculation - only recalculates when center or radius changes
+const createCircle = (center: [number, number], radiusInKm: number) => {
+  const points = 64;
+  const coords = {
+    latitude: center[1],
+    longitude: center[0],
+  };
+
+  const km = radiusInKm;
+  const ret = [];
+  const distanceX = km / (111.32 * Math.cos((coords.latitude * Math.PI) / 180));
+  const distanceY = km / 110.574;
+
+  for (let i = 0; i < points; i++) {
+    const theta = (i / points) * (2 * Math.PI);
+    const x = distanceX * Math.cos(theta);
+    const y = distanceY * Math.sin(theta);
+    ret.push([coords.longitude + x, coords.latitude + y]);
+  }
+  ret.push(ret[0]);
+
+  return {
+    type: 'Feature' as const,
+    geometry: {
+      type: 'Polygon' as const,
+      coordinates: [ret],
+    },
+    properties: {},
+  };
+};
 
 export interface StoreMapProps {
   userLocation: Location;
@@ -42,7 +76,7 @@ export const StoreMap: React.FC<StoreMapProps> = ({
     setDraggableLocation(userLocation);
   }, [userLocation]);
 
-  const handleMarkerDragEnd = (event: any) => {
+  const handleMarkerDragEnd = useCallback((event: any) => {
     const { lngLat } = event;
     const newLocation = {
       lat: lngLat.lat,
@@ -52,44 +86,27 @@ export const StoreMap: React.FC<StoreMapProps> = ({
     if (onLocationChange) {
       onLocationChange(lngLat.lat, lngLat.lng);
     }
-  };
-
-  // Create GeoJSON for the radius circle
-  const createCircle = (center: [number, number], radiusInKm: number) => {
-    const points = 64;
-    const coords = {
-      latitude: center[1],
-      longitude: center[0],
-    };
-
-    const km = radiusInKm;
-    const ret = [];
-    const distanceX = km / (111.32 * Math.cos((coords.latitude * Math.PI) / 180));
-    const distanceY = km / 110.574;
-
-    for (let i = 0; i < points; i++) {
-      const theta = (i / points) * (2 * Math.PI);
-      const x = distanceX * Math.cos(theta);
-      const y = distanceY * Math.sin(theta);
-      ret.push([coords.longitude + x, coords.latitude + y]);
-    }
-    ret.push(ret[0]);
-
-    return {
-      type: 'Feature' as const,
-      geometry: {
-        type: 'Polygon' as const,
-        coordinates: [ret],
-      },
-      properties: {},
-    };
-  };
+  }, [onLocationChange]);
 
   const activeLocation = isDraggable ? draggableLocation : userLocation;
-  const radiusCircle = createCircle([activeLocation.lon, activeLocation.lat], radiusKm);
+
+  // Memoize the radius circle - only recalculates when location or radius changes
+  const radiusCircle = useMemo(
+    () => createCircle([activeLocation.lon, activeLocation.lat], radiusKm),
+    [activeLocation.lon, activeLocation.lat, radiusKm]
+  );
+
+  // Memoize store markers to prevent unnecessary re-renders
+  const storeMarkers = useMemo(() => {
+    return stores.map((store) => {
+      const color = getChainColor(store.chain);
+      const isSelected = selectedStore?.id === store.id;
+      return { store, color, isSelected };
+    });
+  }, [stores, selectedStore?.id]);
 
   return (
-    <div className="w-full h-[500px] rounded-lg overflow-hidden shadow-lg border-2 border-gray-200">
+    <div className="w-full h-[500px] rounded-lg overflow-hidden shadow-lg border border-border">
       <Map
         {...viewState}
         onMove={(evt) => setViewState(evt.viewState)}
@@ -127,66 +144,62 @@ export const StoreMap: React.FC<StoreMapProps> = ({
         >
           <div className="relative">
             {!isDraggable && (
-              <div className="absolute -inset-2 bg-blue-500 rounded-full animate-ping opacity-75" />
+              <div className="absolute -inset-2 bg-location rounded-full animate-ping opacity-75" />
             )}
             <div
-              className={`relative bg-blue-600 p-2 rounded-full shadow-lg border-3 border-white ${
-                isDraggable ? 'cursor-move' : ''
-              }`}
+              className={cn(
+                "relative bg-location p-2 rounded-full shadow-lg border-2 border-white",
+                isDraggable && "cursor-move"
+              )}
             >
               <Navigation className="h-5 w-5 text-white" />
             </div>
           </div>
         </Marker>
 
-        {/* Store markers */}
-        {stores.map((store) => {
-          const color = getChainColor(store.chain);
-          const isSelected = selectedStore?.id === store.id;
-
-          return (
-            <Marker
-              key={store.id}
-              longitude={store.lon}
-              latitude={store.lat}
-              anchor="bottom"
-              onClick={(e) => {
-                e.originalEvent.stopPropagation();
-                setPopupInfo(store);
-              }}
+        {/* Store markers - using memoized data */}
+        {storeMarkers.map(({ store, color, isSelected }) => (
+          <Marker
+            key={store.id}
+            longitude={store.lon}
+            latitude={store.lat}
+            anchor="bottom"
+            onClick={(e) => {
+              e.originalEvent.stopPropagation();
+              setPopupInfo(store);
+            }}
+          >
+            <div
+              className={`cursor-pointer transition-transform hover:scale-110 ${
+                isSelected ? 'scale-125' : ''
+              }`}
             >
               <div
-                className={`cursor-pointer transition-transform hover:scale-110 ${
-                  isSelected ? 'scale-125' : ''
-                }`}
+                className="relative"
+                style={{
+                  filter: isSelected ? 'drop-shadow(0 0 8px rgba(34, 197, 94, 0.8))' : '',
+                }}
               >
-                <div
-                  className="relative"
-                  style={{
-                    filter: isSelected ? 'drop-shadow(0 0 8px rgba(34, 197, 94, 0.8))' : '',
-                  }}
+                <svg
+                  width="46"
+                  height="58"
+                  viewBox="0 0 40 50"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
                 >
-                  <svg
-                    width="40"
-                    height="50"
-                    viewBox="0 0 40 50"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M20 0C8.95 0 0 8.95 0 20C0 35 20 50 20 50C20 50 40 35 40 20C40 8.95 31.05 0 20 0Z"
-                      fill={color}
-                    />
-                    <circle cx="20" cy="18" r="8" fill="white" />
-                  </svg>
-                  <div className="absolute top-[8px] left-1/2 transform -translate-x-1/2">
-                    <ChainLogo chain={store.chain} className="h-4 w-4" color={color} />
-                  </div>
+                  <path
+                    d="M20 0C8.95 0 0 8.95 0 20C0 35 20 50 20 50C20 50 40 35 40 20C40 8.95 31.05 0 20 0Z"
+                    fill={color}
+                  />
+                  <circle cx="20" cy="18" r="10" fill="white" />
+                </svg>
+                <div className="absolute top-[8px] left-1/2 transform -translate-x-1/2">
+                  <ChainLogo chain={store.chain} className="h-5 w-5" color={color} />
                 </div>
               </div>
-            </Marker>
-          );
-        })}
+            </div>
+          </Marker>
+        ))}
 
         {/* Popup */}
         {popupInfo && (
@@ -197,34 +210,50 @@ export const StoreMap: React.FC<StoreMapProps> = ({
             onClose={() => setPopupInfo(null)}
             closeButton={true}
             closeOnClick={false}
-            className="store-popup"
+            maxWidth="280px"
           >
-            <div className="p-3 min-w-[220px]">
-              <div className="mb-2">
+            <div className="p-3 pr-8">
+              {/* Header: Logo + Store name */}
+              <div className="flex items-start gap-2.5 mb-2">
                 <div
-                  className="inline-block px-2 py-1 rounded text-xs font-semibold text-white mb-2"
+                  className="p-1.5 rounded shrink-0"
                   style={{ backgroundColor: getChainColor(popupInfo.chain) }}
                 >
-                  {getChainName(popupInfo.chain)}
+                  <ChainLogo chain={popupInfo.chain} className="h-4 w-4 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-primary-gray text-sm leading-tight">
+                    {popupInfo.name}
+                  </h3>
+                  <p className="text-xs text-secondary-gray mt-0.5 line-clamp-2">
+                    {popupInfo.address}
+                  </p>
                 </div>
               </div>
-              <h3 className="font-bold text-gray-900 mb-1">{popupInfo.name}</h3>
-              <p className="text-sm text-gray-600 mb-2">{popupInfo.address}</p>
-              {popupInfo.distance_km !== null && popupInfo.distance_km !== undefined && (
-                <p className="text-sm font-semibold text-blue-600 mb-3">
-                  📍 {popupInfo.distance_km.toFixed(1)} km away
-                </p>
+
+              {/* Distance */}
+              {formatDistance(popupInfo.distance_km) && (
+                <div className={cn(
+                  "flex items-center gap-1 text-xs font-medium mb-3",
+                  getDistanceColorClass(popupInfo.distance_km)
+                )}>
+                  <MapPin className="h-3.5 w-3.5" />
+                  <span>{formatDistance(popupInfo.distance_km)} away</span>
+                </div>
               )}
+
+              {/* Select button */}
               {onStoreClick && (
-                <button
+                <Button
                   onClick={() => {
                     onStoreClick(popupInfo);
                     setPopupInfo(null);
                   }}
-                  className="w-full px-3 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg text-sm font-semibold hover:from-blue-600 hover:to-blue-700 transition-all shadow-md hover:shadow-lg"
+                  className="w-full"
+                  size="sm"
                 >
-                  Select This Store
-                </button>
+                  Select Store
+                </Button>
               )}
             </div>
           </Popup>

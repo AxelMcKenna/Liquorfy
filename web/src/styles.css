@@ -41,8 +41,19 @@
     --input: 0 0% 90%;
     --ring: 158 55% 23%;
 
-    /* Semantic: promo kept for urgency, gold removed */
+    /* Semantic: promo kept for urgency */
     --promo: 0 72% 51%;
+
+    /* Distance indicator colors */
+    --distance-close: 142 71% 45%;     /* Green - walking distance */
+    --distance-medium: 45 93% 47%;     /* Amber/Yellow - short drive */
+    --distance-far: 0 0% 45%;          /* Gray - further away */
+
+    /* Members/Gold badge */
+    --gold: 45 93% 47%;
+
+    /* Location/Map accent */
+    --location: 217 91% 60%;           /* Blue for location UI */
 
     /* Tighter radius - professional, not pillowy */
     --radius: 0.5rem;
@@ -108,8 +119,67 @@
   .promo-badge {
     @apply bg-primary text-white px-2 py-0.5 text-xs font-medium;
   }
+
+  /* Distance color utilities */
+  .text-distance-close {
+    color: hsl(var(--distance-close));
+  }
+
+  .text-distance-medium {
+    color: hsl(var(--distance-medium));
+  }
+
+  .text-distance-far {
+    color: hsl(var(--distance-far));
+  }
+
+  /* Gold/Members badge */
+  .text-gold {
+    color: hsl(var(--gold));
+  }
+
+  .bg-gold {
+    background-color: hsl(var(--gold));
+  }
+
+  .border-gold {
+    border-color: hsl(var(--gold));
+  }
+
+  /* Location accent */
+  .text-location {
+    color: hsl(var(--location));
+  }
+
+  .bg-location {
+    background-color: hsl(var(--location));
+  }
+
+  .border-location {
+    border-color: hsl(var(--location));
+  }
 }
 
 ::selection {
   background: hsl(var(--primary) / 0.15);
+}
+
+/* MapLibre popup styles */
+.maplibregl-popup-close-button {
+  padding: 4px 8px;
+  font-size: 18px;
+  color: hsl(var(--foreground-secondary));
+  right: 4px;
+  top: 4px;
+}
+
+.maplibregl-popup-close-button:hover {
+  color: hsl(var(--foreground));
+  background: transparent;
+}
+
+.maplibregl-popup-content {
+  border-radius: var(--radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 0;
 }

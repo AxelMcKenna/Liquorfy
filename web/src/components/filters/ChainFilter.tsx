@@ -18,6 +18,7 @@ const chains: { value: ChainType; label: string }[] = [
   { value: 'glengarry', label: 'Glengarry' },
   { value: 'thirsty_liquor', label: 'Thirsty Liquor' },
   { value: 'black_bull', label: 'Black Bull' },
+  { value: 'big_barrel', label: 'Big Barrel' },
 ];
 
 export const ChainFilter = ({ selected, onChange }: ChainFilterProps) => {
