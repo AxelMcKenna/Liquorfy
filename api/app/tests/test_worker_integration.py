@@ -135,9 +135,9 @@ class TestScraperExecution:
     @pytest.mark.asyncio
     async def test_successful_scraper_execution(self):
         """Test successful scraper records completion time."""
-        scheduler = WorkerScheduler()
+        scheduler = WorkerScheduler(chains_to_run=["countdown"])
 
-        with patch('app.scrapers.registry.get_chain_scraper') as mock_get_scraper:
+        with patch('app.workers.runner.get_chain_scraper') as mock_get_scraper:
             mock_scraper = MockSuccessfulScraper()
             mock_scraper.run = AsyncMock(return_value=MagicMock())
             mock_get_scraper.return_value = mock_scraper
@@ -151,9 +151,9 @@ class TestScraperExecution:
     @pytest.mark.asyncio
     async def test_failing_scraper_execution(self):
         """Test failing scraper doesn't crash worker."""
-        scheduler = WorkerScheduler()
+        scheduler = WorkerScheduler(chains_to_run=["countdown"])
 
-        with patch('app.scrapers.registry.get_chain_scraper') as mock_get_scraper:
+        with patch('app.workers.runner.get_chain_scraper') as mock_get_scraper:
             mock_scraper = MockFailingScraper()
             mock_scraper.run = AsyncMock(side_effect=Exception("Test error"))
             mock_get_scraper.return_value = mock_scraper
@@ -168,9 +168,9 @@ class TestScraperExecution:
     @pytest.mark.asyncio
     async def test_timeout_scraper_execution(self):
         """Test slow scraper times out gracefully."""
-        scheduler = WorkerScheduler()
+        scheduler = WorkerScheduler(chains_to_run=["countdown"])
 
-        with patch('app.scrapers.registry.get_chain_scraper') as mock_get_scraper:
+        with patch('app.workers.runner.get_chain_scraper') as mock_get_scraper:
             mock_scraper = MockSlowScraper()
 
             async def slow_run():
@@ -255,7 +255,7 @@ class TestDatabasePersistence:
         scraper = MockSuccessfulScraper()
 
         # Mock database operations
-        with patch('app.db.session.async_transaction') as mock_transaction:
+        with patch('app.scrapers.base.async_transaction') as mock_transaction:
             mock_session = AsyncMock()
             mock_transaction.return_value.__aenter__.return_value = mock_session
 
@@ -273,7 +273,7 @@ class TestDatabasePersistence:
         """Test failed scraper updates run status to failed."""
         scraper = MockFailingScraper()
 
-        with patch('app.db.session.async_transaction') as mock_transaction:
+        with patch('app.scrapers.base.async_transaction') as mock_transaction:
             mock_session = AsyncMock()
             mock_result = AsyncMock()
             mock_run = MagicMock(spec=IngestionRun)

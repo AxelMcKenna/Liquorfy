@@ -172,9 +172,11 @@ class TestCountdownScraper:
 
         with patch('httpx.AsyncClient') as mock_client:
             mock_instance = AsyncMock()
-            mock_get = AsyncMock()
-            mock_get.return_value.json.return_value = mock_response_data
-            mock_get.return_value.raise_for_status = MagicMock()
+            # Use MagicMock for the response since .json() is synchronous
+            mock_response = MagicMock()
+            mock_response.json.return_value = mock_response_data
+            mock_response.raise_for_status = MagicMock()
+            mock_get = AsyncMock(return_value=mock_response)
             mock_instance.get = mock_get
             mock_client.return_value.__aenter__.return_value = mock_instance
 
@@ -456,29 +458,31 @@ class TestScraperIntegration:
         """Test scraping a single category returns valid products."""
         scraper = CountdownAPIScraper()
 
-        # Mock the HTTP client
-        with patch.object(scraper, '_fetch_category') as mock_fetch:
-            mock_fetch.return_value = {
-                "products": {
-                    "items": [
-                        {
-                            "sku": "TEST123",
-                            "name": "Test Beer",
-                            "brand": "Test Brand",
-                            "variety": "Lager",
-                            "price": {"originalPrice": 10.00},
-                            "images": {},
-                            "slug": "test-beer"
-                        }
-                    ]
+        # Mock cookies and HTTP client to avoid browser launch
+        with patch.object(scraper, '_get_cookies', new_callable=AsyncMock) as mock_cookies:
+            mock_cookies.return_value = {"session": "test"}
+            with patch.object(scraper, '_fetch_category') as mock_fetch:
+                mock_fetch.return_value = {
+                    "products": {
+                        "items": [
+                            {
+                                "sku": "TEST123",
+                                "name": "Test Beer",
+                                "brand": "Test Brand",
+                                "variety": "Lager",
+                                "price": {"originalPrice": 10.00},
+                                "images": {},
+                                "slug": "test-beer"
+                            }
+                        ]
+                    }
                 }
-            }
 
-            products = await scraper.scrape()
+                products = await scraper.scrape()
 
-            assert len(products) > 0
-            assert all("source_id" in p for p in products)
-            assert all("price_nzd" in p for p in products)
+                assert len(products) > 0
+                assert all("source_id" in p for p in products)
+                assert all("price_nzd" in p for p in products)
 
 
 # ============================================================================
