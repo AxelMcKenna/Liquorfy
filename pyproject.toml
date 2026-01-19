@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Liquorfy API and web app"
 authors = ["Liquorfy AI <dev@example.com>"]
 packages = [
-  { include = "liquorfy", from = "src" }
+  { include = "app", from = "api" }
 ]
 
 [tool.poetry.dependencies]
