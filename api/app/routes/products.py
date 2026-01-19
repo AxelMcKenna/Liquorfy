@@ -5,6 +5,7 @@ from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import ValidationError
 
 from app.core.config import get_settings
 from app.db.session import get_async_session
@@ -39,28 +40,31 @@ async def _params(
     lon: Optional[float] = Query(None),
     radius_km: Optional[float] = Query(None),
 ) -> ProductQueryParams:
-    return ProductQueryParams(
-        q=q,
-        chain=chain.split(",") if chain else [],
-        store=store.split(",") if store else [],
-        category=category.split(",") if category else [],
-        abv_min=abv_min,
-        abv_max=abv_max,
-        pack_min=pack_min,
-        pack_max=pack_max,
-        vol_min_ml=vol_min_ml,
-        vol_max_ml=vol_max_ml,
-        price_min=price_min,
-        price_max=price_max,
-        promo_only=promo_only,
-        unique_products=unique_products,
-        sort=sort,
-        page=page,
-        page_size=page_size,
-        lat=lat,
-        lon=lon,
-        radius_km=radius_km,
-    )
+    try:
+        return ProductQueryParams(
+            q=q,
+            chain=chain.split(",") if chain else [],
+            store=store.split(",") if store else [],
+            category=category.split(",") if category else [],
+            abv_min=abv_min,
+            abv_max=abv_max,
+            pack_min=pack_min,
+            pack_max=pack_max,
+            vol_min_ml=vol_min_ml,
+            vol_max_ml=vol_max_ml,
+            price_min=price_min,
+            price_max=price_max,
+            promo_only=promo_only,
+            unique_products=unique_products,
+            sort=sort,
+            page=page,
+            page_size=page_size,
+            lat=lat,
+            lon=lon,
+            radius_km=radius_km,
+        )
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=exc.errors()) from exc
 
 
 @router.get("", response_model=ProductListResponse)
