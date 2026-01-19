@@ -17,6 +17,8 @@ See **[api/](./api/)** for complete backend documentation:
 - **[DATABASE.md](./api/DATABASE.md)** - Database aggregation and statistics
 - **[DB_SCHEMA.md](./api/DB_SCHEMA.md)** - Complete database schema reference
 - **[STORE_COLLECTION_STATUS.md](./api/STORE_COLLECTION_STATUS.md)** - Current store collection progress
+ - **[scripts/README.md](./api/scripts/README.md)** - Utility and maintenance scripts
+ - **[migrations/README.md](./api/migrations/README.md)** - Alembic migrations quick note
 
 #### Scraper-Specific Documentation
 See **[api/scrapers/](./api/scrapers/)** for detailed scraper guides:
@@ -33,6 +35,7 @@ See **[api/operations/](./api/operations/)** for operational documentation:
 See **[mobile/](./mobile/)** for iOS/Android app documentation:
 - **[README.md](./mobile/README.md)** - Mobile app quick start guide
 - **[APP_STORE_GUIDE.md](./mobile/APP_STORE_GUIDE.md)** - iOS App Store submission guide
+ - **[ios/CapApp-SPM.md](./mobile/ios/CapApp-SPM.md)** - SPM dependency container notes
 
 ---
 
@@ -49,9 +52,11 @@ See **[mobile/](./mobile/)** for iOS/Android app documentation:
 │   ├── api/                     # API backend docs
 │   │   ├── scrapers/            # Scraper implementation guides
 │   │   └── operations/          # Operational/maintenance docs
+│   │   ├── scripts/             # Utility/maintenance scripts docs
+│   │   └── migrations/          # Alembic migrations notes
 │   └── mobile/                  # Mobile app docs
+│       └── ios/                 # iOS-specific docs
 ├── api/                         # FastAPI backend
-│   └── scripts/                 # Utility scripts (see scripts/README.md)
 └── web/                         # React frontend + Capacitor mobile app
 ```
 
@@ -78,6 +83,7 @@ See **[mobile/](./mobile/)** for iOS/Android app documentation:
 ### Mobile Development
 - [Mobile Quick Start](./mobile/README.md)
 - [App Store Submission](./mobile/APP_STORE_GUIDE.md)
+- [CapApp SPM Notes](./mobile/ios/CapApp-SPM.md)
 
 ---
 

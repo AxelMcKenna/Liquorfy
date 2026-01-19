@@ -72,6 +72,7 @@ npm run build && npx cap sync ios
 ## App Store Submission
 
 **See the complete guide:** `APP_STORE_GUIDE.md`
+**SPM container notes:** `ios/CapApp-SPM.md`
 
 **Quick checklist:**
 1. Create app icons (use https://www.appicon.co/)
