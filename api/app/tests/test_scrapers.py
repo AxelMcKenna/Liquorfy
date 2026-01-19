@@ -4,7 +4,22 @@ from app.scrapers.countdown_api import CountdownAPIScraper
 from app.scrapers.liquorland import LiquorlandScraper
 from app.scrapers.super_liquor import SuperLiquorScraper
 
+# Skip tests if Playwright browsers aren't installed
+try:
+    from playwright.sync_api import sync_playwright
+    with sync_playwright() as p:
+        p.chromium.executable_path  # Check if browser exists
+    PLAYWRIGHT_AVAILABLE = True
+except Exception:
+    PLAYWRIGHT_AVAILABLE = False
 
+requires_playwright = pytest.mark.skipif(
+    not PLAYWRIGHT_AVAILABLE,
+    reason="Playwright browsers not installed (run: playwright install)"
+)
+
+
+@requires_playwright
 @pytest.mark.asyncio
 async def test_countdown_scraper_parses_products():
     """Test that Countdown API scraper can fetch and parse products."""
@@ -18,6 +33,7 @@ async def test_countdown_scraper_parses_products():
     assert all("price_nzd" in p for p in products)
 
 
+@requires_playwright
 @pytest.mark.asyncio
 async def test_liquorland_scraper_promo_price():
     """Test that Liquorland scraper can parse products and prices."""
@@ -39,6 +55,7 @@ async def test_liquorland_scraper_promo_price():
         assert promo_products[0]["promo_price_nzd"] < promo_products[0]["price_nzd"]
 
 
+@requires_playwright
 @pytest.mark.asyncio
 async def test_super_liquor_scraper_abv():
     """Test that Super Liquor scraper can parse ABV when present in product names."""

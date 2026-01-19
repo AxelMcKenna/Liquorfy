@@ -18,7 +18,7 @@ async def stores_nearby(
     radius_km: float | None = Query(None),
 ) -> StoreListResponse:
     async with get_async_session() as session:
-        radius = radius_km or settings.default_radius_km
+        radius = radius_km if radius_km is not None else settings.default_radius_km
         if radius <= 0:
             raise HTTPException(status_code=400, detail="radius_km must be positive")
         if radius > 40:
