@@ -35,7 +35,7 @@ RUN apt-get update && apt-get install -y \
 RUN pip install --no-cache-dir poetry==1.7.1
 
 # Copy dependency files
-COPY api/pyproject.toml api/poetry.lock* ./
+COPY pyproject.toml poetry.lock* ./
 
 # Install Python dependencies
 RUN poetry config virtualenvs.create false && \
