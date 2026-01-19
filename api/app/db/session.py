@@ -38,9 +38,14 @@ _async_url, _sync_url = _adapt_urls(_settings.database_url)
 # Tweak these via settings if you want
 ECHO = _settings.environment == "development"
 POOL_PRE_PING = True
-POOL_SIZE = getattr(_settings, "db_pool_size", 5)
+# Connection pool settings - tune based on available RAM:
+# - 1GB RAM: pool_size=10, max_overflow=10 (~20 max connections)
+# - 2GB RAM: pool_size=20, max_overflow=20 (~40 max connections)
+# - 4GB+ RAM: pool_size=30, max_overflow=30 (~60 max connections)
+POOL_SIZE = getattr(_settings, "db_pool_size", 10)
 MAX_OVERFLOW = getattr(_settings, "db_max_overflow", 10)
 POOL_TIMEOUT = getattr(_settings, "db_pool_timeout", 30)
+POOL_RECYCLE = getattr(_settings, "db_pool_recycle", 1800)  # Recycle connections after 30 min
 
 # Engines
 _async_engine = create_async_engine(
@@ -50,6 +55,7 @@ _async_engine = create_async_engine(
     pool_size=POOL_SIZE,
     max_overflow=MAX_OVERFLOW,
     pool_timeout=POOL_TIMEOUT,
+    pool_recycle=POOL_RECYCLE,
     future=True,
 )
 
@@ -60,6 +66,7 @@ _sync_engine = create_engine(
     pool_size=POOL_SIZE,
     max_overflow=MAX_OVERFLOW,
     pool_timeout=POOL_TIMEOUT,
+    pool_recycle=POOL_RECYCLE,
     future=True,
 )
 

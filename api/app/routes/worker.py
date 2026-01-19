@@ -5,12 +5,13 @@ Provides visibility into scraper status, last run times, and health metrics.
 """
 from __future__ import annotations
 
-from datetime import datetime, timedelta
-from typing import List, Optional
+from datetime import datetime, timezone
+from typing import Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select, func, desc
+from sqlalchemy.orm import aliased
 
 from app.db.models import IngestionRun
 from app.db.session import get_async_session
@@ -81,6 +82,28 @@ async def worker_health():
     - Overall system health
     """
     async with get_async_session() as session:
+        # Single query to get the most recent run for each chain using window function
+        # This replaces the N+1 query pattern (one query per chain)
+        subquery = (
+            select(
+                IngestionRun,
+                func.row_number()
+                .over(partition_by=IngestionRun.chain, order_by=desc(IngestionRun.started_at))
+                .label("rn"),
+            )
+            .where(IngestionRun.chain.in_(CHAINS))
+            .subquery()
+        )
+
+        ir_alias = aliased(IngestionRun, subquery)
+        result = await session.execute(
+            select(ir_alias).where(subquery.c.rn == 1)
+        )
+        latest_runs = result.scalars().all()
+
+        # Build a map of chain -> latest run
+        chain_to_run: Dict[str, IngestionRun] = {run.chain: run for run in latest_runs}
+
         scrapers_status = []
         scrapers_healthy = 0
         scrapers_failing = 0
@@ -89,14 +112,7 @@ async def worker_health():
         oldest_success_hours = None
 
         for chain in CHAINS:
-            # Get most recent run for this chain
-            result = await session.execute(
-                select(IngestionRun)
-                .where(IngestionRun.chain == chain)
-                .order_by(desc(IngestionRun.started_at))
-                .limit(1)
-            )
-            last_run = result.scalar_one_or_none()
+            last_run = chain_to_run.get(chain)
 
             if not last_run:
                 # Never run
@@ -120,7 +136,7 @@ async def worker_health():
             if last_run.finished_at:
                 duration = (last_run.finished_at - last_run.started_at).total_seconds()
 
-            hours_since = (datetime.utcnow() - last_run.started_at).total_seconds() / 3600
+            hours_since = (datetime.now(timezone.utc) - last_run.started_at).total_seconds() / 3600
 
             success_rate = None
             if last_run.items_total > 0:

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import math
-from typing import List, Sequence, Tuple
 
 EARTH_RADIUS_KM = 6371.0
 
@@ -20,22 +19,4 @@ def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     return EARTH_RADIUS_KM * c
 
 
-def within_radius(
-    *,
-    stores: Sequence[Tuple[str, float, float]],
-    lat: float,
-    lon: float,
-    radius_km: float,
-) -> List[Tuple[str, float]]:
-    """Return store ids and distances for stores within radius."""
-
-    results: List[Tuple[str, float]] = []
-    for store_id, store_lat, store_lon in stores:
-        distance = haversine_distance(lat, lon, store_lat, store_lon)
-        if distance <= radius_km:
-            results.append((store_id, distance))
-    results.sort(key=lambda item: item[1])
-    return results
-
-
-__all__ = ["haversine_distance", "within_radius"]
+__all__ = ["haversine_distance"]

@@ -17,3 +17,4 @@ export { LiquorCentreLogo } from './LiquorCentreLogo';
 export { GlengarryLogo } from './GlengarryLogo';
 export { ThirstyLiquorLogo } from './ThirstyLiquorLogo';
 export { BlackBullLogo } from './BlackBullLogo';
+export { BigBarrelLogo } from './BigBarrelLogo';

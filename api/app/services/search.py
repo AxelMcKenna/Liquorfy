@@ -15,7 +15,7 @@ from app.schemas.products import PriceSchema, ProductDetailSchema, ProductListRe
 from app.schemas.queries import ProductQueryParams
 from app.services.cache import cached_json
 from app.services.geospatial import haversine_distance
-from app.services.parser_utils import CATEGORY_HIERARCHY
+from app.services.parser_utils import CATEGORY_HIERARCHY, format_product_name
 from app.services.pricing import compute_pricing_metrics
 
 settings = get_settings()
@@ -224,7 +224,7 @@ async def fetch_products(
         items.append(
             ProductSchema(
                 id=product.id,
-                name=product.name,
+                name=format_product_name(product.name, product.brand),
                 brand=product.brand,
                 category=product.category,
                 chain=product.chain,
@@ -275,7 +275,7 @@ async def fetch_product_detail(session: AsyncSession, product_id: UUID) -> Produ
     )
     return ProductDetailSchema(
         id=product.id,
-        name=product.name,
+        name=format_product_name(product.name, product.brand),
         brand=product.brand,
         category=product.category,
         chain=product.chain,

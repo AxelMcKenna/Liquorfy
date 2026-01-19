@@ -8,6 +8,12 @@ import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { QuickView } from "./QuickView";
+import {
+  formatPromoEndDate,
+  formatDistance,
+  getDistanceColorClass,
+  calculateSavingsPercent,
+} from "@/lib/formatters";
 
 interface ProductCardProps {
   product: Product;
@@ -16,22 +22,6 @@ interface ProductCardProps {
   index: number;
   isCompareAtLimit?: boolean;
 }
-
-const formatPromoEndDate = (endDate: string | null | undefined): string | null => {
-  if (!endDate) return null;
-
-  const end = new Date(endDate);
-  const now = new Date();
-  const diffTime = end.getTime() - now.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-  if (diffDays < 0) return "Expired";
-  if (diffDays === 0) return "Ends today";
-  if (diffDays === 1) return "Ends tomorrow";
-  if (diffDays <= 7) return `${diffDays}d left`;
-
-  return `Ends ${end.toLocaleDateString('en-NZ', { month: 'short', day: 'numeric' })}`;
-};
 
 const ProductCardComponent = ({
   product,
@@ -47,10 +37,9 @@ const ProductCardComponent = ({
     product.price.promo_price_nzd < product.price.price_nzd;
 
   const promoEndText = formatPromoEndDate(product.price.promo_ends_at);
-
-  const savingsPercent = hasPromo
-    ? Math.round(((product.price.price_nzd - product.price.promo_price_nzd!) / product.price.price_nzd) * 100)
-    : 0;
+  const savingsPercent = calculateSavingsPercent(product.price.price_nzd, product.price.promo_price_nzd);
+  const distanceText = formatDistance(product.price.distance_km);
+  const distanceColorClass = getDistanceColorClass(product.price.distance_km);
 
   const handleCardClick = () => {
     navigate(`/product/${product.id}`);
@@ -118,12 +107,10 @@ const ProductCardComponent = ({
             <Store className="h-3 w-3" />
             {product.price.store_name}
           </span>
-          {product.price.distance_km !== null && product.price.distance_km !== undefined && (
-            <span className="flex items-center gap-1">
+          {distanceText && (
+            <span className={cn("flex items-center gap-1", distanceColorClass)}>
               <MapPin className="h-3 w-3" />
-              {product.price.distance_km < 1
-                ? `${Math.round(product.price.distance_km * 1000)}m`
-                : `${product.price.distance_km.toFixed(1)}km`}
+              {distanceText}
             </span>
           )}
         </div>

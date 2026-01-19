@@ -12,16 +12,17 @@ import type { ChainType } from '@/types';
  * Used for map markers, badges, and other brand-specific UI elements
  */
 export const chainColors: Record<ChainType, string> = {
-  super_liquor: '#ef4444',    // Red
-  liquorland: '#3b82f6',      // Blue
-  countdown: '#22c55e',       // Green
-  new_world: '#a855f7',       // Purple
-  paknsave: '#eab308',        // Yellow
-  bottle_o: '#f97316',        // Orange
-  liquor_centre: '#6366f1',   // Indigo
-  glengarry: '#ec4899',       // Pink
-  thirsty_liquor: '#14b8a6',  // Teal
-  black_bull: '#1f2937',      // Dark Gray/Charcoal
+  super_liquor: '#0066cc',    // Blue
+  liquorland: '#50b848',      // Brand green
+  countdown: '#00984f',       // Brand green
+  new_world: '#e11a2c',       // Brand red
+  paknsave: '#ffd600',        // Brand yellow
+  bottle_o: '#00984f',        // Brand green
+  liquor_centre: '#84cfca',   // Light blue/teal
+  glengarry: '#111111',       // Brand black
+  thirsty_liquor: '#f6861e',  // Brand orange
+  black_bull: '#111827',      // Brand black
+  big_barrel: '#431717',      // Brand maroon
 };
 
 /**
@@ -39,6 +40,7 @@ export const chainNames: Record<ChainType, string> = {
   glengarry: 'Glengarry',
   thirsty_liquor: 'Thirsty Liquor',
   black_bull: 'Black Bull',
+  big_barrel: 'Big Barrel',
 };
 
 /**
@@ -46,16 +48,17 @@ export const chainNames: Record<ChainType, string> = {
  * Used in components that need Tailwind class names (e.g., badges)
  */
 export const chainColorClasses: Record<ChainType, string> = {
-  super_liquor: 'bg-red-500',
-  liquorland: 'bg-blue-500',
-  countdown: 'bg-green-500',
-  new_world: 'bg-purple-500',
-  paknsave: 'bg-yellow-500',
-  bottle_o: 'bg-orange-500',
-  liquor_centre: 'bg-indigo-500',
-  glengarry: 'bg-pink-500',
-  thirsty_liquor: 'bg-teal-500',
-  black_bull: 'bg-gray-800',
+  super_liquor: 'bg-[#0066cc]',
+  liquorland: 'bg-[#50b848]',
+  countdown: 'bg-[#00984f]',
+  new_world: 'bg-[#e11a2c]',
+  paknsave: 'bg-[#ffd600]',
+  bottle_o: 'bg-[#00984f]',
+  liquor_centre: 'bg-[#84cfca]',
+  glengarry: 'bg-[#111111]',
+  thirsty_liquor: 'bg-[#f6861e]',
+  black_bull: 'bg-[#111827]',
+  big_barrel: 'bg-[#431717]',
 };
 
 /**

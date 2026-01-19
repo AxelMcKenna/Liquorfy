@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { X, Award, ShoppingCart, ExternalLink, ArrowUpDown, Share2, Check, ChevronDown, ChevronUp } from "lucide-react";
 import { Product } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -66,21 +66,24 @@ export const ComparisonTray = ({ products, onClear, onRemoveProduct, maxCompare 
     }
   };
 
-  const sortedProducts = [...products].sort((a, b) => {
-    const aPrice = a.price.promo_price_nzd ?? a.price.price_nzd;
-    const bPrice = b.price.promo_price_nzd ?? b.price.price_nzd;
+  // Memoize sorted products to avoid re-sorting on every render
+  const sortedProducts = useMemo(() => {
+    return [...products].sort((a, b) => {
+      const aPrice = a.price.promo_price_nzd ?? a.price.price_nzd;
+      const bPrice = b.price.promo_price_nzd ?? b.price.price_nzd;
 
-    switch (sortBy) {
-      case 'total_price':
-        return aPrice - bPrice;
-      case 'price_per_100ml':
-        return (a.price.price_per_100ml ?? Infinity) - (b.price.price_per_100ml ?? Infinity);
-      case 'price_per_drink':
-        return (a.price.price_per_standard_drink ?? Infinity) - (b.price.price_per_standard_drink ?? Infinity);
-      default:
-        return 0;
-    }
-  });
+      switch (sortBy) {
+        case 'total_price':
+          return aPrice - bPrice;
+        case 'price_per_100ml':
+          return (a.price.price_per_100ml ?? Infinity) - (b.price.price_per_100ml ?? Infinity);
+        case 'price_per_drink':
+          return (a.price.price_per_standard_drink ?? Infinity) - (b.price.price_per_standard_drink ?? Infinity);
+        default:
+          return 0;
+      }
+    });
+  }, [products, sortBy]);
 
   const bestValue = sortedProducts[0];
 
@@ -188,6 +191,8 @@ export const ComparisonTray = ({ products, onClear, onRemoveProduct, maxCompare 
                         src={product.image_url}
                         alt={product.name}
                         className="w-full h-full object-contain p-1"
+                        loading="lazy"
+                        decoding="async"
                       />
                     </div>
                   )}

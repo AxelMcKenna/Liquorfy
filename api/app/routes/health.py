@@ -1,16 +1,16 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict
 
-import redis.asyncio as redis
 from fastapi import APIRouter, status
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from app.core.config import get_settings
 from app.db.session import async_transaction
+from app.services.cache import get_redis_client
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -36,7 +36,7 @@ async def health() -> JSONResponse:
     """
     health_status: Dict[str, Any] = {
         "status": "healthy",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "checks": {},
     }
 
@@ -59,11 +59,10 @@ async def health() -> JSONResponse:
         }
         overall_healthy = False
 
-    # Check Redis connectivity
+    # Check Redis connectivity using shared connection pool
     try:
-        redis_client = redis.from_url(str(settings.redis_url), decode_responses=True)
+        redis_client = await get_redis_client()
         await redis_client.ping()
-        await redis_client.close()
         health_status["checks"]["redis"] = {
             "status": "healthy",
             "message": "Redis connection successful",
@@ -96,7 +95,7 @@ async def readiness() -> JSONResponse:
     """
     readiness_status: Dict[str, Any] = {
         "status": "ready",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "checks": {},
     }
 
@@ -113,11 +112,10 @@ async def readiness() -> JSONResponse:
         readiness_status["checks"]["database"] = {"status": "not_ready"}
         overall_ready = False
 
-    # Check Redis connectivity
+    # Check Redis connectivity using shared connection pool
     try:
-        redis_client = redis.from_url(str(settings.redis_url), decode_responses=True)
+        redis_client = await get_redis_client()
         await redis_client.ping()
-        await redis_client.close()
         readiness_status["checks"]["redis"] = {"status": "ready"}
     except Exception as e:
         logger.error(f"Redis readiness check failed: {e}")
