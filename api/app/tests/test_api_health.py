@@ -37,7 +37,7 @@ class TestHealthEndpoint:
             mock_session.execute.return_value = mock_result
             mock_tx.return_value.__aenter__.return_value = mock_session
 
-            with patch("app.routes.health.redis.from_url", return_value=mock_redis):
+            with patch("app.routes.health.get_redis_client", return_value=mock_redis):
                 response = client.get("/health")
 
         assert response.status_code == 200
@@ -53,7 +53,7 @@ class TestHealthEndpoint:
             mock_session.execute.return_value = mock_result
             mock_tx.return_value.__aenter__.return_value = mock_session
 
-            with patch("app.routes.health.redis.from_url", return_value=mock_redis):
+            with patch("app.routes.health.get_redis_client", return_value=mock_redis):
                 response = client.get("/health")
 
         data = response.json()
@@ -68,7 +68,7 @@ class TestHealthEndpoint:
         with patch("app.routes.health.async_transaction") as mock_tx:
             mock_tx.return_value.__aenter__.side_effect = Exception("DB connection failed")
 
-            with patch("app.routes.health.redis.from_url", return_value=mock_redis):
+            with patch("app.routes.health.get_redis_client", return_value=mock_redis):
                 response = client.get("/health")
 
         assert response.status_code == 503
@@ -89,7 +89,7 @@ class TestHealthEndpoint:
             mock_session.execute.return_value = mock_result
             mock_tx.return_value.__aenter__.return_value = mock_session
 
-            with patch("app.routes.health.redis.from_url", return_value=failing_redis):
+            with patch("app.routes.health.get_redis_client", return_value=failing_redis):
                 response = client.get("/health")
 
         assert response.status_code == 503
@@ -106,7 +106,7 @@ class TestHealthEndpoint:
             mock_session.execute.return_value = mock_result
             mock_tx.return_value.__aenter__.return_value = mock_session
 
-            with patch("app.routes.health.redis.from_url", return_value=mock_redis):
+            with patch("app.routes.health.get_redis_client", return_value=mock_redis):
                 response = client.get("/health")
 
         data = response.json()
@@ -126,7 +126,7 @@ class TestReadinessEndpoint:
             mock_session.execute.return_value = mock_result
             mock_tx.return_value.__aenter__.return_value = mock_session
 
-            with patch("app.routes.health.redis.from_url", return_value=mock_redis):
+            with patch("app.routes.health.get_redis_client", return_value=mock_redis):
                 response = client.get("/readiness")
 
         assert response.status_code == 200
@@ -138,7 +138,7 @@ class TestReadinessEndpoint:
         with patch("app.routes.health.async_transaction") as mock_tx:
             mock_tx.return_value.__aenter__.side_effect = Exception("DB not ready")
 
-            with patch("app.routes.health.redis.from_url", return_value=mock_redis):
+            with patch("app.routes.health.get_redis_client", return_value=mock_redis):
                 response = client.get("/readiness")
 
         assert response.status_code == 503
@@ -154,7 +154,7 @@ class TestReadinessEndpoint:
             mock_session.execute.return_value = mock_result
             mock_tx.return_value.__aenter__.return_value = mock_session
 
-            with patch("app.routes.health.redis.from_url", return_value=mock_redis):
+            with patch("app.routes.health.get_redis_client", return_value=mock_redis):
                 response = client.get("/readiness")
 
         data = response.json()
