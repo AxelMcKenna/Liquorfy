@@ -1,3 +1,4 @@
+import os
 import pytest
 
 from app.scrapers.countdown_api import CountdownAPIScraper
@@ -5,13 +6,19 @@ from app.scrapers.liquorland import LiquorlandScraper
 from app.scrapers.super_liquor import SuperLiquorScraper
 
 # Skip tests if Playwright browsers aren't installed
-try:
-    from playwright.sync_api import sync_playwright
-    with sync_playwright() as p:
-        p.chromium.executable_path  # Check if browser exists
-    PLAYWRIGHT_AVAILABLE = True
-except Exception:
-    PLAYWRIGHT_AVAILABLE = False
+# These are live integration tests that hit real websites
+def _check_playwright_browsers():
+    """Check if Playwright browsers are actually installed."""
+    try:
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as p:
+            # executable_path returns where browser SHOULD be, check if it exists
+            path = p.chromium.executable_path
+            return os.path.exists(path)
+    except Exception:
+        return False
+
+PLAYWRIGHT_AVAILABLE = _check_playwright_browsers()
 
 requires_playwright = pytest.mark.skipif(
     not PLAYWRIGHT_AVAILABLE,

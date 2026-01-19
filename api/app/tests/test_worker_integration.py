@@ -256,7 +256,10 @@ class TestDatabasePersistence:
 
         # Mock database operations
         with patch('app.scrapers.base.async_transaction') as mock_transaction:
-            mock_session = AsyncMock()
+            mock_session = MagicMock()
+            mock_session.add = MagicMock()
+            mock_session.flush = AsyncMock()
+            mock_session.execute = AsyncMock()
             mock_transaction.return_value.__aenter__.return_value = mock_session
 
             try:
@@ -274,7 +277,10 @@ class TestDatabasePersistence:
         scraper = MockFailingScraper()
 
         with patch('app.scrapers.base.async_transaction') as mock_transaction:
-            mock_session = AsyncMock()
+            mock_session = MagicMock()
+            mock_session.add = MagicMock()
+            mock_session.flush = AsyncMock()
+            mock_session.execute = AsyncMock()
             mock_result = AsyncMock()
             mock_run = MagicMock(spec=IngestionRun)
             mock_result.scalar_one.return_value = mock_run
