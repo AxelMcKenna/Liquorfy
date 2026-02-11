@@ -247,13 +247,13 @@ export const Landing = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-3 gap-8 max-w-lg mx-auto mb-8">
+          <div className="grid grid-cols-3 gap-4 sm:gap-8 max-w-lg mx-auto mb-8">
             <div className="text-center">
               <div className="text-2xl font-semibold text-primary">10+</div>
               <div className="text-xs text-muted-foreground">Retailers</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-semibold text-primary whitespace-nowrap">Updated Daily</div>
+              <div className="text-xl sm:text-2xl font-semibold text-primary">Updated Daily</div>
               <div className="text-xs text-muted-foreground">Prices</div>
             </div>
             <div className="text-center">
