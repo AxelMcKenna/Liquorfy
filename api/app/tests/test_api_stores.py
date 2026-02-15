@@ -43,7 +43,7 @@ class TestStoresNearbyEndpoint:
         mock_response = StoreListResponse(items=[])
 
         with patch("app.routes.stores.fetch_stores_nearby", AsyncMock(return_value=mock_response)):
-            response = client.get("/stores?lat=-36.8485&lon=174.7633&radius_km=15")
+            response = client.get("/stores?lat=-36.8485&lon=174.7633&radius_km=5")
 
         assert response.status_code == 200
 
