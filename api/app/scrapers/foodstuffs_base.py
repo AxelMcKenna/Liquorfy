@@ -133,11 +133,12 @@ class FoodstuffsAPIScraper(Scraper, APIAuthBase):
         headers = {
             "accept": "*/*",
             "content-type": "application/json",
-            "authorization": f"Bearer {self.auth_token}",
             "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
             "origin": f"https://{domain}",
             "referer": f"https://{domain}/",
         }
+        if self.auth_token:
+            headers["authorization"] = f"Bearer {self.auth_token}"
 
         # Add cookies if we have them
         if self.cookies:
@@ -177,6 +178,19 @@ class FoodstuffsAPIScraper(Scraper, APIAuthBase):
             response = await client.post(self.api_url, headers=headers, json=payload)
             response.raise_for_status()
             return response.json()
+
+    async def _probe_cookie_only_access(self) -> bool:
+        """Check whether API access works without bearer token using session cookies only."""
+        if not self.categories:
+            return False
+
+        level0, level1 = self.categories[0]
+        try:
+            await self._fetch_category(level0, level1, page=0, hits_per_page=1)
+            return True
+        except Exception as e:
+            logger.warning(f"Cookie-only API probe failed for {self.chain}: {e}")
+            return False
 
     def _parse_product(self, product_data: dict) -> dict:
         """
@@ -354,8 +368,15 @@ class FoodstuffsAPIScraper(Scraper, APIAuthBase):
         if not self.auth_token:
             self.auth_token = await self._get_auth_token()
             if not self.auth_token:
-                logger.error("Failed to obtain auth token")
-                return []
+                logger.warning(
+                    f"Failed to obtain auth token for {self.chain}; probing cookie-only API access"
+                )
+                if not await self._probe_cookie_only_access():
+                    logger.error(
+                        f"Unable to authenticate {self.chain}: no bearer token and cookie-only access failed"
+                    )
+                    return []
+                logger.info(f"{self.chain}: continuing with cookie-only API access")
 
         all_products: List[dict] = []
 
