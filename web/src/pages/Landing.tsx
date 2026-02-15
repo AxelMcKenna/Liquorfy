@@ -9,8 +9,6 @@ import { StoreMapSkeleton } from '@/components/stores/StoreMapSkeleton';
 import { useProducts } from '@/hooks/useProducts';
 import { useLocationContext } from '@/contexts/LocationContext';
 import { useStores } from '@/hooks/useStores';
-import { useCompareContext } from '@/contexts/CompareContext';
-import { ComparisonTray } from '@/components/layout/ComparisonTray';
 import { Search, ArrowRight, MapPin } from 'lucide-react';
 import { SortOption } from '@/types';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
@@ -21,7 +19,6 @@ export const Landing = () => {
   const { products, loading, fetchProducts } = useProducts();
   const { location, radiusKm, setRadiusKm, requestAutoLocation: requestLocation, loading: locationLoading, error: locationError } = useLocationContext();
   const { stores, loading: storesLoading, fetchNearbyStores } = useStores();
-  const { compare, toggleCompare, clearCompare, isAtLimit, maxCompare } = useCompareContext();
   const [tempRadius, setTempRadius] = useState(radiusKm);
   const [shouldLoadMap, setShouldLoadMap] = useState(false);
   const mapRef = useIntersectionObserver({
@@ -160,9 +157,6 @@ export const Landing = () => {
           <ProductGrid
             products={topDiscountedProducts}
             loading={loading}
-            compareIds={compare.map((p) => p.id)}
-            onToggleCompare={toggleCompare}
-            isCompareAtLimit={isAtLimit}
           />
 
           {!loading && topDiscountedProducts.length === 0 && (
@@ -207,15 +201,15 @@ export const Landing = () => {
                 <Slider
                   value={[tempRadius]}
                   onValueChange={(value) => setTempRadius(value[0])}
-                  min={5}
-                  max={40}
+                  min={1}
+                  max={10}
                   step={1}
                   className="w-full"
                 />
                 <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                  <span>5 km</span>
+                  <span>1 km</span>
                   <span>{stores.length} stores</span>
-                  <span>40 km</span>
+                  <span>10 km</span>
                 </div>
               </div>
 
@@ -279,12 +273,6 @@ export const Landing = () => {
         </section>
       </main>
 
-      <ComparisonTray
-        products={compare}
-        onClear={clearCompare}
-        onRemoveProduct={toggleCompare}
-        maxCompare={maxCompare}
-      />
     </div>
   );
 };

@@ -1,12 +1,11 @@
 import { memo, useState } from "react";
-import { ShoppingCart, Store, Clock, Crown, Wine, MapPin, Eye } from "lucide-react";
+import { Store, Clock, Crown, Wine, MapPin, Eye } from "lucide-react";
 import { Product } from "@/types";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 import { QuickView } from "./QuickView";
 import {
   formatPromoEndDate,
@@ -17,18 +16,12 @@ import {
 
 interface ProductCardProps {
   product: Product;
-  isComparing: boolean;
-  onToggleCompare: () => void;
   index: number;
-  isCompareAtLimit?: boolean;
 }
 
 const ProductCardComponent = ({
   product,
-  isComparing,
-  onToggleCompare,
   index,
-  isCompareAtLimit = false,
 }: ProductCardProps) => {
   const navigate = useNavigate();
   const [imageError, setImageError] = useState(false);
@@ -153,42 +146,11 @@ const ProductCardComponent = ({
         )}
       </CardContent>
 
-      <CardFooter className="p-3 pt-0">
-        <Button
-          variant={isComparing ? "default" : "outline"}
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleCompare();
-            if (!isComparing && !isCompareAtLimit) {
-              toast.success("Added to comparison", {
-                description: product.name,
-                duration: 2000,
-              });
-            } else if (isComparing) {
-              toast.info("Removed from comparison", {
-                description: product.name,
-                duration: 2000,
-              });
-            }
-          }}
-          disabled={!isComparing && isCompareAtLimit}
-          className="w-full"
-          title={!isComparing && isCompareAtLimit ? "Maximum 4 products can be compared" : undefined}
-        >
-          <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />
-          {isComparing ? "Remove" : "Compare"}
-        </Button>
-      </CardFooter>
-
       {/* Quick View Modal */}
       <QuickView
         product={product}
         isOpen={showQuickView}
         onClose={() => setShowQuickView(false)}
-        isComparing={isComparing}
-        onToggleCompare={onToggleCompare}
-        isCompareAtLimit={isCompareAtLimit}
       />
     </Card>
   );
@@ -197,7 +159,6 @@ const ProductCardComponent = ({
 export const ProductCard = memo(ProductCardComponent, (prevProps, nextProps) => {
   return (
     prevProps.product.id === nextProps.product.id &&
-    prevProps.isComparing === nextProps.isComparing &&
     prevProps.index === nextProps.index
   );
 });

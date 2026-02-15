@@ -200,14 +200,14 @@ export const LocationModal = () => {
                 <Slider
                   value={[tempRadius]}
                   onValueChange={(value) => setTempRadius(value[0])}
-                  min={5}
-                  max={40}
+                  min={1}
+                  max={10}
                   step={1}
                   className="w-full"
                 />
                 <div className="flex justify-between text-xs text-gray-500 mt-1">
-                  <span>5km</span>
-                  <span>40km</span>
+                  <span>1km</span>
+                  <span>10km</span>
                 </div>
               </div>
 
@@ -269,14 +269,14 @@ export const LocationModal = () => {
                 <Slider
                   value={[tempRadius]}
                   onValueChange={(value) => setTempRadius(value[0])}
-                  min={5}
-                  max={40}
+                  min={1}
+                  max={10}
                   step={1}
                   className="w-full"
                 />
                 <div className="flex justify-between text-xs text-gray-500 mt-1">
-                  <span>5km</span>
-                  <span>40km</span>
+                  <span>1km</span>
+                  <span>10km</span>
                 </div>
               </div>
 

@@ -2,7 +2,6 @@ import React, { lazy, Suspense } from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { LocationProvider } from "@/contexts/LocationContext";
-import { CompareProvider } from "@/contexts/CompareContext";
 import { Toaster } from "sonner";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./styles.css";
@@ -26,16 +25,14 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <BrowserRouter>
       <LocationProvider>
-        <CompareProvider>
-          <Toaster position="top-right" richColors closeButton />
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route path="/" element={<Landing />} />
-              <Route path="/explore" element={<Explore />} />
-              <Route path="/product/:id" element={<ProductDetail />} />
-            </Routes>
-          </Suspense>
-        </CompareProvider>
+        <Toaster position="top-right" richColors closeButton />
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/explore" element={<Explore />} />
+            <Route path="/product/:id" element={<ProductDetail />} />
+          </Routes>
+        </Suspense>
       </LocationProvider>
     </BrowserRouter>
   </React.StrictMode>
