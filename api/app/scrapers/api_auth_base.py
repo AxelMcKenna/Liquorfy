@@ -5,7 +5,9 @@ Provides shared authentication and cookie/token extraction via Playwright.
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
+import re
 from typing import Optional
 
 from playwright.async_api import async_playwright
@@ -37,6 +39,73 @@ class APIAuthBase:
     def __init__(self):
         self.auth_token: Optional[str] = None
         self.cookies: dict = {}
+
+    @staticmethod
+    def _normalize_token(raw: object) -> Optional[str]:
+        """Normalize token candidates from headers/storage/cookies."""
+        if raw is None:
+            return None
+
+        value = str(raw).strip().strip('"').strip("'")
+        if not value:
+            return None
+
+        if value.lower().startswith("bearer "):
+            value = value[7:].strip()
+
+        # Common JWT shape
+        if re.fullmatch(r"[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+", value):
+            return value
+
+        # Sometimes token is nested as JSON payload in storage.
+        if value.startswith("{") and value.endswith("}"):
+            try:
+                parsed = json.loads(value)
+            except Exception:
+                parsed = None
+            if isinstance(parsed, dict):
+                for key in ("accessToken", "access_token", "token", "jwt", "idToken", "id_token"):
+                    nested = APIAuthBase._normalize_token(parsed.get(key))
+                    if nested:
+                        return nested
+
+        # Fallback for opaque long tokens
+        if " " not in value and len(value) >= 32:
+            return value
+
+        return None
+
+    @staticmethod
+    def _extract_token_from_mapping(mapping: dict) -> tuple[Optional[str], Optional[str]]:
+        """Extract token from key/value mapping, returning (token, source_key)."""
+        if not mapping:
+            return None, None
+
+        preferred_keys = (
+            "__nw_access_token__",
+            "__ps_access_token__",
+            "access_token",
+            "accessToken",
+            "token",
+            "jwt",
+            "id_token",
+            "idToken",
+        )
+
+        for key in preferred_keys:
+            if key in mapping:
+                token = APIAuthBase._normalize_token(mapping.get(key))
+                if token:
+                    return token, key
+
+        for key, value in mapping.items():
+            key_l = str(key).lower()
+            if any(marker in key_l for marker in ("token", "auth", "jwt", "bearer")):
+                token = APIAuthBase._normalize_token(value)
+                if token:
+                    return token, str(key)
+
+        return None, None
 
     async def _get_auth_via_browser(
         self,
@@ -92,17 +161,27 @@ class APIAuthBase:
 
             # Capture token from network requests if requested
             if capture_token and self.api_domain:
-                async def handle_request(route, request):
+                def maybe_capture_from_headers(headers: dict, source: str) -> None:
                     nonlocal token
-                    if self.api_domain in request.url:
-                        auth_header = request.headers.get("authorization")
-                        if auth_header and auth_header.startswith("Bearer "):
-                            if not token:
-                                token = auth_header.replace("Bearer ", "")
-                                logger.info(f"Captured auth token: {token[:50]}...")
-                    await route.continue_()
+                    if token:
+                        return
+                    auth_header = headers.get("authorization") or headers.get("Authorization")
+                    normalized = self._normalize_token(auth_header)
+                    if normalized:
+                        token = normalized
+                        logger.info(f"Captured auth token from {source}: {token[:50]}...")
 
-                await page.route("**/*", handle_request)
+                def on_request(request) -> None:
+                    if self.api_domain in request.url:
+                        maybe_capture_from_headers(request.headers, f"request {request.url}")
+
+                def on_response(response) -> None:
+                    if self.api_domain in response.url:
+                        maybe_capture_from_headers(response.request.headers, f"response request {response.url}")
+                        maybe_capture_from_headers(response.headers, f"response headers {response.url}")
+
+                page.on("request", on_request)
+                page.on("response", on_response)
 
             try:
                 # Navigate to site
@@ -127,11 +206,39 @@ class APIAuthBase:
                 # Wait for page to fully load and API calls to trigger
                 await asyncio.sleep(wait_time)
 
+                # Fallback: extract token from local/session storage
+                if capture_token and not token:
+                    try:
+                        storage = await page.evaluate("""() => ({
+                            local: Object.fromEntries(Object.entries(window.localStorage)),
+                            session: Object.fromEntries(Object.entries(window.sessionStorage))
+                        })""")
+                    except Exception as e:
+                        storage = {}
+                        logger.debug(f"Failed reading browser storage for token extraction: {e}")
+
+                    local_token, local_key = self._extract_token_from_mapping(storage.get("local", {}))
+                    session_token, session_key = self._extract_token_from_mapping(storage.get("session", {}))
+                    token = local_token or session_token
+
+                    if token:
+                        if local_token:
+                            logger.info(f"Captured auth token from localStorage key '{local_key}'")
+                        else:
+                            logger.info(f"Captured auth token from sessionStorage key '{session_key}'")
+
                 # Capture cookies if requested
                 if capture_cookies:
                     browser_cookies = await context.cookies()
                     self.cookies = {cookie['name']: cookie['value'] for cookie in browser_cookies}
                     logger.info(f"Captured {len(self.cookies)} cookies")
+
+                    # Last fallback: token-like cookie values
+                    if capture_token and not token:
+                        cookie_token, cookie_key = self._extract_token_from_mapping(self.cookies)
+                        if cookie_token:
+                            token = cookie_token
+                            logger.info(f"Captured auth token from cookie '{cookie_key}'")
 
             except Exception as e:
                 logger.error(f"Error during browser auth: {e}")
