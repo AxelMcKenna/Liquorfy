@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { Product, ProductListResponse, ProductFilters } from '@/types';
 import { buildProductQueryParams } from '@/lib/productParams';
@@ -12,10 +12,19 @@ export const usePaginatedProducts = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const activeRequest = useRef<AbortController | null>(null);
+  const latestRequestId = useRef(0);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   const fetchProducts = useCallback(async (filters: ProductFilters, page: number = 1) => {
+    latestRequestId.current += 1;
+    const requestId = latestRequestId.current;
+
+    activeRequest.current?.abort();
+    const controller = new AbortController();
+    activeRequest.current = controller;
+
     setLoading(true);
     setError(null);
     setCurrentPage(page);
@@ -25,17 +34,38 @@ export const usePaginatedProducts = () => {
       params.append("page_size", PAGE_SIZE.toString());
       params.append("page", page.toString());
 
-      const { data } = await axios.get<ProductListResponse>(`${API_BASE}/products`, { params });
+      const { data } = await axios.get<ProductListResponse>(`${API_BASE}/products`, {
+        params,
+        signal: controller.signal,
+      });
+
+      if (requestId !== latestRequestId.current) {
+        return;
+      }
 
       setProducts(data.items);
       setTotal(data.total);
     } catch (err) {
+      if (axios.isCancel(err)) {
+        return;
+      }
+      if (requestId !== latestRequestId.current) {
+        return;
+      }
       setError("Failed to load products");
       setProducts([]);
       setTotal(0);
     } finally {
-      setLoading(false);
+      if (requestId === latestRequestId.current) {
+        setLoading(false);
+      }
     }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      activeRequest.current?.abort();
+    };
   }, []);
 
   const goToPage = useCallback((page: number) => {
