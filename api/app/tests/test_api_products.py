@@ -227,6 +227,6 @@ class TestProductsLocationValidation:
         assert response.status_code in [400, 422]
 
     def test_radius_below_minimum(self, client: TestClient):
-        """Radius below 5km should be rejected."""
-        response = client.get("/products?lat=-36.8485&lon=174.7633&radius_km=3")
+        """Radius below 1km should be rejected."""
+        response = client.get("/products?lat=-36.8485&lon=174.7633&radius_km=0.5")
         assert response.status_code in [400, 422]
