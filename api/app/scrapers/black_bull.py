@@ -2,16 +2,24 @@
 Black Bull scraper
 
 Scrapes product data from Black Bull NZ stores using Shopify's JSON API.
-Black Bull operates 60+ franchise stores, but only 3 have Shopify-based online ordering.
+Black Bull operates 60+ franchise stores, but only a subset have Shopify-based online ordering.
 
-IMPORTANT: This scraper only covers 3 stores (~5% coverage) due to limited online presence.
-Most Black Bull franchises do not offer e-commerce.
+IMPORTANT: This scraper loads candidate e-commerce store domains from DB first.
+If no valid store URLs are present, it falls back to a known 3-store bootstrap list.
 """
+from __future__ import annotations
+
 import asyncio
 import logging
+import re
 from typing import List
-import httpx
+from urllib.parse import urlparse
 
+import httpx
+from sqlalchemy import select
+
+from app.db.models import Store
+from app.db.session import get_async_session
 from app.scrapers.base import Scraper
 from app.services.parser_utils import (
     parse_volume,
@@ -23,38 +31,42 @@ from app.services.parser_utils import (
 logger = logging.getLogger(__name__)
 
 
+DEFAULT_STORES = [
+    {
+        "name": "Porirua",
+        "url": "https://blackbullporirua.co.nz",
+        "store_id": "porirua",
+    },
+    {
+        "name": "Greenwood Hamilton",
+        "url": "https://blackbullliquorgreenwood.co.nz",
+        "store_id": "greenwood",
+    },
+    {
+        "name": "Hornby Hub Christchurch",
+        "url": "https://blackbullliquorhornbyhub.co.nz",
+        "store_id": "hornby_hub",
+    },
+]
+
+NON_ECOMMERCE_HOSTS = {
+    "blackbullliquor.co.nz",
+    "www.blackbullliquor.co.nz",
+}
+
+
 class BlackBullScraper(Scraper):
     """
     Scraper for Black Bull stores using Shopify API.
 
-    Coverage: 3 out of 60+ stores (~5%)
-    - Porirua
-    - Greenwood (Hamilton)
-    - Hornby Hub (Christchurch)
+    Coverage is dynamic:
+    - Primary source: `stores` table (valid Black Bull domain URLs)
+    - Fallback source: known 3-store bootstrap list
 
     Each store operates independently with its own Shopify catalog and pricing.
     """
 
     chain = "black_bull"
-
-    # Stores with Shopify e-commerce (only 3 out of 60+)
-    stores = [
-        {
-            "name": "Porirua",
-            "url": "https://blackbullporirua.co.nz",
-            "store_id": "porirua",
-        },
-        {
-            "name": "Greenwood Hamilton",
-            "url": "https://blackbullliquorgreenwood.co.nz",
-            "store_id": "greenwood",
-        },
-        {
-            "name": "Hornby Hub Christchurch",
-            "url": "https://blackbullliquorhornbyhub.co.nz",
-            "store_id": "hornby_hub",
-        },
-    ]
 
     # Collections to scrape (Shopify collection handles)
     collections = [
@@ -66,12 +78,98 @@ class BlackBullScraper(Scraper):
         "mixers",
     ]
 
+    def __init__(
+        self,
+        stores: List[dict] | None = None,
+        scrape_all_stores: bool = True,
+    ):
+        super().__init__()
+        self._stores_explicit = bool(stores)
+        self._scrape_all_stores = scrape_all_stores
+        self.stores = [dict(s) for s in (stores or DEFAULT_STORES)]
+
+    @staticmethod
+    def _normalize_url(url: str | None) -> str | None:
+        if not url:
+            return None
+
+        candidate = str(url).strip()
+        if not candidate:
+            return None
+
+        if not candidate.startswith(("http://", "https://")):
+            candidate = f"https://{candidate}"
+
+        parsed = urlparse(candidate)
+        if not parsed.netloc:
+            return None
+
+        return f"{parsed.scheme}://{parsed.netloc}"
+
+    @staticmethod
+    def _is_ecommerce_host(host: str) -> bool:
+        host_l = host.strip().lower()
+        if not host_l or host_l in NON_ECOMMERCE_HOSTS:
+            return False
+        return host_l.endswith(".co.nz") and "blackbull" in host_l
+
+    @staticmethod
+    def _store_id_from_row(api_id: str | None, host: str) -> str:
+        if api_id:
+            candidate = re.sub(r"[^a-z0-9_-]", "_", str(api_id).strip().lower())
+            if candidate:
+                return candidate
+
+        slug = host.split(".", 1)[0].strip().lower()
+        slug = re.sub(r"[^a-z0-9_-]", "_", slug)
+        return slug or "black_bull_store"
+
+    async def _load_stores_from_db(self) -> List[dict]:
+        stores: dict[str, dict] = {}
+
+        try:
+            async with get_async_session() as session:
+                result = await session.execute(
+                    select(Store.api_id, Store.name, Store.url).where(Store.chain == self.chain)
+                )
+
+                for api_id, name, url in result.all():
+                    normalized_url = self._normalize_url(url)
+                    if not normalized_url:
+                        continue
+
+                    host = urlparse(normalized_url).netloc.lower()
+                    if not self._is_ecommerce_host(host):
+                        continue
+
+                    store_id = self._store_id_from_row(api_id, host)
+                    stores[normalized_url] = {
+                        "name": (name or host).strip(),
+                        "url": normalized_url,
+                        "store_id": store_id,
+                    }
+        except Exception as e:
+            logger.warning(f"Failed loading {self.chain} stores from DB, using fallback list: {e}")
+            return []
+
+        return list(stores.values())
+
     async def fetch_catalog_pages(self) -> List[str]:
         """
         Fetch all products from Black Bull Shopify stores.
         Returns JSON responses as strings for parsing.
         """
         pages = []
+
+        if not self._stores_explicit and self._scrape_all_stores:
+            db_stores = await self._load_stores_from_db()
+            if db_stores:
+                self.stores = db_stores
+                logger.info(f"Loaded {len(self.stores)} Black Bull stores from database")
+            else:
+                logger.info(
+                    f"Using fallback Black Bull store list ({len(self.stores)} stores)"
+                )
 
         async with httpx.AsyncClient(timeout=30.0) as client:
             for store in self.stores:

@@ -89,6 +89,10 @@ async def upsert_stores(chain: str, stores: list[dict]) -> tuple[int, int]:
                 skipped += 1
                 continue
 
+            # Normalize ALL-CAPS names (e.g. Bottle-O feeds "ASHHURST") to title case
+            if name == name.upper() and not name.isnumeric():
+                name = name.title()
+
             address = _pick_str(store, "address", "Address", "FullAddress")
             if not address:
                 address_parts = [

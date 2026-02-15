@@ -24,7 +24,7 @@ CHAINS: Dict[str, Type[Scraper]] = {
     "paknsave": PakNSaveAPIScraper,  # API-based scraper
     "glengarry": GlengarryScraper,
     "thirsty_liquor": ThirstyLiquorScraper,  # Shopify API-based scraper
-    "black_bull": BlackBullScraper,  # Shopify API-based, limited coverage (3 stores)
+    "black_bull": BlackBullScraper,  # Shopify API-based, DB-backed store list with bootstrap fallback
 }
 
 
