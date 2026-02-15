@@ -94,11 +94,11 @@ async def list_products(params: ProductQueryParams = Depends(_params)) -> Produc
                 detail="Location must be within New Zealand"
             )
 
-        # Enforce reasonable radius limit (max 40km)
-        if params.radius_km > 40:
+        # Enforce reasonable radius limit (max 10km)
+        if params.radius_km > 10:
             raise HTTPException(
                 status_code=400,
-                detail="Search radius cannot exceed 40km"
+                detail="Search radius cannot exceed 10km"
             )
 
     async with get_async_session() as session:

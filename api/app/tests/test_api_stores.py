@@ -57,15 +57,15 @@ class TestStoresNearbyEndpoint:
         with patch("app.routes.stores.fetch_stores_nearby", mock_fetch):
             client.get("/stores?lat=-36.8485&lon=174.7633")
 
-        # Should use default (20km from settings)
+        # Should use default (2km from settings)
         call_kwargs = mock_fetch.call_args.kwargs
-        assert call_kwargs["radius_km"] == 20.0
+        assert call_kwargs["radius_km"] == 2.0
 
     def test_stores_radius_max_exceeded(self, client: TestClient):
-        """Stores endpoint should reject radius > 40km."""
-        response = client.get("/stores?lat=-36.8485&lon=174.7633&radius_km=50")
+        """Stores endpoint should reject radius > 10km."""
+        response = client.get("/stores?lat=-36.8485&lon=174.7633&radius_km=11")
         assert response.status_code == 400
-        assert "40km" in response.json()["detail"]
+        assert "10km" in response.json()["detail"]
 
     def test_stores_radius_zero_rejected(self, client: TestClient):
         """Stores endpoint should reject radius <= 0."""
@@ -140,12 +140,12 @@ class TestStoresEdgeCases:
         assert response.status_code == 200
 
     def test_stores_radius_at_max(self, client: TestClient):
-        """Stores endpoint should accept radius at max (40km)."""
+        """Stores endpoint should accept radius at max (10km)."""
         from app.schemas.products import StoreListResponse
 
         mock_response = StoreListResponse(items=[])
 
         with patch("app.routes.stores.fetch_stores_nearby", AsyncMock(return_value=mock_response)):
-            response = client.get("/stores?lat=-36.8485&lon=174.7633&radius_km=40")
+            response = client.get("/stores?lat=-36.8485&lon=174.7633&radius_km=10")
 
         assert response.status_code == 200
