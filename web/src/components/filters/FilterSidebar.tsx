@@ -30,7 +30,7 @@ export const FilterSidebar = ({ isOpen, onClose }: FilterSidebarProps) => {
       {/* Sidebar */}
       <aside
         className={`
-          fixed lg:sticky lg:top-0 left-0 h-screen lg:max-h-screen w-72 bg-white
+          fixed lg:sticky top-0 lg:top-0 left-0 h-[100dvh] lg:max-h-screen w-72 bg-white
           transform transition-all duration-300 ease-out z-40
           ${isOpen ? 'translate-x-0 shadow-xl lg:shadow-none' : '-translate-x-full'}
           border-r border-border/40 lg:self-start

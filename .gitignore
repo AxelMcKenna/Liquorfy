@@ -34,6 +34,15 @@ web/dist/
 .coverage
 htmlcov/
 
+# Xcode
+ios/DerivedData/
+ios/build/
+*.xcuserdata
+*.xcworkspacedata
+xcuserdata/
+*.xcuserstate
+ios/generate_project.py
+
 # Project specific
 api/data/*.json
 !api/data/stores_seed.json
