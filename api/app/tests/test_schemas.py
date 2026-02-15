@@ -66,14 +66,31 @@ class TestProductQueryParams:
 
     def test_accepts_filter_lists(self):
         """Should accept filter lists."""
+        store_1 = str(uuid.uuid4())
+        store_2 = str(uuid.uuid4())
         params = ProductQueryParams(
             chain=["countdown", "paknsave"],
             category=["beer", "wine"],
-            store=["store1", "store2"]
+            store=[store_1, store_2]
         )
         assert len(params.chain) == 2
         assert len(params.category) == 2
         assert len(params.store) == 2
+
+    def test_rejects_invalid_store_uuid(self):
+        """Store filter values must be UUIDs."""
+        with pytest.raises(ValidationError):
+            ProductQueryParams(store=["not-a-uuid"])
+
+    def test_sort_alias_price_nzd_maps_to_total_price(self):
+        """Legacy sort alias should normalize to total_price."""
+        params = ProductQueryParams(sort="price_nzd")
+        assert params.sort == "total_price"
+
+    def test_distance_sort_requires_location(self):
+        """Distance sort requires full location context."""
+        with pytest.raises(ValidationError):
+            ProductQueryParams(sort="distance")
 
 
 class TestPriceSchema:

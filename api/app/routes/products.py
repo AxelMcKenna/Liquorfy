@@ -18,11 +18,23 @@ router = APIRouter(prefix="/products", tags=["products"])
 settings = get_settings()
 
 
+def _split_csv_params(values: Optional[list[str]]) -> list[str]:
+    if not values:
+        return []
+    items: list[str] = []
+    for value in values:
+        for part in value.split(","):
+            candidate = part.strip()
+            if candidate:
+                items.append(candidate)
+    return items
+
+
 async def _params(
     q: Optional[str] = Query(None),
-    chain: Optional[str] = Query(None),
-    store: Optional[str] = Query(None),
-    category: Optional[str] = Query(None),
+    chain: Optional[list[str]] = Query(None),
+    store: Optional[list[str]] = Query(None),
+    category: Optional[list[str]] = Query(None),
     abv_min: Optional[float] = Query(None),
     abv_max: Optional[float] = Query(None),
     pack_min: Optional[int] = Query(None),
@@ -43,9 +55,9 @@ async def _params(
     try:
         return ProductQueryParams(
             q=q,
-            chain=chain.split(",") if chain else [],
-            store=store.split(",") if store else [],
-            category=category.split(",") if category else [],
+            chain=_split_csv_params(chain),
+            store=_split_csv_params(store),
+            category=_split_csv_params(category),
             abv_min=abv_min,
             abv_max=abv_max,
             pack_min=pack_min,
