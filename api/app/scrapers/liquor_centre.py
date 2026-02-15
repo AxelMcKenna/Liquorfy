@@ -19,6 +19,7 @@ from sqlalchemy import select
 
 from app.scrapers.base import Scraper
 from app.db.models import Price, Product, Store
+from app.db.session import get_async_session
 from app.services.parser_utils import (
     parse_volume,
     extract_abv,
@@ -34,6 +35,7 @@ from app.services.promo_utils import (
 from sqlalchemy.dialects.postgresql import insert
 
 logger = logging.getLogger(__name__)
+STORE_SLUG_PATTERN = re.compile(r"https?://([a-z0-9-]+)\.shop\.liquor-centre\.co\.nz", re.IGNORECASE)
 
 
 # Representative stores from different regions (subset of 90 total stores)
@@ -86,6 +88,8 @@ class LiquorCentreScraper(Scraper):
     def __init__(self, chain: str = None, use_fixtures: bool = False, stores: List[str] = None, scrape_all_stores: bool = True):
         super().__init__(chain or self.chain)
         self.use_fixtures = use_fixtures
+        self._stores_explicit = bool(stores)
+        self._scrape_all_stores = scrape_all_stores
 
         # Determine which stores to scrape
         if stores:
@@ -100,6 +104,34 @@ class LiquorCentreScraper(Scraper):
 
         logger.info(f"LiquorCentreScraper initialized with {len(self.stores)} stores")
 
+    async def _load_store_slugs_from_db(self) -> List[str]:
+        """Load Liquor Centre store slugs from DB store URLs/api_ids."""
+        slugs: set[str] = set()
+
+        try:
+            async with get_async_session() as session:
+                result = await session.execute(
+                    select(Store.url, Store.api_id).where(Store.chain == self.chain)
+                )
+                for url, api_id in result.all():
+                    if url:
+                        match = STORE_SLUG_PATTERN.search(url)
+                        if match:
+                            slugs.add(match.group(1).lower())
+                            continue
+
+                    # Fallback: some rows may have only api_id populated.
+                    if api_id:
+                        candidate = str(api_id).strip().lower()
+                        if re.fullmatch(r"[a-z0-9-]+", candidate):
+                            slugs.add(candidate)
+
+        except Exception as e:
+            logger.warning(f"Failed loading {self.chain} stores from DB, using fallback list: {e}")
+            return []
+
+        return sorted(slugs)
+
     async def fetch_catalog_pages(self) -> List[str]:
         """
         Fetch all product pages from Liquor Centre stores.
@@ -108,6 +140,15 @@ class LiquorCentreScraper(Scraper):
         """
         if self.use_fixtures:
             return await self._fetch_from_fixtures()
+
+        # For production runs, treat DB as source of truth and fallback to JSON/bootstrap list.
+        if not self._stores_explicit and self._scrape_all_stores:
+            db_stores = await self._load_store_slugs_from_db()
+            if db_stores:
+                self.stores = db_stores
+                logger.info(f"Loaded {len(self.stores)} Liquor Centre stores from database")
+            else:
+                logger.info(f"Using fallback Liquor Centre store list ({len(self.stores)} stores)")
 
         pages = []
 

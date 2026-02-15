@@ -15,7 +15,7 @@ import httpx
 from sqlalchemy import select
 
 from app.db.models import IngestionRun, Store
-from app.db.session import async_transaction
+from app.db.session import async_transaction, get_async_session
 from app.scrapers.base import Scraper
 from app.scrapers.api_auth_base import APIAuthBase
 from app.services.parser_utils import infer_brand
@@ -57,6 +57,28 @@ class FoodstuffsAPIScraper(Scraper, APIAuthBase):
         self.store_id: str = self.default_store_id
         self.scrape_all_stores = scrape_all_stores
         self.store_list = self._load_store_list() if scrape_all_stores else []
+
+    async def _load_store_list_from_db(self) -> List[dict]:
+        """Load store API IDs for this chain from database (source of truth)."""
+        stores: List[dict] = []
+
+        try:
+            async with get_async_session() as session:
+                result = await session.execute(
+                    select(Store.api_id, Store.name)
+                    .where(Store.chain == self.chain)
+                    .where(Store.api_id.is_not(None))
+                )
+                for api_id, name in result.all():
+                    if not api_id:
+                        continue
+                    stores.append({"id": str(api_id), "name": name or str(api_id)})
+
+        except Exception as e:
+            logger.warning(f"Failed loading {self.chain} stores from DB, using fallback list: {e}")
+            return []
+
+        return stores
 
     def _load_store_list(self) -> List[dict]:
         """Load store list from JSON file."""
@@ -339,9 +361,17 @@ class FoodstuffsAPIScraper(Scraper, APIAuthBase):
 
         # Determine which stores to scrape
         stores_to_scrape = []
-        if self.scrape_all_stores and self.store_list:
-            stores_to_scrape = self.store_list
-            logger.info(f"Scraping all {len(stores_to_scrape)} {self.chain} stores")
+        if self.scrape_all_stores:
+            db_stores = await self._load_store_list_from_db()
+            if db_stores:
+                stores_to_scrape = db_stores
+                logger.info(f"Scraping all {len(stores_to_scrape)} {self.chain} stores from database")
+            elif self.store_list:
+                stores_to_scrape = self.store_list
+                logger.info(f"Scraping all {len(stores_to_scrape)} {self.chain} stores from JSON fallback")
+            else:
+                stores_to_scrape = [{"id": self.default_store_id, "name": "Default Store"}]
+                logger.warning(f"No {self.chain} store list found in DB/JSON; scraping default store only")
         else:
             stores_to_scrape = [{"id": self.default_store_id, "name": "Default Store"}]
             logger.info("Scraping single store (default)")
