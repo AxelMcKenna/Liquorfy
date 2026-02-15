@@ -161,11 +161,11 @@ class TestSettingsDefaults:
         assert settings.app_name == "Liquorfy API"
 
     def test_default_radius(self):
-        """Default radius should be 20km."""
+        """Default radius should be 2km."""
         settings = Settings(
             secret_key="valid-secret-key-that-is-long-enough-123"
         )
-        assert settings.default_radius_km == 20.0
+        assert settings.default_radius_km == 2.0
 
     def test_default_cache_ttl(self):
         """Default cache TTL should be 600 seconds."""

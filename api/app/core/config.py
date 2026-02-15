@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     redis_url: AnyUrl = Field("redis://redis:6379/0", env="REDIS_URL")
 
     api_cache_ttl_seconds: int = 600
-    default_radius_km: float = 20.0
+    default_radius_km: float = 2.0
 
     # CORS configuration
     cors_origins: str = Field("*", env="CORS_ORIGINS")

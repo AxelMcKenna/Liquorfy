@@ -25,7 +25,7 @@ class ProductQueryParams(BaseModel):
     page_size: int = 20
     lat: Optional[float] = None
     lon: Optional[float] = None
-    radius_km: Optional[float] = Field(None, ge=5, le=40)
+    radius_km: Optional[float] = Field(None, ge=1, le=10)
 
     @validator('radius_km')
     @classmethod

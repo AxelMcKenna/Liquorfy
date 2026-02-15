@@ -42,9 +42,9 @@ class TestListProductsEndpoint:
         assert "New Zealand" in response.json()["detail"]
 
     def test_products_validates_max_radius(self, client: TestClient):
-        """Products should reject radius > 40km."""
+        """Products should reject radius > 10km."""
         # Auckland location with excessive radius
-        response = client.get("/products?lat=-36.8485&lon=174.7633&radius_km=50")
+        response = client.get("/products?lat=-36.8485&lon=174.7633&radius_km=11")
         # Should be rejected by either pydantic validation (422) or route validation (400)
         assert response.status_code in [400, 422]
 

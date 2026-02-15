@@ -49,20 +49,20 @@ class TestProductQueryParams:
         assert params.lon == 174.7
 
     def test_radius_range_validation(self):
-        """Should validate radius is within range (5-40)."""
+        """Should validate radius is within range (1-10)."""
         with pytest.raises(ValidationError):
-            ProductQueryParams(lat=-36.8, lon=174.7, radius_km=3)
+            ProductQueryParams(lat=-36.8, lon=174.7, radius_km=0.5)
 
         with pytest.raises(ValidationError):
-            ProductQueryParams(lat=-36.8, lon=174.7, radius_km=50)
+            ProductQueryParams(lat=-36.8, lon=174.7, radius_km=11)
 
     def test_valid_radius_at_bounds(self):
         """Should accept radius at bounds."""
-        params = ProductQueryParams(lat=-36.8, lon=174.7, radius_km=5)
-        assert params.radius_km == 5
+        params = ProductQueryParams(lat=-36.8, lon=174.7, radius_km=1)
+        assert params.radius_km == 1
 
-        params = ProductQueryParams(lat=-36.8, lon=174.7, radius_km=40)
-        assert params.radius_km == 40
+        params = ProductQueryParams(lat=-36.8, lon=174.7, radius_km=10)
+        assert params.radius_km == 10
 
     def test_accepts_filter_lists(self):
         """Should accept filter lists."""
