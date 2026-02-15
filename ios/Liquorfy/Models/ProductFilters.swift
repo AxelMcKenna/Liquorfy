@@ -24,8 +24,12 @@ struct ProductFilters: Sendable {
         if let category {
             items.append(URLQueryItem(name: "category", value: category.rawValue))
         }
-        for chain in chains.sorted(by: { $0.rawValue < $1.rawValue }) {
-            items.append(URLQueryItem(name: "chain", value: chain.rawValue))
+        if !chains.isEmpty {
+            let joinedChains = chains
+                .map(\.rawValue)
+                .sorted()
+                .joined(separator: ",")
+            items.append(URLQueryItem(name: "chain", value: joinedChains))
         }
         if promoOnly {
             items.append(URLQueryItem(name: "promo_only", value: "true"))

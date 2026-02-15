@@ -59,6 +59,7 @@ final class APIClientTests: XCTestCase {
 
         let items = filters.queryItems
         let chainItems = items.filter { $0.name == "chain" }
-        XCTAssertEqual(chainItems.count, 2)
+        XCTAssertEqual(chainItems.count, 1)
+        XCTAssertEqual(chainItems.first?.value, "liquorland,super_liquor")
     }
 }
