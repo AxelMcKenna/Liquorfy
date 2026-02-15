@@ -106,6 +106,7 @@ async def revoke_token(token: str) -> None:
     The token is hashed before storing for efficiency and privacy.
     Expiry matches the token's exp claim so blacklist auto-cleans.
     """
+    redis_client = None
     try:
         # Decode to get expiration
         payload = jwt.decode(token, settings.secret_key, algorithms=["HS256"])
@@ -127,10 +128,15 @@ async def revoke_token(token: str) -> None:
         # Store in Redis with TTL matching token expiration
         redis_client = await get_redis_client()
         await redis_client.setex(f"revoked_token:{token_hash}", ttl, "1")
-        await redis_client.close()
     except Exception:
         # If revocation fails, don't block the operation
         pass
+    finally:
+        if redis_client is not None:
+            try:
+                await redis_client.close()
+            except Exception:
+                pass
 
 
 async def is_token_revoked(token: str) -> bool:
@@ -143,15 +149,21 @@ async def is_token_revoked(token: str) -> bool:
     Returns:
         True if token is revoked, False otherwise
     """
+    redis_client = None
     try:
         token_hash = hashlib.sha256(token.encode()).hexdigest()
         redis_client = await get_redis_client()
         revoked = await redis_client.exists(f"revoked_token:{token_hash}")
-        await redis_client.close()
         return bool(revoked)
     except Exception:
-        # If check fails, assume token is not revoked (fail open)
-        return False
+        # If revocation check fails, deny access (fail closed).
+        return True
+    finally:
+        if redis_client is not None:
+            try:
+                await redis_client.close()
+            except Exception:
+                pass
 
 
 async def require_admin(
