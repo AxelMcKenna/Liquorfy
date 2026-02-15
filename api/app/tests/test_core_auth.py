@@ -198,8 +198,8 @@ class TestTokenRevocation:
         assert result is True
 
     @pytest.mark.asyncio
-    async def test_is_token_revoked_fails_open(self):
-        """is_token_revoked should return False if Redis fails."""
+    async def test_is_token_revoked_fails_closed(self):
+        """is_token_revoked should return True if Redis fails."""
         mock_redis = MagicMock()
         mock_redis.exists = AsyncMock(side_effect=Exception("Redis down"))
         mock_redis.close = AsyncMock()
@@ -209,7 +209,7 @@ class TestTokenRevocation:
         with patch("app.core.auth.get_redis_client", AsyncMock(return_value=mock_redis)):
             result = await is_token_revoked(token)
 
-        assert result is False  # Fail open
+        assert result is True  # Fail closed
 
 
 class TestRequireAdmin:
