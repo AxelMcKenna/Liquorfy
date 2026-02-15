@@ -1,6 +1,7 @@
 """Tests for products API endpoints."""
 from __future__ import annotations
 
+import json
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -87,6 +88,36 @@ class TestListProductsEndpoint:
             )
 
         assert response.status_code == 200
+
+    def test_products_supports_repeated_chain_params(self, client: TestClient):
+        """Products should parse repeated chain params like chain=a&chain=b."""
+        mock_response = {"items": [], "total": 0, "page": 1, "page_size": 20}
+
+        async def check_cache_key(cache_key: str, *_args):
+            parsed = json.loads(cache_key)
+            assert parsed["chain"] == ["countdown", "paknsave"]
+            return mock_response
+
+        with patch("app.routes.products.cached_json", AsyncMock(side_effect=check_cache_key)):
+            response = client.get(
+                "/products"
+                "?lat=-36.8485&lon=174.7633&radius_km=5"
+                "&chain=countdown&chain=paknsave"
+            )
+
+        assert response.status_code == 200
+
+    def test_products_distance_sort_requires_location(self, client: TestClient):
+        """Distance sort should return 422 when location is missing."""
+        response = client.get("/products?promo_only=true&sort=distance&page_size=10")
+        assert response.status_code == 422
+
+    def test_products_invalid_store_uuid_rejected(self, client: TestClient):
+        """Invalid store IDs should fail validation."""
+        response = client.get(
+            "/products?lat=-36.8485&lon=174.7633&radius_km=5&store=not-a-uuid"
+        )
+        assert response.status_code == 422
 
     def test_products_response_structure(self, client: TestClient):
         """Products response should have correct structure."""
