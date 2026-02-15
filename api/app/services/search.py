@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Any, Iterable, Optional
+from typing import Any
 from uuid import UUID
 
-from sqlalchemy import Select, and_, cast, func, or_, select
+from sqlalchemy import and_, cast, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
 from geoalchemy2 import Geography
 
 from app.core.config import get_settings
@@ -16,7 +14,7 @@ from app.schemas.queries import ProductQueryParams
 from app.services.cache import cached_json
 from app.services.geospatial import haversine_distance
 from app.services.parser_utils import CATEGORY_HIERARCHY, format_product_name
-from app.services.pricing import compute_pricing_metrics
+from app.services.pricing import STANDARD_DRINK_FACTOR, compute_pricing_metrics
 
 settings = get_settings()
 
@@ -50,30 +48,44 @@ async def _get_store_ids_within_radius(
     return [UUID(store_id) for store_id in cached_ids]
 
 
+def _build_sort_order(
+    *,
+    sort: str,
+    discount_ratio: Any,
+    price_per_100ml: Any,
+    price_per_standard_drink: Any,
+    effective_price: Any,
+    distance_m: Any | None,
+) -> list[Any]:
+    tie_breakers = [Price.price_last_changed_at.desc(), Product.name.asc(), Price.id.asc()]
+    if sort == "discount":
+        return [discount_ratio.desc().nulls_last(), *tie_breakers]
+    if sort == "price_per_standard_drink":
+        return [price_per_standard_drink.asc().nulls_last(), *tie_breakers]
+    if sort == "total_price":
+        return [effective_price.asc().nulls_last(), *tie_breakers]
+    if sort == "newest":
+        return [Price.price_last_changed_at.desc(), Product.name.asc(), Price.id.asc()]
+    if sort == "distance" and distance_m is not None:
+        return [distance_m.asc().nulls_last(), *tie_breakers]
+    return [price_per_100ml.asc().nulls_last(), *tie_breakers]
+
+
 async def fetch_products(
     session: AsyncSession,
     params: ProductQueryParams,
 ) -> ProductListResponse:
-    query: Select[Any] = (
-        select(Product, Price, Store)
-        .join(Price, Price.product_id == Product.id)
-        .join(Store, Store.id == Price.store_id)
-    )
-
-    if params.lat is not None and params.lon is not None and params.radius_km is not None:
-        store_ids = await _get_store_ids_within_radius(
-            session,
-            lat=params.lat,
-            lon=params.lon,
-            radius_km=params.radius_km,
-        )
-        if not store_ids:
-            return ProductListResponse(items=[], total=0, page=params.page, page_size=params.page_size)
+    page = max(params.page, 1)
+    page_size = max(min(params.page_size, 100), 1)
 
     filters = []
-    # Add location-based store filter
+    user_point_geog = None
     if params.lat is not None and params.lon is not None and params.radius_km is not None:
-        filters.append(Store.id.in_(store_ids))
+        user_point = func.ST_SetSRID(func.ST_MakePoint(params.lon, params.lat), 4326)
+        user_point_geog = cast(user_point, Geography)
+        filters.append(Store.geog.is_not(None))
+        filters.append(func.ST_DWithin(Store.geog, user_point_geog, params.radius_km * 1000))
+
     if params.q:
         pattern = f"%{params.q.lower()}%"
         filters.append(
@@ -85,7 +97,7 @@ async def fetch_products(
     if params.chain:
         filters.append(Product.chain.in_(params.chain))
     if params.store:
-        filters.append(Store.id.in_([UUID(s) for s in params.store]))
+        filters.append(Store.id.in_([UUID(store_id) for store_id in params.store]))
     if params.category:
         # Expand categories to include subcategories
         # e.g., if filtering by "beer", also include "lager", "ipa", "ale", etc.
@@ -118,20 +130,35 @@ async def fetch_products(
         filters.append(Price.promo_price_nzd.is_not(None))
         filters.append(Price.promo_price_nzd < Price.price_nzd)
 
-    if filters:
-        query = query.where(and_(*filters))
-
     discount_ratio = (
-        (Price.price_nzd - func.coalesce(Price.promo_price_nzd, Price.price_nzd))
+        (Price.price_nzd - effective_price)
         / func.nullif(Price.price_nzd, 0)
     ).label("discount_ratio")
+    price_per_100ml = (
+        effective_price / func.nullif(Product.total_volume_ml / 100.0, 0)
+    ).label("price_per_100ml_sort")
+    standard_drinks_expr = (
+        (Product.total_volume_ml / 1000.0)
+        * (Product.abv_percent / 100.0)
+        * STANDARD_DRINK_FACTOR
+    )
+    price_per_standard_drink = (
+        effective_price / func.nullif(standard_drinks_expr, 0)
+    ).label("price_per_standard_drink_sort")
+    distance_m = (
+        func.ST_Distance(Store.geog, user_point_geog).label("distance_m")
+        if user_point_geog is not None
+        else None
+    )
 
-    def _order_by_discount(q: Select[Any]) -> Select[Any]:
-        return q.order_by(
-            discount_ratio.desc().nulls_last(),
-            Price.price_last_changed_at.desc(),
-            Product.name.asc(),
-        )
+    sort_order = _build_sort_order(
+        sort=params.sort,
+        discount_ratio=discount_ratio,
+        price_per_100ml=price_per_100ml,
+        price_per_standard_drink=price_per_standard_drink,
+        effective_price=effective_price,
+        distance_m=distance_m,
+    )
 
     if params.unique_products:
         name_key = func.lower(func.trim(Product.name)).label("name_key")
@@ -144,7 +171,7 @@ async def fetch_products(
                 func.row_number()
                 .over(
                     partition_by=(name_key, Product.pack_count, Product.total_volume_ml),
-                    order_by=discount_ratio.desc(),
+                    order_by=tuple(sort_order),
                 )
                 .label("rn"),
             )
@@ -164,43 +191,35 @@ async def fetch_products(
             .join(Store, Store.id == inner_subq.c.store_id)
             .where(inner_subq.c.rn == 1)
         )
-
-        if params.sort == "discount":
-            query = query.order_by(
-                inner_subq.c.discount_ratio.desc().nulls_last(),
-                Price.price_last_changed_at.desc(),
-                Product.name.asc(),
-            )
-        elif params.sort == "price_per_standard_drink":
-            query = query.order_by(effective_price / func.nullif(Product.abv_percent, 0))
-        elif params.sort == "total_price":
-            query = query.order_by(effective_price)
-        elif params.sort == "newest":
-            query = query.order_by(Price.price_last_changed_at.desc())
-        else:
-            query = query.order_by(effective_price / func.nullif(Product.total_volume_ml, 0))
+        query = query.order_by(*sort_order)
 
         total_result = await session.execute(
             select(func.count()).select_from(inner_subq).where(inner_subq.c.rn == 1)
         )
         total = total_result.scalar_one()
     else:
-        if params.sort == "discount":
-            query = _order_by_discount(query)
-        elif params.sort == "price_per_standard_drink":
-            query = query.order_by(effective_price / func.nullif(Product.abv_percent, 0))
-        elif params.sort == "total_price":
-            query = query.order_by(effective_price)
-        elif params.sort == "newest":
-            query = query.order_by(Price.price_last_changed_at.desc())
-        else:
-            query = query.order_by(effective_price / func.nullif(Product.total_volume_ml, 0))
+        query = (
+            select(Product, Price, Store)
+            .join(Price, Price.product_id == Product.id)
+            .join(Store, Store.id == Price.store_id)
+        )
+        count_query = (
+            select(Price.id)
+            .select_from(Product)
+            .join(Price, Price.product_id == Product.id)
+            .join(Store, Store.id == Price.store_id)
+        )
+        if filters:
+            where_clause = and_(*filters)
+            query = query.where(where_clause)
+            count_query = count_query.where(where_clause)
 
-        total_result = await session.execute(query.with_only_columns(func.count()).order_by(None))
+        query = query.order_by(*sort_order)
+        total_result = await session.execute(
+            select(func.count()).select_from(count_query.subquery())
+        )
         total = total_result.scalar_one()
 
-    page = max(params.page, 1)
-    page_size = max(min(params.page_size, 100), 1)
     query = query.limit(page_size).offset((page - 1) * page_size)
 
     result = await session.execute(query)
