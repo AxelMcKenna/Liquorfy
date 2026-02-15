@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import and_, cast, func, or_, select
+from sqlalchemy import and_, cast, func, literal, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from geoalchemy2 import Geography
 
@@ -12,7 +12,6 @@ from app.db.models import Price, Product, Store
 from app.schemas.products import PriceSchema, ProductDetailSchema, ProductListResponse, ProductSchema, StoreListResponse, StoreSchema
 from app.schemas.queries import ProductQueryParams
 from app.services.cache import cached_json
-from app.services.geospatial import haversine_distance
 from app.services.parser_utils import CATEGORY_HIERARCHY, format_product_name
 from app.services.pricing import STANDARD_DRINK_FACTOR, compute_pricing_metrics
 
@@ -81,10 +80,18 @@ async def fetch_products(
     filters = []
     user_point_geog = None
     if params.lat is not None and params.lon is not None and params.radius_km is not None:
+        nearby_store_ids = await _get_store_ids_within_radius(
+            session,
+            lat=params.lat,
+            lon=params.lon,
+            radius_km=params.radius_km,
+        )
+        if not nearby_store_ids:
+            return ProductListResponse(items=[], total=0, page=page, page_size=page_size)
+
         user_point = func.ST_SetSRID(func.ST_MakePoint(params.lon, params.lat), 4326)
         user_point_geog = cast(user_point, Geography)
-        filters.append(Store.geog.is_not(None))
-        filters.append(func.ST_DWithin(Store.geog, user_point_geog, params.radius_km * 1000))
+        filters.append(Store.id.in_(nearby_store_ids))
 
     if params.q:
         pattern = f"%{params.q.lower()}%"
@@ -150,6 +157,7 @@ async def fetch_products(
         if user_point_geog is not None
         else None
     )
+    distance_m_or_null = distance_m if distance_m is not None else literal(None).label("distance_m")
 
     sort_order = _build_sort_order(
         sort=params.sort,
@@ -168,6 +176,7 @@ async def fetch_products(
                 Price.id.label("price_id"),
                 Store.id.label("store_id"),
                 discount_ratio,
+                distance_m_or_null,
                 func.row_number()
                 .over(
                     partition_by=(name_key, Product.pack_count, Product.total_volume_ml),
@@ -184,7 +193,7 @@ async def fetch_products(
 
         inner_subq = inner.subquery()
         query = (
-            select(Product, Price, Store, inner_subq.c.discount_ratio)
+            select(Product, Price, Store, inner_subq.c.discount_ratio, inner_subq.c.distance_m)
             .select_from(inner_subq)
             .join(Product, Product.id == inner_subq.c.product_id)
             .join(Price, Price.id == inner_subq.c.price_id)
@@ -199,12 +208,12 @@ async def fetch_products(
         total = total_result.scalar_one()
     else:
         query = (
-            select(Product, Price, Store)
+            select(Product, Price, Store, distance_m_or_null)
             .join(Price, Price.product_id == Product.id)
             .join(Store, Store.id == Price.store_id)
         )
         count_query = (
-            select(Price.id)
+            select(func.count(Price.id))
             .select_from(Product)
             .join(Price, Price.product_id == Product.id)
             .join(Store, Store.id == Price.store_id)
@@ -215,9 +224,7 @@ async def fetch_products(
             count_query = count_query.where(where_clause)
 
         query = query.order_by(*sort_order)
-        total_result = await session.execute(
-            select(func.count()).select_from(count_query.subquery())
-        )
+        total_result = await session.execute(count_query)
         total = total_result.scalar_one()
 
     query = query.limit(page_size).offset((page - 1) * page_size)
@@ -228,18 +235,16 @@ async def fetch_products(
 
     for row in rows:
         if params.unique_products:
-            product, price, store, _ = row
+            product, price, store, _, distance_m_value = row
         else:
-            product, price, store = row
+            product, price, store, distance_m_value = row
         effective = price.promo_price_nzd or price.price_nzd
         metrics = compute_pricing_metrics(
             total_volume_ml=product.total_volume_ml,
             abv_percent=product.abv_percent,
             effective_price_nzd=effective,
         )
-        distance = None
-        if params.lat is not None and params.lon is not None and store.lat is not None and store.lon is not None:
-            distance = round(haversine_distance(params.lat, params.lon, store.lat, store.lon), 2)
+        distance = round(distance_m_value / 1000, 2) if distance_m_value is not None else None
         items.append(
             ProductSchema(
                 id=product.id,
