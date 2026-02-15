@@ -14,6 +14,7 @@ class ThirstyLiquorLocationScraper(StoreLocationScraper):
 
     chain = "thirsty_liquor"
     store_locator_url = "https://thirstyliquor.co.nz"
+    fallback_store_locator_url = "https://www.thirstyliquor.co.nz"
 
     def __init__(self):
         # Thirsty Liquor needs browser for JS-rendered content
@@ -31,7 +32,7 @@ class ThirstyLiquorLocationScraper(StoreLocationScraper):
             # Navigate to page
             page = await self.context.new_page()
             try:
-                await page.goto(self.store_locator_url, wait_until="domcontentloaded")
+                await self._navigate_with_retry(page)
                 await page.wait_for_timeout(3000)  # Give JS time to load
 
                 # Extract store data from window.storeData
@@ -53,6 +54,26 @@ class ThirstyLiquorLocationScraper(StoreLocationScraper):
         except Exception as e:
             logger.error(f"Failed to fetch Thirsty Liquor stores: {e}", exc_info=True)
             return []
+
+    async def _navigate_with_retry(self, page) -> None:
+        """Navigate to the locator page with retries and fallback hostname."""
+        targets = [self.store_locator_url, self.fallback_store_locator_url]
+        timeout_ms = 90000
+        last_error: Exception | None = None
+
+        for url in targets:
+            for attempt in range(1, 4):
+                try:
+                    logger.info("Navigating to %s (attempt %s/3)", url, attempt)
+                    await page.goto(url, wait_until="domcontentloaded", timeout=timeout_ms)
+                    return
+                except Exception as exc:
+                    last_error = exc
+                    logger.warning("Navigation failed for %s (attempt %s/3): %s", url, attempt, exc)
+                    await page.wait_for_timeout(1500 * attempt)
+
+        if last_error:
+            raise last_error
 
     def _parse_store_data(self, data: Any) -> List[Dict[str, Any]]:
         """Parse store data from window.storeData (could be dict or list)."""

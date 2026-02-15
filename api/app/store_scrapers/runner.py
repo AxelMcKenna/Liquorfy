@@ -47,6 +47,36 @@ STORE_CHAINS: Dict[str, Type[StoreLocationScraper]] = {
 }
 
 
+def _pick_str(store: dict, *keys: str) -> str | None:
+    """Return first non-empty string-like value from provided keys."""
+    for key in keys:
+        value = store.get(key)
+        if value is None:
+            continue
+        if isinstance(value, str):
+            value = value.strip()
+            if value:
+                return value
+            continue
+        text = str(value).strip()
+        if text:
+            return text
+    return None
+
+
+def _pick_float(store: dict, *keys: str) -> float | None:
+    """Return first value parseable as float from provided keys."""
+    for key in keys:
+        value = store.get(key)
+        if value in (None, ""):
+            continue
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            continue
+    return None
+
+
 async def upsert_stores(chain: str, stores: list[dict]) -> tuple[int, int]:
     """Upsert stores into DB. Returns (upserted, skipped)."""
     upserted = 0
@@ -54,10 +84,25 @@ async def upsert_stores(chain: str, stores: list[dict]) -> tuple[int, int]:
 
     async with get_async_session() as session:
         for store in stores:
-            name = store.get("name", "").strip()
+            name = _pick_str(store, "name", "Name", "label", "title", "storeName", "store_name")
             if not name:
                 skipped += 1
                 continue
+
+            address = _pick_str(store, "address", "Address", "FullAddress")
+            if not address:
+                address_parts = [
+                    _pick_str(store, "Address", "address"),
+                    _pick_str(store, "City", "city"),
+                    _pick_str(store, "State", "state", "region"),
+                    _pick_str(store, "ZipPostalCode", "postcode"),
+                ]
+                address = ", ".join([part for part in address_parts if part]) or None
+
+            region = _pick_str(store, "region", "Region", "State", "state", "AreaName", "City", "city")
+            lat = _pick_float(store, "lat", "latitude", "Latitude")
+            lon = _pick_float(store, "lon", "lng", "longitude", "Longitude")
+            url = _pick_str(store, "url", "StoreLocationUrl", "StoreDetailsUrl", "GoogleMapLocation")
 
             await session.execute(
                 text("""
@@ -73,11 +118,11 @@ async def upsert_stores(chain: str, stores: list[dict]) -> tuple[int, int]:
                 {
                     "chain": chain,
                     "name": name,
-                    "address": store.get("address"),
-                    "region": store.get("region"),
-                    "lat": store.get("lat"),
-                    "lon": store.get("lon"),
-                    "url": store.get("url"),
+                    "address": address,
+                    "region": region,
+                    "lat": lat,
+                    "lon": lon,
+                    "url": url,
                 },
             )
             upserted += 1

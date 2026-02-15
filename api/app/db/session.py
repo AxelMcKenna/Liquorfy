@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager, contextmanager
-from typing import AsyncIterator, Iterator
+from typing import Any, AsyncIterator, Iterator
 
 from sqlalchemy import create_engine
-from sqlalchemy.engine import make_url, URL
+from sqlalchemy.engine import URL, make_url
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -16,24 +16,54 @@ from app.core.config import get_settings
 
 _settings = get_settings()
 
-def _adapt_urls(raw_url: str) -> tuple[URL, URL]:
+_TRUTHY = {"1", "true", "yes", "on"}
+
+def _is_truthy(value: str | None) -> bool:
+    if value is None:
+        return False
+    return value.strip().lower() in _TRUTHY
+
+def _adapt_urls(raw_url: str) -> tuple[URL, URL, dict[str, Any], dict[str, Any]]:
     """
-    Return (async_url, sync_url) with correct drivers set.
+    Return (async_url, sync_url, async_connect_args, sync_connect_args) with correct drivers set.
     Handles PostgreSQL and falls back to given URL for others.
     """
     url = make_url(raw_url)
 
     # PostgreSQL: prefer asyncpg for async, psycopg for sync
     if url.get_backend_name() in {"postgresql", "postgres"}:
-        async_url = url.set(drivername="postgresql+asyncpg")
+        query = dict(url.query)
+        sslmode = query.get("sslmode")
+        pgbouncer = query.get("pgbouncer")
+
+        async_query = dict(query)
+        async_query.pop("sslmode", None)
+        async_query.pop("pgbouncer", None)
+
+        sync_query = dict(query)
+        sync_query.pop("pgbouncer", None)
+
+        async_connect_args: dict[str, Any] = {}
+        sync_connect_args: dict[str, Any] = {}
+
+        # Supabase (and many managed Postgres) require SSL. asyncpg needs ssl=True.
+        if sslmode and sslmode.lower() in {"require", "verify-ca", "verify-full"}:
+            async_connect_args["ssl"] = True
+
+        # PgBouncer/Supavisor transaction pooling: disable prepared statements.
+        if _is_truthy(pgbouncer):
+            async_connect_args.setdefault("statement_cache_size", 0)
+            sync_connect_args.setdefault("prepare_threshold", 0)
+
+        async_url = url.set(drivername="postgresql+asyncpg", query=async_query)
         # If you want psycopg3; use "+psycopg". For psycopg2 use "+psycopg2".
-        sync_url = url.set(drivername="postgresql+psycopg")
-        return async_url, sync_url
+        sync_url = url.set(drivername="postgresql+psycopg", query=sync_query)
+        return async_url, sync_url, async_connect_args, sync_connect_args
 
     # SQLite or anything else: just reuse as-is
-    return url, url
+    return url, url, {}, {}
 
-_async_url, _sync_url = _adapt_urls(_settings.database_url)
+_async_url, _sync_url, _async_connect_args, _sync_connect_args = _adapt_urls(_settings.database_url)
 
 # Tweak these via settings if you want
 ECHO = _settings.environment == "development"
@@ -51,6 +81,7 @@ POOL_RECYCLE = getattr(_settings, "db_pool_recycle", 1800)  # Recycle connection
 _async_engine = create_async_engine(
     _async_url,
     echo=ECHO,
+    connect_args=_async_connect_args,
     pool_pre_ping=POOL_PRE_PING,
     pool_size=POOL_SIZE,
     max_overflow=MAX_OVERFLOW,
@@ -62,6 +93,7 @@ _async_engine = create_async_engine(
 _sync_engine = create_engine(
     _sync_url,
     echo=ECHO,
+    connect_args=_sync_connect_args,
     pool_pre_ping=POOL_PRE_PING,
     pool_size=POOL_SIZE,
     max_overflow=MAX_OVERFLOW,

@@ -78,6 +78,13 @@ nano .env.production
 - `ADMIN_PASSWORD` - Change from default
 - `CORS_ORIGINS` - Your domain(s), comma-separated
 
+### Supabase (Optional)
+
+If you use Supabase instead of a self-hosted Postgres instance, set `DATABASE_URL` to the Supabase connection string.
+
+Use the **direct** connection string for long-lived services (like an OCI VM API + scrapers) and include `sslmode=require`.
+Use the **pooler/transaction** string for serverless environments and include `pgbouncer=true`.
+
 ### 3. Set File Permissions
 
 ```bash
