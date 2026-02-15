@@ -27,7 +27,7 @@ interface LocationContextType {
 const LocationContext = createContext<LocationContextType | undefined>(undefined);
 
 const STORAGE_KEY = 'userLocationData';
-const DEFAULT_RADIUS_KM = 20;
+const DEFAULT_RADIUS_KM = 2;
 const CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
 
 export const LocationProvider = ({ children }: { children: ReactNode }) => {
@@ -152,7 +152,7 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
 
   const setRadiusKm = (radius: number) => {
     // Enforce 5-40km range (matching backend validation)
-    const clampedRadius = Math.max(5, Math.min(40, radius));
+    const clampedRadius = Math.max(1, Math.min(10, radius));
 
     if (locationData) {
       setLocationData({

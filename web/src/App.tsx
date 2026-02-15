@@ -2,15 +2,12 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Header } from "@/components/layout/Header";
 import { ProductGrid } from "@/components/products/ProductGrid";
-import { ComparisonTray } from "@/components/layout/ComparisonTray";
 import { useProducts } from "@/hooks/useProducts";
-import { useCompare } from "@/hooks/useCompare";
 
 const App = () => {
   const [query, setQuery] = useState("");
 
   const { products, loading, error, fetchProducts } = useProducts();
-  const { compare, sortedCompare, toggleCompare, clearCompare } = useCompare();
 
   useEffect(() => {
     fetchProducts("", "");
@@ -42,8 +39,6 @@ const App = () => {
         <ProductGrid
           products={products?.items ?? []}
           loading={loading}
-          compareIds={compare.map((p) => p.id)}
-          onToggleCompare={toggleCompare}
         />
 
         {!loading && products?.items.length === 0 && (
@@ -58,8 +53,6 @@ const App = () => {
           </motion.div>
         )}
       </main>
-
-      <ComparisonTray products={sortedCompare} onClear={clearCompare} />
     </div>
   );
 };

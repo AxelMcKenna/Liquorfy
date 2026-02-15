@@ -6,17 +6,11 @@ import { ProductSkeleton } from "./ProductSkeleton";
 interface ProductGridProps {
   products: Product[];
   loading: boolean;
-  compareIds: string[];
-  onToggleCompare: (product: Product) => void;
-  isCompareAtLimit?: boolean;
 }
 
 const ProductGridComponent = ({
   products,
   loading,
-  compareIds,
-  onToggleCompare,
-  isCompareAtLimit = false,
 }: ProductGridProps) => {
   if (loading) {
     return (
@@ -34,10 +28,7 @@ const ProductGridComponent = ({
         <ProductCard
           key={product.id}
           product={product}
-          isComparing={compareIds.includes(product.id)}
-          onToggleCompare={() => onToggleCompare(product)}
           index={index}
-          isCompareAtLimit={isCompareAtLimit}
         />
       ))}
     </div>

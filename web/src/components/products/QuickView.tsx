@@ -1,4 +1,4 @@
-import { ExternalLink, Store, Clock, Crown, Wine, MapPin, ShoppingCart } from "lucide-react";
+import { ExternalLink, Store, Clock, Crown, Wine, MapPin } from "lucide-react";
 import { Product } from "@/types";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -17,18 +17,12 @@ interface QuickViewProps {
   product: Product | null;
   isOpen: boolean;
   onClose: () => void;
-  isComparing: boolean;
-  onToggleCompare: () => void;
-  isCompareAtLimit: boolean;
 }
 
 export const QuickView = ({
   product,
   isOpen,
   onClose,
-  isComparing,
-  onToggleCompare,
-  isCompareAtLimit,
 }: QuickViewProps) => {
   const navigate = useNavigate();
 
@@ -182,15 +176,6 @@ export const QuickView = ({
 
             {/* Actions */}
             <div className="flex gap-2">
-              <Button
-                variant={isComparing ? "default" : "outline"}
-                onClick={onToggleCompare}
-                disabled={!isComparing && isCompareAtLimit}
-                className="flex-1"
-              >
-                <ShoppingCart className="mr-2 h-4 w-4" />
-                {isComparing ? "Remove" : "Compare"}
-              </Button>
               {product.product_url && (
                 <Button asChild className="flex-1 bg-primary hover:bg-accent">
                   <a

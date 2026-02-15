@@ -3,12 +3,10 @@ import { Header } from '@/components/layout/Header';
 import { FilterBar } from '@/components/filters/FilterBar';
 import { FilterSidebar } from '@/components/filters/FilterSidebar';
 import { ProductGrid } from '@/components/products/ProductGrid';
-import { ComparisonTray } from '@/components/layout/ComparisonTray';
 import { LocationGate } from '@/components/location/LocationGate';
 import { usePaginatedProducts } from '@/hooks/usePaginatedProducts';
 import { useFilters } from '@/hooks/useFilters';
 import { useLocationContext } from '@/contexts/LocationContext';
-import { useCompareContext } from '@/contexts/CompareContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { MapPin, Navigation } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -31,8 +29,6 @@ export const Explore = () => {
   const { location, radiusKm, isLocationSet, openLocationModal, requestAutoLocation, loading: locationLoading, error: locationError } = useLocationContext();
   const { filters, updateFilters } = useFilters();
   const { products, total, loading, error, currentPage, totalPages, fetchProducts, goToPage } = usePaginatedProducts();
-  const { compare, sortedCompare, toggleCompare, clearCompare, isAtLimit, maxCompare } = useCompareContext();
-
   const page = parseInt(searchParams.get('page') || '1', 10);
 
   useEffect(() => {
@@ -192,9 +188,6 @@ export const Explore = () => {
                   <ProductGrid
                     products={products}
                     loading={loading}
-                    compareIds={compare.map((p) => p.id)}
-                    onToggleCompare={toggleCompare}
-                    isCompareAtLimit={isAtLimit}
                   />
 
                   {/* Pagination */}
@@ -250,12 +243,6 @@ export const Explore = () => {
           </main>
         </div>
 
-        <ComparisonTray
-          products={sortedCompare}
-          onClear={clearCompare}
-          onRemoveProduct={toggleCompare}
-          maxCompare={maxCompare}
-        />
       </div>
     </LocationGate>
   );
