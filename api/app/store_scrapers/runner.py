@@ -46,6 +46,20 @@ STORE_CHAINS: Dict[str, Type[StoreLocationScraper]] = {
     "countdown": CountdownLocationScraper,
 }
 
+CHAIN_DISPLAY_NAMES: Dict[str, str] = {
+    "liquorland": "Liquorland",
+    "super_liquor": "Super Liquor",
+    "thirsty_liquor": "Thirsty Liquor",
+    "black_bull": "Black Bull",
+    "glengarry": "Glengarry",
+    "bottle_o": "Bottle-O",
+    "countdown": "Countdown",
+    "new_world": "New World",
+    "paknsave": "PAK'nSAVE",
+    "liquor_centre": "Liquor Centre",
+    "big_barrel": "Big Barrel",
+}
+
 
 def _pick_str(store: dict, *keys: str) -> str | None:
     """Return first non-empty string-like value from provided keys."""
@@ -92,6 +106,11 @@ async def upsert_stores(chain: str, stores: list[dict]) -> tuple[int, int]:
             # Normalize ALL-CAPS names (e.g. Bottle-O feeds "ASHHURST") to title case
             if name == name.upper() and not name.isnumeric():
                 name = name.title()
+
+            # Prepend chain display name if not already present (e.g. "Ashhurst" → "Bottle-O Ashhurst")
+            display = CHAIN_DISPLAY_NAMES.get(chain, "")
+            if display and not name.lower().startswith(display.lower()):
+                name = f"{display} {name}"
 
             address = _pick_str(store, "address", "Address", "FullAddress")
             if not address:
