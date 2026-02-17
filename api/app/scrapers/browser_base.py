@@ -351,7 +351,9 @@ class BrowserScraper(Scraper):
                             session, products, stores
                         )
                         changed_items += changed_count
-                        failed_items += len(products) - changed_count
+                        # changed_count is DB row-level (product/store upserts),
+                        # while total_items is product-level; do not derive failures
+                        # from changed_count or it can go negative.
 
                     except Exception as e:
                         logger.error(f"Failed to parse page: {e}")
