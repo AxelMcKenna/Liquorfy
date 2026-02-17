@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import math
 import re
 from typing import List
 
@@ -32,73 +33,157 @@ class LiquorlandScraper(Scraper):
     """Scraper for Liquorland NZ website using Playwright."""
 
     chain = "liquorland"
-    catalog_urls = [
-        # Beer & Cider
-        "https://www.liquorland.co.nz/beer",
-        "https://www.liquorland.co.nz/craft-beer",
-        "https://www.liquorland.co.nz/cider",
-        # Wine
-        "https://www.liquorland.co.nz/wine",
-        "https://www.liquorland.co.nz/wine/red",
-        "https://www.liquorland.co.nz/wine/white",
-        "https://www.liquorland.co.nz/wine/rose",
-        "https://www.liquorland.co.nz/wine/sparkling",
-        # Spirits
-        "https://www.liquorland.co.nz/spirits",
-        "https://www.liquorland.co.nz/spirits/whisky",
-        "https://www.liquorland.co.nz/spirits/gin",
-        "https://www.liquorland.co.nz/spirits/vodka",
-        "https://www.liquorland.co.nz/spirits/rum",
-        # RTDs
-        "https://www.liquorland.co.nz/rtd",
+
+    # Top-level nav entries that are not product categories
+    _SKIP_NAV_LABELS = {"recipes", "drinks guide", "specials"}
+
+    BASE_URL = "https://www.liquorland.co.nz"
+
+    # Fallback URLs used when dynamic discovery fails
+    _FALLBACK_CATALOG_URLS = [
+        "/beer/all-beer",
+        "/craft-beer/all-craft-beer",
+        "/cider",
+        "/wine/all-wine",
+        "/spirits/all-spirits",
+        "/liqueurs/all-liqueurs",
+        "/rtd/all-rtd",
     ]
 
     def __init__(self, use_fixtures: bool = False) -> None:
-        """
-        Initialize Liquorland scraper.
-
-        Args:
-            use_fixtures: Not used for browser-based scraping (always False)
-        """
         super().__init__(use_fixtures=False)
         self.browser: Browser | None = None
         self.context: BrowserContext | None = None
         self.playwright = None
 
-    async def fetch_catalog_pages(self) -> List[str]:
-        """
-        Fetch catalog pages using Playwright with pagination.
+    # ------------------------------------------------------------------
+    # Category discovery
+    # ------------------------------------------------------------------
 
-        Returns:
-            List of HTML strings
+    async def _discover_category_urls(self, page: Page) -> List[str]:
+        """Read window.navigation and return non-overlapping category URLs.
+
+        Strategy per top-level node:
+        - Skip non-product sections (recipes, drinks guide, specials).
+        - If the node has an "All X" child, use that (it contains the
+          complete set for the category with zero overlap).
+        - If the node is a leaf (no children), use it directly.
+        - Otherwise DFS to collect leaf URLs.
+        """
+        nav = await page.evaluate(
+            "() => { try { return window.navigation; } catch(e) { return null; } }"
+        )
+        if not nav:
+            logger.warning("window.navigation not found, using fallback URLs")
+            return [f"{self.BASE_URL}{path}" for path in self._FALLBACK_CATALOG_URLS]
+
+        urls: List[str] = []
+        for node in nav:
+            label = (node.get("label") or "").strip()
+            if label.lower() in self._SKIP_NAV_LABELS:
+                continue
+
+            children = node.get("children") or []
+            if not children:
+                # Leaf node (e.g. /cider)
+                url = node.get("url", "")
+                if url:
+                    urls.append(self._abs(url))
+                continue
+
+            # Look for an "All X" child — it covers the entire category
+            all_child = self._find_all_child(children)
+            if all_child:
+                urls.append(self._abs(all_child))
+            else:
+                # No "All X" child — DFS to leaves
+                urls.extend(self._collect_leaf_urls(children))
+
+        logger.info(f"Discovered {len(urls)} category URLs from navigation")
+        for u in urls:
+            logger.info(f"  {u}")
+        return urls
+
+    @staticmethod
+    def _find_all_child(children: List[dict]) -> str | None:
+        """Find the 'All X' child URL (e.g. 'All Wine' → /wine/all-wine)."""
+        for child in children:
+            label = (child.get("label") or "").lower()
+            if label.startswith("all "):
+                return child.get("url", "")
+        return None
+
+    def _collect_leaf_urls(self, nodes: List[dict]) -> List[str]:
+        """DFS to collect leaf category URLs, skipping 'Shop All' entries."""
+        leaves: List[str] = []
+        for node in nodes:
+            label = (node.get("label") or "").lower()
+            if label.startswith("shop all") or label.startswith("all "):
+                continue
+            children = node.get("children") or []
+            if not children:
+                url = node.get("url", "")
+                if url:
+                    leaves.append(self._abs(url))
+            else:
+                # Prefer "All X" child within this sub-tree too
+                all_child = self._find_all_child(children)
+                if all_child:
+                    leaves.append(self._abs(all_child))
+                else:
+                    leaves.extend(self._collect_leaf_urls(children))
+        return leaves
+
+    def _abs(self, path: str) -> str:
+        """Convert a relative path to absolute URL."""
+        if path.startswith("http"):
+            return path
+        return f"{self.BASE_URL}{path}"
+
+    # ------------------------------------------------------------------
+    # Fetching
+    # ------------------------------------------------------------------
+
+    async def fetch_catalog_pages(self) -> List[str]:
+        """Fetch all catalog pages using Playwright.
+
+        1. Loads any page to read window.navigation and discover category URLs.
+        2. For each category, reads window.category.pagination to determine
+           total pages, then fetches each page via ?p=N.
         """
         logger.info(f"Starting browser-based scraping for {self.chain}")
-        logger.info(f"Fetching data from {len(self.catalog_urls)} category URLs")
-        logger.info(f"Rate limiting: {DELAY_BETWEEN_REQUESTS}s between pages, {DELAY_BETWEEN_CATEGORIES}s between categories")
+        logger.info(
+            f"Rate limiting: {DELAY_BETWEEN_REQUESTS}s between pages, "
+            f"{DELAY_BETWEEN_CATEGORIES}s between categories"
+        )
 
-        # Start Playwright browser
         self.playwright = await async_playwright().start()
         self.browser = await self.playwright.chromium.launch(headless=True)
-
-        # Create context with respectful user agent (compliant with robots.txt)
         self.context = await self.browser.new_context(
             user_agent="Liquorfy/1.0 (Price Comparison Bot; +https://liquorfy.co.nz)",
             viewport={"width": 1920, "height": 1080},
         )
 
-        pages_html = []
+        pages_html: List[str] = []
 
         try:
-            for category_idx, base_url in enumerate(self.catalog_urls):
+            # Discover categories from live navigation
+            discovery_page = await self.context.new_page()
+            await discovery_page.goto(
+                f"{self.BASE_URL}/beer", wait_until="domcontentloaded", timeout=60000
+            )
+            await self._wait_for_content(discovery_page)
+            catalog_urls = await self._discover_category_urls(discovery_page)
+            await discovery_page.close()
+
+            for category_idx, base_url in enumerate(catalog_urls):
                 try:
-                    # Add delay between categories (but not before the first one)
                     if category_idx > 0:
                         logger.info(f"Waiting {DELAY_BETWEEN_CATEGORIES}s before next category...")
                         await asyncio.sleep(DELAY_BETWEEN_CATEGORIES)
 
                     logger.info(f"Fetching {base_url}")
 
-                    # Fetch first page
                     page = await self.context.new_page()
                     try:
                         await page.goto(base_url, wait_until="domcontentloaded", timeout=60000)
@@ -107,31 +192,25 @@ class LiquorlandScraper(Scraper):
                         first_page_html = await page.content()
                         pages_html.append(first_page_html)
 
-                        # Check for pagination
-                        total_pages = await self._extract_total_pages(first_page_html)
+                        total_pages = await self._extract_total_pages_js(page)
 
                         if total_pages > 1:
                             logger.info(f"  Found {total_pages} pages, fetching remaining...")
-
-                            # Fetch remaining pages
                             for page_num in range(2, total_pages + 1):
                                 await asyncio.sleep(DELAY_BETWEEN_REQUESTS)
-
                                 page_url = self._get_page_url(base_url, page_num)
                                 try:
-                                    await page.goto(page_url, wait_until="domcontentloaded", timeout=60000)
+                                    await page.goto(
+                                        page_url, wait_until="domcontentloaded", timeout=60000
+                                    )
                                     await self._wait_for_content(page)
-
-                                    page_html = await page.content()
-                                    pages_html.append(page_html)
+                                    pages_html.append(await page.content())
                                     logger.info(f"  Fetched page {page_num}/{total_pages}")
-
                                 except Exception as e:
                                     logger.error(f"  Failed to fetch page {page_num}: {e}")
                                     continue
                         else:
                             logger.info(f"  Only 1 page found")
-
                     finally:
                         await page.close()
 
@@ -140,7 +219,6 @@ class LiquorlandScraper(Scraper):
                     continue
 
         finally:
-            # Cleanup browser resources
             if self.context:
                 await self.context.close()
             if self.browser:
@@ -163,34 +241,37 @@ class LiquorlandScraper(Scraper):
             logger.warning(f"Timeout waiting for products: {e}")
             # Continue anyway, we might still get some data
 
-    async def _extract_total_pages(self, html: str) -> int:
-        """Extract total pages from Liquorland pagination."""
-        tree = HTMLParser(html)
+    async def _extract_total_pages_js(self, page: Page) -> int:
+        """Extract total pages from window.category.pagination JS object."""
+        try:
+            pagination = await page.evaluate(
+                "() => { try { return window.category.pagination; } catch(e) { return null; } }"
+            )
+            if pagination:
+                total_items = pagination.get("totalItems", 0)
+                items_per_page = pagination.get("itemsPerPage", 24)
+                if total_items and items_per_page:
+                    total_pages = math.ceil(total_items / items_per_page)
+                    logger.info(f"  Pagination: {total_items} items, {items_per_page}/page, {total_pages} pages")
+                    return total_pages
+        except Exception as e:
+            logger.warning(f"  Could not extract pagination from JS: {e}")
 
-        # Look for pagination elements
-        # Liquorland typically uses numbered page links
-        page_links = tree.css('a.s-pagination__link')
-        if page_links:
-            page_numbers = []
-            for link in page_links:
-                text = link.text().strip()
-                if text.isdigit():
-                    page_numbers.append(int(text))
-            if page_numbers:
-                return max(page_numbers)
-
-        # Fallback: check for "next" button existence
-        next_button = tree.css_first('a.s-pagination__link--next')
-        if next_button:
-            return 2  # At least 2 pages
+        # Fallback: check for Load More link in DOM
+        try:
+            load_more = page.locator("a.ps-category-pagination__button")
+            if await load_more.count() > 0:
+                return 2  # At least 2 pages
+        except Exception:
+            pass
 
         return 1
 
     def _get_page_url(self, base_url: str, page_num: int) -> str:
         """Construct Liquorland page URL."""
-        # Liquorland uses ?page=N format
+        # Liquorland uses ?p=N format
         separator = '&' if '?' in base_url else '?'
-        return f"{base_url}{separator}page={page_num}"
+        return f"{base_url}{separator}p={page_num}"
 
     async def parse_products(self, payload: str) -> List[dict]:
         """Parse products from Liquorland HTML."""

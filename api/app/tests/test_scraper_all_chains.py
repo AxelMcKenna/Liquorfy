@@ -77,8 +77,9 @@ class TestScraperRegistry:
             has_shop_url = hasattr(scraper, 'shop_url')  # Some Shopify scrapers
             has_collections = hasattr(scraper, 'collections') and scraper.collections  # Shopify
             has_base_url = hasattr(scraper, 'base_url')  # Base URL for API scrapers
+            has_dynamic_discovery = hasattr(scraper, '_discover_category_urls')  # Liquorland
 
-            assert has_catalog or has_scrape_method or has_fetch_override or has_store_list or has_shop_url or has_collections or has_base_url, \
+            assert has_catalog or has_scrape_method or has_fetch_override or has_store_list or has_shop_url or has_collections or has_base_url or has_dynamic_discovery, \
                 f"Scraper {chain_name} has no data source"
 
 
@@ -165,13 +166,12 @@ class TestLiquorlandScraper:
         scraper = LiquorlandScraper()
 
         assert scraper.chain == "liquorland"
-        assert len(scraper.catalog_urls) > 0
-        assert "liquorland.co.nz" in scraper.catalog_urls[0]
+        assert len(scraper._FALLBACK_CATALOG_URLS) > 0
 
-    def test_catalog_urls_cover_all_categories(self):
-        """Test that catalog URLs cover all major categories."""
+    def test_fallback_urls_cover_all_categories(self):
+        """Test that fallback URLs cover all major categories."""
         scraper = LiquorlandScraper()
-        urls_str = " ".join(scraper.catalog_urls)
+        urls_str = " ".join(scraper._FALLBACK_CATALOG_URLS)
 
         assert "beer" in urls_str
         assert "wine" in urls_str
@@ -223,13 +223,13 @@ class TestLiquorlandScraper:
         base_url = "https://www.liquorland.co.nz/beer"
         result = scraper._get_page_url(base_url, 2)
 
-        assert "page=2" in result
+        assert "p=2" in result
 
         # Test with existing query params
         base_url_with_params = "https://www.liquorland.co.nz/beer?sort=price"
         result = scraper._get_page_url(base_url_with_params, 3)
 
-        assert "page=3" in result
+        assert "p=3" in result
         assert "&" in result  # Should use & not ?
 
 
