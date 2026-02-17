@@ -100,13 +100,67 @@ class FoodstuffsAPIScraper(Scraper, APIAuthBase):
             return []
 
     async def _get_auth_token(self) -> Optional[str]:
-        """Get authentication token via browser authentication."""
+        """Get authentication token.
+
+        Strategy (in order):
+        1. Direct HTTP call to /api/user/get-current-user (fast, no browser).
+        2. Browser-based capture (fallback for if the direct endpoint changes).
+        """
+        # --- Fast path: direct HTTP token request ---
+        token = await self._get_token_direct()
+        if token:
+            return token
+
+        logger.warning(f"{self.chain}: direct token request failed, falling back to browser auth")
+
+        # --- Slow path: browser-based capture ---
         return await self._get_auth_via_browser(
             capture_token=True,
             capture_cookies=True,
             headless=True,
             wait_time=10.0
         )
+
+    async def _get_token_direct(self) -> Optional[str]:
+        """Request a guest auth token directly via the site's Next.js API route.
+
+        Calls POST /api/user/get-current-user which returns
+        {"access_token": "<jwt>", ...} and sets session cookies.
+        This avoids needing a browser or dealing with Cloudflare challenges.
+        """
+        domain = self.site_url.split("//")[-1].split("/")[0]
+        url = f"https://{domain}/api/user/get-current-user"
+
+        headers = {
+            "accept": "application/json",
+            "content-type": "application/json",
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+            "origin": f"https://{domain}",
+            "referer": f"https://{domain}/",
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+                resp = await client.post(url, headers=headers, json={})
+                resp.raise_for_status()
+                data = resp.json()
+
+                token = data.get("access_token")
+                if not token:
+                    logger.warning(f"{self.chain}: /api/user/get-current-user returned no access_token")
+                    return None
+
+                # Capture cookies from the response (fs-user-token, refresh_token, etc.)
+                self.cookies = {name: value for name, value in resp.cookies.items()}
+                logger.info(
+                    f"{self.chain}: obtained auth token via direct HTTP "
+                    f"({len(token)} chars, {len(self.cookies)} cookies)"
+                )
+                return token
+
+        except Exception as e:
+            logger.warning(f"{self.chain}: direct token request failed: {e}")
+            return None
 
     async def _fetch_category(
         self,
@@ -368,15 +422,11 @@ class FoodstuffsAPIScraper(Scraper, APIAuthBase):
         if not self.auth_token:
             self.auth_token = await self._get_auth_token()
             if not self.auth_token:
-                logger.warning(
-                    f"Failed to obtain auth token for {self.chain}; probing cookie-only API access"
+                logger.error(
+                    f"Unable to authenticate {self.chain}: "
+                    "both direct HTTP and browser token capture failed"
                 )
-                if not await self._probe_cookie_only_access():
-                    logger.error(
-                        f"Unable to authenticate {self.chain}: no bearer token and cookie-only access failed"
-                    )
-                    return []
-                logger.info(f"{self.chain}: continuing with cookie-only API access")
+                return []
 
         all_products: List[dict] = []
 
