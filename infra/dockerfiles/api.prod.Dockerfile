@@ -1,34 +1,11 @@
-# Production API Dockerfile with Playwright browser support
+# Production API Dockerfile (lean runtime, no Playwright browsers)
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies for Playwright
+# Keep runtime dependencies minimal for API memory footprint
 RUN apt-get update && apt-get install -y \
-    wget \
-    gnupg \
     ca-certificates \
-    fonts-liberation \
-    libasound2 \
-    libatk-bridge2.0-0 \
-    libatk1.0-0 \
-    libatspi2.0-0 \
-    libcups2 \
-    libdbus-1-3 \
-    libdrm2 \
-    libgbm1 \
-    libgtk-3-0 \
-    libnspr4 \
-    libnss3 \
-    libwayland-client0 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxfixes3 \
-    libxkbcommon0 \
-    libxrandr2 \
-    xdg-utils \
-    libu2f-udev \
-    libvulkan1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Poetry
@@ -40,10 +17,6 @@ COPY pyproject.toml poetry.lock* ./
 # Install Python dependencies
 RUN poetry config virtualenvs.create false && \
     poetry install --no-interaction --no-ansi --only main --no-root
-
-# Install Playwright and browsers
-RUN poetry run playwright install chromium && \
-    poetry run playwright install-deps chromium
 
 # Copy application code
 COPY api ./api
@@ -65,5 +38,6 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
 # Expose port
 EXPOSE 8000
 
-# Run with production settings
-CMD ["poetry", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+# Run with production settings (default to 2 workers on small VMs)
+ENV UVICORN_WORKERS=2
+CMD ["sh", "-c", "poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers ${UVICORN_WORKERS}"]
