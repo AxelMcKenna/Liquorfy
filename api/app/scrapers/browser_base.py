@@ -88,6 +88,19 @@ class BrowserScraper(Scraper):
             timezone_id="Pacific/Auckland",
         )
 
+        # Block resources we don't need — cuts per-page load time significantly.
+        # Image/font/media files are never downloaded; their URL strings in HTML
+        # attributes (src, data-src) are unaffected and still extracted correctly.
+        _BLOCK_TYPES = {"image", "media", "font", "stylesheet"}
+        await self.context.route(
+            "**/*",
+            lambda route: (
+                route.abort()
+                if route.request.resource_type in _BLOCK_TYPES
+                else route.continue_()
+            ),
+        )
+
         # Apply stealth if available
         if STEALTH_AVAILABLE:
             try:

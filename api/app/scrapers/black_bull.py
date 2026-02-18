@@ -172,57 +172,60 @@ class BlackBullScraper(Scraper):
                     f"Using fallback Black Bull store list ({len(self.stores)} stores)"
                 )
 
+        # Semaphore limits concurrent requests per store to 3 — enough to
+        # fetch all collections in parallel without hammering a single Shopify instance.
+        sem = asyncio.Semaphore(3)
+
+        async def fetch_collection(client: httpx.AsyncClient, store: dict, collection: str) -> list:
+            """Fetch all pages for one collection, returning enriched page dicts."""
+            results = []
+            page_num = 1
+            async with sem:
+                while True:
+                    url = f"{store['url']}/collections/{collection}/products.json"
+                    params = {"limit": 250, "page": page_num}
+                    try:
+                        response = await client.get(url, params=params)
+                        response.raise_for_status()
+                        data = response.json()
+                        products = data.get("products", [])
+                        if not products:
+                            break
+                        logger.info(
+                            f"  {store['name']} - {collection} page {page_num}: {len(products)} products"
+                        )
+                        results.append({
+                            "products": products,
+                            "store_id": store["store_id"],
+                            "store_name": store["name"],
+                        })
+                        if len(products) < 250:
+                            break
+                        page_num += 1
+                        await asyncio.sleep(0.5)  # Rate limiting between pagination pages
+                    except httpx.HTTPError as e:
+                        logger.error(f"Error fetching {store['name']} {collection} page {page_num}: {e}")
+                        break
+            return results
+
         async with httpx.AsyncClient(timeout=30.0) as client:
             for store in self.stores:
                 logger.info(f"Fetching store: {store['name']}")
 
-                for collection in self.collections:
-                    page_num = 1
-                    while True:
-                        url = f"{store['url']}/collections/{collection}/products.json"
-                        params = {"limit": 250, "page": page_num}
+                # Fetch all collections for this store concurrently (each goes to
+                # the same domain, capped at 3 simultaneous by the semaphore).
+                collection_results = await asyncio.gather(
+                    *[fetch_collection(client, store, c) for c in self.collections],
+                    return_exceptions=True,
+                )
+                for result in collection_results:
+                    if isinstance(result, BaseException):
+                        logger.error(f"Collection fetch failed for {store['name']}: {result}")
+                    elif isinstance(result, list):
+                        pages.extend(result)
 
-                        try:
-                            response = await client.get(url, params=params)
-                            response.raise_for_status()
-
-                            data = response.json()
-                            products = data.get("products", [])
-
-                            if not products:
-                                # No more products in this collection
-                                break
-
-                            logger.info(
-                                f"  {store['name']} - {collection} page {page_num}: {len(products)} products"
-                            )
-
-                            # Add store context to the response for parsing
-                            enriched_data = {
-                                "products": products,
-                                "store_id": store["store_id"],
-                                "store_name": store["name"],
-                            }
-                            pages.append(enriched_data)
-
-                            # If we got fewer than 250 products, we're on the last page
-                            if len(products) < 250:
-                                break
-
-                            page_num += 1
-                            await asyncio.sleep(0.5)  # Rate limiting
-
-                        except httpx.HTTPError as e:
-                            logger.error(
-                                f"Error fetching {store['name']} {collection} page {page_num}: {e}"
-                            )
-                            break
-
-                    # Delay between collections
-                    await asyncio.sleep(0.5)
-
-                # Delay between stores
-                await asyncio.sleep(1.0)
+                # Delay between stores (each is a separate Shopify domain)
+                await asyncio.sleep(0.5)
 
         logger.info(f"Fetched {len(pages)} pages total")
         return pages

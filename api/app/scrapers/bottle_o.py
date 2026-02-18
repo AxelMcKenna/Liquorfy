@@ -157,6 +157,18 @@ class BottleOScraper(Scraper):
             context = await browser.new_context(
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
             )
+
+            # Block resources we don't need — significantly reduces page load time.
+            _BLOCK_TYPES = {"image", "media", "font", "stylesheet"}
+            await context.route(
+                "**/*",
+                lambda route: (
+                    route.abort()
+                    if route.request.resource_type in _BLOCK_TYPES
+                    else route.continue_()
+                ),
+            )
+
             page = await context.new_page()
 
             # --- Per-store scraping ---
@@ -181,7 +193,11 @@ class BottleOScraper(Scraper):
                         url = self._build_url(store_slug, category, page_num)
 
                         try:
-                            await page.goto(url, wait_until="networkidle", timeout=30000)
+                            await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+                            try:
+                                await page.wait_for_selector(".talker", state="attached", timeout=8000)
+                            except Exception:
+                                pass  # Page may be empty (no products in category)
                             await asyncio.sleep(DELAY_BETWEEN_REQUESTS)
 
                             html = await page.content()
