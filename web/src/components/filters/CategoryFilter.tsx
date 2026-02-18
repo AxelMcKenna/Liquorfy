@@ -58,33 +58,28 @@ const groupedCategories = categories.reduce((acc, cat) => {
 
 export const CategoryFilter = ({ value, onChange }: CategoryFilterProps) => {
   return (
-    <div className="flex items-center gap-2">
-      <label htmlFor="category" className="text-sm font-medium text-foreground whitespace-nowrap">
-        Category:
-      </label>
-      <Select
-        value={value || 'all'}
-        onValueChange={(val) => onChange(val === 'all' ? undefined : val)}
-      >
-        <SelectTrigger id="category" className="w-[180px]">
-          <SelectValue placeholder="All Categories" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Categories</SelectItem>
-          {Object.entries(groupedCategories).map(([group, items]) => (
-            <div key={group}>
-              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                {group}
-              </div>
-              {items.map((cat) => (
-                <SelectItem key={cat.value} value={cat.value}>
-                  {cat.label}
-                </SelectItem>
-              ))}
+    <Select
+      value={value || 'all'}
+      onValueChange={(val) => onChange(val === 'all' ? undefined : val)}
+    >
+      <SelectTrigger id="category" className="w-full">
+        <SelectValue placeholder="All Categories" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">All Categories</SelectItem>
+        {Object.entries(groupedCategories).map(([group, items]) => (
+          <div key={group}>
+            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+              {group}
             </div>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
+            {items.map((cat) => (
+              <SelectItem key={cat.value} value={cat.value}>
+                {cat.label}
+              </SelectItem>
+            ))}
+          </div>
+        ))}
+      </SelectContent>
+    </Select>
   );
 };

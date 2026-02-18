@@ -88,9 +88,8 @@ export const Landing = () => {
   const topDiscountedProducts = getTopDiscountedProducts();
 
   const handleSearch = () => {
-    if (query.trim()) {
-      navigate(`/explore?q=${encodeURIComponent(query)}`);
-    }
+    const trimmedQuery = query.trim();
+    navigate(trimmedQuery ? `/explore?q=${encodeURIComponent(trimmedQuery)}` : '/explore');
   };
 
   const handleViewAllDeals = () => {
@@ -110,7 +109,7 @@ export const Landing = () => {
           </p>
 
           <div className="relative max-w-xl mx-auto">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-foreground-tertiary" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
               placeholder="Search for beer, wine, or spirits"
               value={query}

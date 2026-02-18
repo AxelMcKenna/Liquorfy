@@ -3,12 +3,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export const ProductSkeleton = () => {
   return (
-    <Card className="h-full flex flex-col overflow-hidden glass border-primary/10">
+    <Card className="h-full flex flex-col overflow-hidden border bg-card">
       {/* Animated pulse bar */}
       <div className="h-1 bg-primary/20 animate-pulse" />
 
       {/* Image skeleton - Light background */}
-      <div className="w-full aspect-[0.85/1] bg-gray-200 animate-pulse" />
+      <div className="w-full aspect-square bg-gray-200 animate-pulse" />
 
       <CardContent className="p-4 flex-1 space-y-3">
         {/* Title and brand */}
