@@ -163,8 +163,8 @@ class TestCountdownScraper:
         assert result["unit_volume_ml"] is not None or result["total_volume_ml"] is not None
 
     @pytest.mark.asyncio
-    async def test_fetch_category(self):
-        """Test category fetching with mocked HTTP client."""
+    async def test_fetch_search(self):
+        """Test search fetching with mocked HTTP client."""
         scraper = CountdownAPIScraper()
         scraper.cookies = {"session": "test"}
 
@@ -180,7 +180,7 @@ class TestCountdownScraper:
             mock_instance.get = mock_get
             mock_client.return_value.__aenter__.return_value = mock_instance
 
-            result = await scraper._fetch_category("beer-cider-wine", "beer")
+            result = await scraper._fetch_search("beer")
 
             assert "products" in result
             assert result == mock_response_data
@@ -455,34 +455,36 @@ class TestScraperIntegration:
     @pytest.mark.asyncio
     @pytest.mark.integration
     async def test_countdown_scrape_single_category(self):
-        """Test scraping a single category returns valid products."""
+        """Test scraping a single search term returns valid products."""
         scraper = CountdownAPIScraper()
 
-        # Mock cookies and HTTP client to avoid browser launch
-        with patch.object(scraper, '_get_cookies', new_callable=AsyncMock) as mock_cookies:
-            mock_cookies.return_value = {"session": "test"}
-            with patch.object(scraper, '_fetch_category') as mock_fetch:
-                mock_fetch.return_value = {
-                    "products": {
-                        "items": [
-                            {
-                                "sku": "TEST123",
-                                "name": "Test Beer",
-                                "brand": "Test Brand",
-                                "variety": "Lager",
-                                "price": {"originalPrice": 10.00},
-                                "images": {},
-                                "slug": "test-beer"
-                            }
-                        ]
+        mock_search_response = {
+            "products": {
+                "items": [
+                    {
+                        "sku": "TEST123",
+                        "name": "Test Beer",
+                        "brand": "Test Brand",
+                        "variety": "Lager",
+                        "price": {"originalPrice": 10.00},
+                        "images": {},
+                        "slug": "test-beer",
+                        "departments": [{"name": "Beer & Wine"}],
                     }
-                }
+                ]
+            }
+        }
 
-                products = await scraper.scrape()
+        # Mock cookies and search API
+        scraper.cookies = {"session": "test"}
+        with patch.object(scraper, '_fetch_search', new_callable=AsyncMock) as mock_fetch:
+            mock_fetch.return_value = mock_search_response
 
-                assert len(products) > 0
-                assert all("source_id" in p for p in products)
-                assert all("price_nzd" in p for p in products)
+            products = await scraper.scrape()
+
+            assert len(products) > 0
+            assert all("source_id" in p for p in products)
+            assert all("price_nzd" in p for p in products)
 
 
 # ============================================================================

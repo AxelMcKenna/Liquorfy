@@ -32,16 +32,19 @@ class CountdownAPIScraper(Scraper, APIAuthBase):
     # API endpoint
     api_url = "https://www.woolworths.co.nz/api/v1/products"
 
-    # Category definitions (Department, Aisle pairs)
-    categories = [
-        ("beer-cider-wine", "beer"),
-        ("beer-cider-wine", "cider"),
-        ("beer-cider-wine", "red-wine"),
-        ("beer-cider-wine", "white-wine"),
-        ("beer-cider-wine", "rose-wine"),
-        ("beer-cider-wine", "sparkling-wine"),
-        ("beer-cider-wine", "premix-rtd"),
+    # Search terms for beer, cider, and wine only.
+    # NZ supermarkets cannot sell spirits — only beer, cider, and wine.
+    # Browse categories (dasFilter) return a tiny curated subset;
+    # search returns the full catalog. Items are filtered by the
+    # "Beer & Wine" department to exclude grocery noise.
+    search_terms = [
+        "beer", "lager", "ale", "cider",
+        "sauvignon blanc", "pinot noir", "merlot", "chardonnay",
+        "pinot gris", "rose wine", "sparkling wine", "champagne",
     ]
+
+    # Woolworths department ID for alcohol
+    _ALCOHOL_DEPT = "Beer & Wine"
 
     def __init__(self):
         Scraper.__init__(self)
@@ -57,70 +60,48 @@ class CountdownAPIScraper(Scraper, APIAuthBase):
         )
         return self.cookies
 
-    async def _fetch_category(
+    async def _fetch_search(
         self,
-        department: str,
-        aisle: str,
-        size: int = 48  # Match browser default
+        term: str,
+        page: int = 1,
+        size: int = 120,
     ) -> dict:
         """
-        Fetch products for a specific category using the API.
+        Fetch products via search API.
 
         Args:
-            department: Department filter (e.g., "beer-cider-wine")
-            aisle: Aisle filter (e.g., "beer")
-            size: Number of products to fetch
+            term: Search query (e.g., "beer", "pinot noir")
+            page: Page number (1-indexed)
+            size: Results per page
 
         Returns:
             API response dict with products
         """
-        # Build dasFilter parameters
-        filters = [
-            f"Department;;{department};false",
-            f"Aisle;;{aisle};false",
-        ]
-
-        params = {
-            "target": "browse",
-            "inStockProductsOnly": "false",
-            "size": str(size),
-        }
-
-        # Add dasFilter params
-        for f in filters:
-            params.setdefault("dasFilter", []).append(f) if isinstance(params.get("dasFilter"), list) else None
-
         headers = {
             "accept": "application/json, text/plain, */*",
             "accept-language": "en-NZ",
             "content-type": "application/json",
             "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-            "referer": f"https://www.woolworths.co.nz/shop/browse/{department}/{aisle}",
+            "referer": f"https://www.woolworths.co.nz/shop/search?search={quote(term)}",
             "x-requested-with": "OnlineShopping.WebApp",
             "cache-control": "no-cache",
             "pragma": "no-cache",
         }
 
-        # Add cookies if we have them
         if self.cookies:
             cookie_string = "; ".join([f"{k}={v}" for k, v in self.cookies.items()])
             headers["cookie"] = cookie_string
 
+        url = (
+            f"{self.api_url}?"
+            f"target=search&"
+            f"search={quote(term)}&"
+            f"page={page}&"
+            f"size={size}&"
+            f"inStockProductsOnly=false"
+        )
+
         async with httpx.AsyncClient(timeout=30.0) as client:
-            # Manually build URL with multiple dasFilter params (order matters!)
-            # Put dasFilter params first, then other params
-            url = self.api_url + "?"
-
-            # Add dasFilter params first
-            for f in filters:
-                url += f"dasFilter={quote(f)}&"
-
-            # Then add other params
-            for key, value in params.items():
-                url += f"{key}={quote(str(value))}&"
-
-            url = url.rstrip("&")
-
             response = await client.get(url, headers=headers)
             response.raise_for_status()
             return response.json()
@@ -135,11 +116,11 @@ class CountdownAPIScraper(Scraper, APIAuthBase):
         Returns:
             Standardized product dict
         """
-        # Extract basic info
-        sku = product_data.get("sku", "")
-        name = product_data.get("name", "")
-        brand = product_data.get("brand", "")
-        variety = product_data.get("variety", "")
+        # Extract basic info (use `or ""` to coerce None to empty string)
+        sku = product_data.get("sku") or ""
+        name = product_data.get("name") or ""
+        brand = product_data.get("brand") or ""
+        variety = product_data.get("variety") or ""
 
         # Full product name
         full_name = f"{brand} {variety} {name}".strip()
@@ -227,17 +208,14 @@ class CountdownAPIScraper(Scraper, APIAuthBase):
                     logger.warning(f"No stores found for chain {self.chain}")
                     stores = []
 
-                # Upsert all products
-                for product_data in products:
-                    try:
-                        changed = await self._upsert_product_and_prices(
-                            session, product_data, stores
-                        )
-                        if changed:
-                            changed_items += 1
-                    except Exception as e:
-                        logger.error(f"Failed to persist product {product_data.get('name')}: {e}")
-                        failed_items += 1
+                # Batch upsert all products (broadcasts to all stores)
+                try:
+                    changed_items = await self._upsert_products_batch(
+                        session, products, stores
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to persist products: {e}")
+                    failed_items = total_items
 
             # Update ingestion run with results
             async with async_transaction() as session:
@@ -269,48 +247,96 @@ class CountdownAPIScraper(Scraper, APIAuthBase):
                 run.finished_at = datetime.utcnow()
             raise
 
+    async def _validate_auth(self) -> bool:
+        """Validate that cookies are still valid by making a lightweight API call."""
+        try:
+            response = await self._fetch_search("beer", page=1, size=1)
+            items = response.get("products", {}).get("items", [])
+            logger.info(f"Auth validation passed ({len(items)} test item(s))")
+            return True
+        except Exception as e:
+            logger.warning(f"Auth validation failed: {e}")
+            return False
+
     async def scrape(self) -> List[dict]:
         """
-        Scrape all products from Countdown using Woolworths API.
+        Scrape all products from Countdown using search-based queries.
+
+        The browse API returns a tiny subset; search returns the full catalog.
+        Multiple search terms are used to cover all alcohol categories,
+        with SKU-based dedup across terms.
 
         Returns:
             List of product dictionaries
         """
-        # Get cookies first
         if not self.cookies:
             self.cookies = await self._get_cookies()
 
+        # Validate auth before full scrape
+        if not await self._validate_auth():
+            logger.warning("Stale cookies detected, refreshing...")
+            self.cookies = await self._get_cookies()
+            if not await self._validate_auth():
+                logger.error("Auth validation failed after refresh")
+                return []
+
+        seen_skus: set[str] = set()
         all_products: List[dict] = []
 
-        # Scrape each category
-        for department, aisle in self.categories:
-            logger.info(f"Scraping category: {department} > {aisle}")
+        for term in self.search_terms:
+            logger.info(f"Searching: '{term}'")
+            page_num = 1
 
-            try:
-                # Fetch products (API returns all with size parameter)
-                response = await self._fetch_category(department, aisle)
+            while True:
+                try:
+                    response = await self._fetch_search(term, page=page_num)
+                    items = response.get("products", {}).get("items", [])
 
-                products_data = response.get("products", {}).get("items", [])
-                total_count = response.get("products", {}).get("totalCount", len(products_data))
+                    if not items:
+                        break
 
-                logger.info(f"Found {len(products_data)}/{total_count} products in {aisle}")
+                    new_count = 0
+                    for item_data in items:
+                        try:
+                            # Filter to Beer & Wine department only
+                            depts = item_data.get("departments") or []
+                            if not any(
+                                d.get("name") == self._ALCOHOL_DEPT
+                                for d in depts
+                            ):
+                                continue
 
-                # Parse products
-                for product_data in products_data:
-                    try:
-                        product = self._parse_product(product_data)
-                        all_products.append(product)
-                    except Exception as e:
-                        logger.error(f"Error parsing product: {e}")
+                            sku = str(item_data.get("sku") or "")
+                            if not sku or sku in seen_skus:
+                                continue
+                            seen_skus.add(sku)
+                            product = self._parse_product(item_data)
+                            all_products.append(product)
+                            new_count += 1
+                        except Exception as e:
+                            logger.debug(f"Error parsing product: {e}")
 
-                # Small delay between categories
-                await asyncio.sleep(1)
+                    logger.info(
+                        f"  '{term}' page {page_num}: "
+                        f"{len(items)} items, {new_count} new"
+                    )
 
-            except Exception as e:
-                logger.error(f"Error scraping category {aisle}: {e}")
-                continue
+                    if len(items) < 120:
+                        break
 
-        logger.info(f"Successfully scraped {len(all_products)} products from Countdown")
+                    page_num += 1
+                    await asyncio.sleep(0.5)
+
+                except Exception as e:
+                    logger.error(f"Error searching '{term}' page {page_num}: {e}")
+                    break
+
+            await asyncio.sleep(1)
+
+        logger.info(
+            f"Scraped {len(all_products)} unique products "
+            f"from {len(seen_skus)} SKUs across {len(self.search_terms)} search terms"
+        )
         return all_products
 
 
