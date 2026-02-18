@@ -16,6 +16,7 @@ from app.db.session import async_transaction
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
+PRICE_UPSERT_CHUNK_SIZE = 2000
 
 
 class Scraper(abc.ABC):
@@ -299,22 +300,24 @@ class Scraper(abc.ABC):
                 if not existing_price:
                     changed_count += 1
 
-        # Bulk insert with ON CONFLICT
+        # Bulk insert with ON CONFLICT in chunks to avoid Postgres bind limits
         if price_values:
-            stmt = insert(Price).values(price_values)
-            stmt = stmt.on_conflict_do_update(
-                index_elements=["product_id", "store_id"],
-                set_={
-                    "price_nzd": stmt.excluded.price_nzd,
-                    "promo_price_nzd": stmt.excluded.promo_price_nzd,
-                    "promo_text": stmt.excluded.promo_text,
-                    "promo_ends_at": stmt.excluded.promo_ends_at,
-                    "is_member_only": stmt.excluded.is_member_only,
-                    "last_seen_at": stmt.excluded.last_seen_at,
-                    "price_last_changed_at": stmt.excluded.price_last_changed_at,
-                },
-            )
-            await session.execute(stmt)
+            for idx in range(0, len(price_values), PRICE_UPSERT_CHUNK_SIZE):
+                chunk = price_values[idx: idx + PRICE_UPSERT_CHUNK_SIZE]
+                stmt = insert(Price).values(chunk)
+                stmt = stmt.on_conflict_do_update(
+                    index_elements=["product_id", "store_id"],
+                    set_={
+                        "price_nzd": stmt.excluded.price_nzd,
+                        "promo_price_nzd": stmt.excluded.promo_price_nzd,
+                        "promo_text": stmt.excluded.promo_text,
+                        "promo_ends_at": stmt.excluded.promo_ends_at,
+                        "is_member_only": stmt.excluded.is_member_only,
+                        "last_seen_at": stmt.excluded.last_seen_at,
+                        "price_last_changed_at": stmt.excluded.price_last_changed_at,
+                    },
+                )
+                await session.execute(stmt)
 
         return changed_count
 
