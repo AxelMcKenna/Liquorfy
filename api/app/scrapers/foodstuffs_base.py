@@ -167,7 +167,7 @@ class FoodstuffsAPIScraper(Scraper, APIAuthBase):
         level0: str,
         level1: str,
         page: int = 0,
-        hits_per_page: int = 50
+        hits_per_page: int = 100
     ) -> dict:
         """
         Fetch products for a specific category using the API.
@@ -518,7 +518,7 @@ class FoodstuffsAPIScraper(Scraper, APIAuthBase):
                             logger.error(f"Error parsing product: {e}")
 
                     # Fetch remaining pages if needed
-                    hits_per_page = 50
+                    hits_per_page = 100
                     total_pages = (total_products + hits_per_page - 1) // hits_per_page
 
                     for page_num in range(1, total_pages):

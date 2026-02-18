@@ -1,6 +1,9 @@
 """
 Countdown API-based scraper using Woolworths NZ API.
 Much faster and more reliable than HTML scraping.
+
+Note: Countdown NZ rebranded to Woolworths NZ (October 2023).
+countdown.co.nz still redirects, but the live site and API are at woolworths.co.nz.
 """
 from __future__ import annotations
 
@@ -16,18 +19,16 @@ from sqlalchemy import select
 from app.db.models import IngestionRun, Store
 from app.db.session import async_transaction
 from app.scrapers.base import Scraper
-from app.scrapers.api_auth_base import APIAuthBase
 from app.services.parser_utils import infer_brand
 
 logger = logging.getLogger(__name__)
 
 
-class CountdownAPIScraper(Scraper, APIAuthBase):
-    """API-based scraper for Countdown NZ using Woolworths API."""
+class CountdownAPIScraper(Scraper):
+    """API-based scraper for Woolworths NZ (formerly Countdown)."""
 
     chain = "countdown"
-    site_url = "https://www.countdown.co.nz"
-    api_domain = ""  # Countdown doesn't need token, just cookies
+    site_url = "https://www.woolworths.co.nz"
 
     # API endpoint
     api_url = "https://www.woolworths.co.nz/api/v1/products"
@@ -48,17 +49,22 @@ class CountdownAPIScraper(Scraper, APIAuthBase):
 
     def __init__(self):
         Scraper.__init__(self)
-        APIAuthBase.__init__(self)
+        self.cookies: dict = {}
 
-    async def _get_cookies(self) -> dict:
-        """Get session cookies via browser authentication."""
-        await self._get_auth_via_browser(
-            capture_token=False,
-            capture_cookies=True,
-            headless=False,
-            wait_time=5.0
-        )
-        return self.cookies
+    async def _get_cookies_direct(self) -> dict:
+        """Capture server-set session cookies via a plain HTTP GET (no browser, no JS)."""
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+            resp = await client.get(
+                self.site_url,
+                headers={
+                    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                    "Accept-Language": "en-NZ,en;q=0.9",
+                },
+            )
+            cookies = dict(resp.cookies)
+            logger.info(f"Captured {len(cookies)} cookies via HTTP (status={resp.status_code})")
+            return cookies
 
     async def _fetch_search(
         self,
@@ -146,9 +152,9 @@ class CountdownAPIScraper(Scraper, APIAuthBase):
         images = product_data.get("images", {})
         image_url = images.get("big") or images.get("small")
 
-        # Product URL
+        # Product URL — woolworths.co.nz (rebranded from countdown.co.nz)
         slug = product_data.get("slug", "")
-        url = f"https://www.countdown.co.nz/shop/productdetails?stockcode={sku}&name={slug}" if slug else None
+        url = f"https://www.woolworths.co.nz/shop/productdetails?stockcode={sku}&name={slug}" if slug else None
 
         # Parse volume from size info
         size_info = product_data.get("size", {})
@@ -259,39 +265,47 @@ class CountdownAPIScraper(Scraper, APIAuthBase):
                 run.finished_at = datetime.utcnow()
             raise
 
-    async def _validate_auth(self) -> bool:
-        """Validate that cookies are still valid by making a lightweight API call."""
-        try:
-            response = await self._fetch_search("beer", page=1, size=1)
-            items = response.get("products", {}).get("items", [])
-            logger.info(f"Auth validation passed ({len(items)} test item(s))")
-            return True
-        except Exception as e:
-            logger.warning(f"Auth validation failed: {e}")
-            return False
-
     async def scrape(self) -> List[dict]:
         """
-        Scrape all products from Countdown using search-based queries.
+        Scrape all products from Woolworths NZ using search-based queries.
 
-        The browse API returns a tiny subset; search returns the full catalog.
-        Multiple search terms are used to cover all alcohol categories,
-        with SKU-based dedup across terms.
+        Probes cookieless first; falls back to a plain HTTP cookie grab
+        (no browser, no JS) if the initial probe returns no items.
 
         Returns:
             List of product dictionaries
         """
-        if not self.cookies:
-            self.cookies = await self._get_cookies()
+        # Step 1: probe with no cookies
+        self.cookies = {}
+        try:
+            probe = await self._fetch_search("beer", page=1, size=5)
+            probe_items = probe.get("products", {}).get("items", [])
+        except Exception as e:
+            logger.info(f"Cookieless probe failed ({e}) — will try HTTP cookie grab")
+            probe_items = []
 
-        # Validate auth before full scrape
-        if not await self._validate_auth():
-            logger.warning("Stale cookies detected, refreshing...")
-            self.cookies = await self._get_cookies()
-            if not await self._validate_auth():
-                logger.error("Auth validation failed after refresh")
+        if probe_items:
+            logger.info(f"Cookieless access works ({len(probe_items)} items) — proceeding without auth")
+        else:
+            # Step 2: grab cookies via plain HTTP GET (no browser, no JS)
+            logger.info("Cookieless probe returned no items — fetching session cookies via HTTP")
+            self.cookies = await self._get_cookies_direct()
+
+            # Retry probe with cookies
+            try:
+                probe = await self._fetch_search("beer", page=1, size=5)
+                probe_items = probe.get("products", {}).get("items", [])
+            except Exception as e:
+                logger.warning(f"Cookie probe also failed ({e}) — aborting scrape")
                 return []
 
+            if not probe_items:
+                logger.warning("HTTP cookie auth returned no items — skipping scrape")
+                return []
+
+            logger.info(f"Cookie auth succeeded ({len(probe_items)} probe items)")
+
+        # Step 3: full scrape across all search terms
         seen_skus: set[str] = set()
         all_products: List[dict] = []
 

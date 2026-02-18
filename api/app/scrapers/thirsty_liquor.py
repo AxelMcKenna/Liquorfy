@@ -83,7 +83,7 @@ class ThirstyLiquorScraper(Scraper):
                         break
 
                 # Delay between collections
-                await asyncio.sleep(1.0)
+                await asyncio.sleep(0.5)
 
         logger.info(f"Fetched {len(pages)} pages total")
         return pages

@@ -70,13 +70,12 @@ class GlengarryScraper(BrowserScraper):
     async def wait_for_content(self, page: Page) -> None:
         """Wait for product grid to load."""
         try:
-            # Wait for Glengarry's specific product elements
-            await page.wait_for_selector('.productDisplaySlot', timeout=10000)
-            # Extra wait for dynamic content
-            await asyncio.sleep(2)
+            # Wait until product slots are attached to the DOM. state='attached'
+            # avoids false timeouts when elements exist but aren't yet scrolled
+            # into view. No extra sleep needed once they're confirmed in the DOM.
+            await page.wait_for_selector('.productDisplaySlot', state='attached', timeout=10000)
         except Exception as e:
             logger.warning(f"Timeout waiting for products: {e}")
-            await asyncio.sleep(3)
 
     async def extract_total_pages(self, html: str) -> int:
         """

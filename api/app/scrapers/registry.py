@@ -15,7 +15,7 @@ from app.scrapers.super_liquor import SuperLiquorScraper
 from app.scrapers.thirsty_liquor import ThirstyLiquorScraper
 
 CHAINS: Dict[str, Type[Scraper]] = {
-    # "countdown": CountdownAPIScraper,  # DISABLED: Requires location selection (TODO: Fix browser automation)
+    "countdown": CountdownAPIScraper,
     "liquorland": LiquorlandScraper,
     "liquor_centre": LiquorCentreScraper,
     "super_liquor": SuperLiquorScraper,

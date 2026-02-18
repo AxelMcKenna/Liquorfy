@@ -81,13 +81,13 @@ ENVIRONMENT=development
 | Glengarry | `glengarry` | Browser (Playwright) | Chain-wide | Inline from product listings | ✅ Active |
 | Thirsty Liquor | `thirsty_liquor` | Shopify JSON API | Chain-wide | `/collections/specials` | ✅ Active |
 | Black Bull | `black_bull` | Shopify JSON API | Per-store (DB-backed list) | `/collections/specials` | ✅ Active |
-| Countdown | `countdown` | API (Woolworths) | Chain-wide | `isSpecial` inline per product | ⚠️ Disabled (see notes) |
+| Countdown | `countdown` | API (Woolworths NZ) | Chain-wide | `isSpecial` inline per product | ✅ Active |
 
 ### Notes
 
 **Liquorland:** 166 stores with per-store pricing, but per-store scraping requires complex browser UI automation (store selector modal). Currently captures only products with default/chain pricing. Products marked `no-cta` (requiring store selection) are skipped.
 
-**Countdown:** Disabled in `registry.py` — requires valid browser session cookies obtained via Playwright. The API implementation is complete; re-enable by uncommenting in `registry.py` once cookie acquisition is resolved.
+**Countdown:** Rebranded to Woolworths NZ (October 2023). `countdown.co.nz` still redirects; the live site and API are at `woolworths.co.nz`. Auth is cookieless — the scraper probes the API without cookies first. If the probe returns no items it captures session cookies via a plain HTTP GET (no browser, no JS) and retries once.
 
 **Black Bull:** Per-store Shopify stores (60+ franchise locations). Only stores with active e-commerce subdomains are scraped. Store list is loaded from the `stores` DB table; falls back to a 3-store bootstrap list if the DB is empty.
 
@@ -120,6 +120,7 @@ poetry run python scripts/run_single_scraper.py new_world
 poetry run python scripts/run_single_scraper.py paknsave
 poetry run python scripts/run_single_scraper.py thirsty_liquor
 poetry run python scripts/run_single_scraper.py black_bull
+poetry run python scripts/run_single_scraper.py countdown
 
 # Browser-based scrapers (slower, require Playwright)
 poetry run python scripts/run_single_scraper.py liquorland
@@ -269,11 +270,12 @@ poetry run python scripts/run_single_scraper.py <chain> 2>&1 | tee scraper.log
 grep "ERROR" scraper.log | head -20
 ```
 
-### Countdown Disabled
+### Countdown Returns No Items
 
-Countdown requires fresh session cookies from a browser visit. To re-enable:
-1. Uncomment `"countdown": CountdownAPIScraper` in `api/app/scrapers/registry.py`
-2. Ensure Playwright is installed (used for cookie capture)
+The scraper probes cookieless first. If Woolworths starts requiring auth:
+1. Check that `woolworths.co.nz` is reachable (not geo-blocked in CI)
+2. The HTTP cookie grab (`_get_cookies_direct`) should handle session tokens automatically
+3. If the API contract changes, inspect the response structure vs the `products.items` path
 
 ### New World / PakNSave Auth Failure
 

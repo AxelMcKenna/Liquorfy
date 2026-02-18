@@ -22,8 +22,8 @@ FIXTURE = Path(__file__).parent / "fixtures" / "super_liquor.html"
 logger = logging.getLogger(__name__)
 
 # Rate limiting configuration (respectful scraping)
-DELAY_BETWEEN_REQUESTS = 1.0  # seconds between page requests
-DELAY_BETWEEN_CATEGORIES = 2.5  # seconds between different categories
+DELAY_BETWEEN_REQUESTS = 0.7  # seconds between page requests
+DELAY_BETWEEN_CATEGORIES = 1.5  # seconds between different categories
 MAX_RETRIES = 3  # max retries for failed requests
 RETRY_DELAY = 2.0  # initial retry delay (doubles each retry)
 

@@ -158,6 +158,18 @@ class LiquorCentreScraper(Scraper):
             context = await browser.new_context(
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
             )
+
+            # Block resources we don't need — significantly reduces page load time.
+            _BLOCK_TYPES = {"image", "media", "font", "stylesheet"}
+            await context.route(
+                "**/*",
+                lambda route: (
+                    route.abort()
+                    if route.request.resource_type in _BLOCK_TYPES
+                    else route.continue_()
+                ),
+            )
+
             page = await context.new_page()
 
             for store_slug in self.stores:
@@ -180,8 +192,14 @@ class LiquorCentreScraper(Scraper):
                         url = self._build_url(store_slug, category, page_num)
 
                         try:
-                            await page.goto(url, wait_until="networkidle", timeout=30000)
-                            await asyncio.sleep(1.5)  # Rate limiting
+                            # domcontentloaded is enough — we wait for .talker
+                            # elements below, which is more precise than networkidle
+                            # (networkidle waits for analytics/ads to settle, ~5-15s extra)
+                            await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+                            try:
+                                await page.wait_for_selector(".talker", state="attached", timeout=8000)
+                            except Exception:
+                                pass  # Page may be empty (no products in category)
 
                             html = await page.content()
 
@@ -217,7 +235,7 @@ class LiquorCentreScraper(Scraper):
                         consecutive_failures += 1
 
                     # Delay between categories
-                    await asyncio.sleep(2.0)
+                    await asyncio.sleep(1.0)
 
             await browser.close()
 

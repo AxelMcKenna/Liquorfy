@@ -164,6 +164,17 @@ class LiquorlandScraper(Scraper):
             viewport={"width": 1920, "height": 1080},
         )
 
+        # Block resources we don't need — cuts page load time significantly
+        _BLOCK_TYPES = {"image", "media", "font", "stylesheet"}
+        await self.context.route(
+            "**/*",
+            lambda route: (
+                route.abort()
+                if route.request.resource_type in _BLOCK_TYPES
+                else route.continue_()
+            ),
+        )
+
         pages_html: List[str] = []
 
         try:
@@ -233,10 +244,11 @@ class LiquorlandScraper(Scraper):
     async def _wait_for_content(self, page: Page) -> None:
         """Wait for Liquorland products to load."""
         try:
-            # Wait for product grid to appear
-            await page.wait_for_selector('.s-product', timeout=10000)
-            # Wait a moment for all products to render
-            await page.wait_for_load_state('networkidle', timeout=15000)
+            # Wait until products are attached to the DOM (not visible — avoids
+            # false timeouts when elements render off-screen before scrolling).
+            # networkidle is intentionally omitted: it waits for analytics/ads
+            # which adds 10-15s per page with no benefit for data extraction.
+            await page.wait_for_selector('.s-product', state='attached', timeout=10000)
         except Exception as e:
             logger.warning(f"Timeout waiting for products: {e}")
             # Continue anyway, we might still get some data
@@ -294,7 +306,7 @@ class LiquorlandScraper(Scraper):
 
                 # Extract price - skip if "Choose a store" pricing
                 pricing_section = node.css_first('.s-site-pricing')
-                if pricing_section and 'no-cta' in pricing_section.attributes.get('class', ''):
+                if pricing_section and 'no-cta' in (pricing_section.attributes.get('class') or ''):
                     # This product requires store selection for pricing
                     continue
 
