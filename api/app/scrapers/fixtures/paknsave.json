@@ -1,0 +1,33 @@
+{
+  "products": [
+    {
+      "productId": "R6001234",
+      "brand": "Export",
+      "name": "Gold",
+      "displayName": "Lager 24x330ml Cans",
+      "singlePrice": {
+        "price": 3599
+      },
+      "promotions": []
+    },
+    {
+      "productId": "R6005678",
+      "brand": "Mud House",
+      "name": "",
+      "displayName": "Pinot Noir 750ml",
+      "singlePrice": {
+        "price": 1499
+      },
+      "promotions": [
+        {
+          "bestPromotion": true,
+          "rewardValue": 1199,
+          "rewardType": "NEW_PRICE",
+          "decal": "Club Price $11.99",
+          "cardDependencyFlag": true
+        }
+      ]
+    }
+  ],
+  "totalProducts": 2
+}
