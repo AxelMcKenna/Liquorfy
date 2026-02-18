@@ -81,9 +81,10 @@ class LiquorCentreScraper(Scraper):
     """
 
     chain = "liquor_centre"
+    _sweep_per_store = True
 
     # Category URLs (relative to store subdomain)
-    CATEGORIES = ["beer", "wine", "spirits", "cider", "rtds"]
+    CATEGORIES = ["beer", "wine", "spirits", "cider", "rtds", "specials"]
 
     def __init__(self, chain: str = None, use_fixtures: bool = False, stores: List[str] = None, scrape_all_stores: bool = True):
         super().__init__(chain or self.chain)
@@ -661,6 +662,15 @@ class LiquorCentreScraper(Scraper):
                     },
                 )
                 await session.execute(stmt)
+
+            # Sweep stale promos for this specific store
+            if self._run_started_at and target_store:
+                try:
+                    from app.services.freshness import sweep_store_promos
+
+                    await sweep_store_promos(session, target_store.id, self._run_started_at)
+                except Exception as e:
+                    logger.warning(f"Per-store promo sweep failed for store={store_identifier}: {e}")
 
         return changed_count
 

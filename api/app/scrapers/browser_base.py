@@ -313,11 +313,13 @@ class BrowserScraper(Scraper):
 
     async def run(self) -> IngestionRun:
         """Run the scraper and persist data to database."""
+        self._run_started_at = datetime.utcnow()
+
         # Create ingestion run record
         run = IngestionRun(
             chain=self.chain,
             status="running",
-            started_at=datetime.utcnow(),
+            started_at=self._run_started_at,
         )
 
         async with async_transaction() as session:
@@ -371,6 +373,16 @@ class BrowserScraper(Scraper):
                 run.items_total = total_items
                 run.items_changed = changed_items
                 run.items_failed = failed_items
+
+            # Sweep stale promos (chain-wide scrapers only)
+            if not self._sweep_per_store and self._run_started_at:
+                try:
+                    from app.services.freshness import sweep_chain_promos
+
+                    async with async_transaction() as session:
+                        await sweep_chain_promos(session, self.chain, self._run_started_at)
+                except Exception as e:
+                    logger.warning(f"Promo sweep failed for chain={self.chain}: {e}")
 
             logger.info(
                 f"Scraper completed: {total_items} items, "

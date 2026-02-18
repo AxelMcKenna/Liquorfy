@@ -38,6 +38,7 @@ class ThirstyLiquorScraper(Scraper):
         "spirits",
         "cider",
         "rtds",
+        "specials",
     ]
 
     async def fetch_catalog_pages(self) -> List[str]:

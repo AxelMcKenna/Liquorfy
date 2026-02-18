@@ -31,6 +31,8 @@ RETRY_DELAY = 2.0  # initial retry delay (doubles each retry)
 class SuperLiquorScraper(Scraper):
     chain = "super_liquor"
     catalog_urls = [
+        # Specials first so category pages overwrite with correct was/now pricing
+        "https://www.superliquor.co.nz/super-specials",
         # Beer & Cider
         "https://www.superliquor.co.nz/beer",
         "https://www.superliquor.co.nz/craft-beer",

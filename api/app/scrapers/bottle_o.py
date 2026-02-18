@@ -47,7 +47,7 @@ DELAY_BETWEEN_CATEGORIES = 2.5
 DELAY_BETWEEN_REQUESTS = 1.5
 
 # Categories available on CityHive store sites
-CATEGORIES = ["beer", "wine", "spirits", "cider", "rtds"]
+CATEGORIES = ["beer", "wine", "spirits", "cider", "rtds", "specials"]
 
 # Franchise catalog URLs (for stores without online shops)
 FRANCHISE_CATALOG_URLS = [
@@ -81,6 +81,7 @@ class BottleOScraper(Scraper):
     """
 
     chain = "bottle_o"
+    _sweep_per_store = True
 
     # Keep catalog_urls populated so registry tests pass
     catalog_urls = FRANCHISE_CATALOG_URLS
@@ -885,6 +886,15 @@ class BottleOScraper(Scraper):
                 },
             )
             await session.execute(stmt)
+
+        # Sweep stale promos for this specific store
+        if self._run_started_at and target_store:
+            try:
+                from app.services.freshness import sweep_store_promos
+
+                await sweep_store_promos(session, target_store.id, self._run_started_at)
+            except Exception as e:
+                logger.warning(f"Per-store promo sweep failed for store={store_identifier}: {e}")
 
         return changed_count
 

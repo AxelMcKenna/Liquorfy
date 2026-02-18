@@ -76,6 +76,7 @@ class BlackBullScraper(Scraper):
         "rtds",
         "liqueurs",
         "mixers",
+        "specials",
     ]
 
     def __init__(
