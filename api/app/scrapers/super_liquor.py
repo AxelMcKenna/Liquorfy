@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import pathlib
+import re
 from pathlib import Path
 from typing import List
-2
+
 from selectolax.parser import HTMLParser
 
 from app.scrapers.base import Scraper
@@ -132,8 +132,6 @@ class SuperLiquorScraper(Scraper):
 
     def _extract_total_pages(self, html: str) -> int:
         """Extract total number of pages from pagination HTML."""
-        import re
-
         # Look for pager div with page links
         pager_match = re.search(r'<div class="pager"[^>]*>(.*?)</div>', html, re.DOTALL)
         if pager_match:
@@ -167,8 +165,7 @@ class SuperLiquorScraper(Scraper):
                 price = float(price_text.replace("$", "").replace(",", ""))
             else:
                 # Try to extract from GA4 tracking data as fallback
-                import re
-                ga4_match = re.search(r'price:([\d.]+)', node.html)
+                ga4_match = re.search(r'price:([\d.]+)', node.html or "")
                 if ga4_match:
                     price = float(ga4_match.group(1))
 
@@ -199,7 +196,6 @@ class SuperLiquorScraper(Scraper):
                     promo_text = badge_text[:255]
 
                     # Extract promo price if present in badge
-                    import re
                     price_match = re.search(r'\$?([\d.]+)', badge_text)
                     if price_match:
                         potential_promo = float(price_match.group(1))
@@ -222,7 +218,6 @@ class SuperLiquorScraper(Scraper):
             if special_price_node:
                 special_text = special_price_node.text(strip=True)
                 if special_text:
-                    import re
                     special_match = re.search(r'\$?([\d.]+)', special_text)
                     if special_match:
                         special_price = float(special_match.group(1))
@@ -236,7 +231,6 @@ class SuperLiquorScraper(Scraper):
             if was_price_node and not promo_price:
                 was_text = was_price_node.text(strip=True)
                 if was_text:
-                    import re
                     was_match = re.search(r'\$?([\d.]+)', was_text)
                     if was_match:
                         old_price = float(was_match.group(1))
