@@ -8,7 +8,6 @@ import { getChainColor } from '@/lib/chainConstants';
 import { ChainLogo } from './logos';
 import { formatDistance, getDistanceColorClass } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 import { useClusters, isCluster } from '@/hooks/useClusters';
 import type { ClusterOrPoint } from '@/hooks/useClusters';
 
@@ -57,7 +56,6 @@ export const StoreMap: React.FC<StoreMapProps> = ({
   userLocation,
   stores,
   selectedStore = null,
-  onStoreClick,
   radiusKm,
   onLocationChange,
   isDraggable = false,
@@ -300,26 +298,12 @@ export const StoreMap: React.FC<StoreMapProps> = ({
               {/* Distance */}
               {formatDistance(popupInfo.distance_km) && (
                 <div className={cn(
-                  "flex items-center gap-1 text-xs font-medium mb-3",
+                  "flex items-center gap-1 text-xs font-medium",
                   getDistanceColorClass(popupInfo.distance_km)
                 )}>
                   <MapPin className="h-3.5 w-3.5" />
                   <span>{formatDistance(popupInfo.distance_km)} away</span>
                 </div>
-              )}
-
-              {/* Select button */}
-              {onStoreClick && (
-                <Button
-                  onClick={() => {
-                    onStoreClick(popupInfo);
-                    setPopupInfo(null);
-                  }}
-                  className="w-full"
-                  size="sm"
-                >
-                  Select Store
-                </Button>
               )}
             </div>
           </Popup>
