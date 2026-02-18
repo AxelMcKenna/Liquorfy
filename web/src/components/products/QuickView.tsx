@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { useNavigate } from "react-router-dom";
 import {
   formatPromoEndDate,
   formatDistanceAway,
@@ -24,8 +23,6 @@ export const QuickView = ({
   isOpen,
   onClose,
 }: QuickViewProps) => {
-  const navigate = useNavigate();
-
   if (!product) return null;
 
   const hasPromo = product.price.promo_price_nzd && product.price.promo_price_nzd < product.price.price_nzd;
@@ -34,11 +31,6 @@ export const QuickView = ({
   const promoEndText = formatPromoEndDate(product.price.promo_ends_at);
   const distanceText = formatDistanceAway(product.price.distance_km);
   const distanceColorClass = getDistanceColorClass(product.price.distance_km);
-
-  const handleViewDetails = () => {
-    onClose();
-    navigate(`/product/${product.id}`);
-  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -191,13 +183,6 @@ export const QuickView = ({
               )}
             </div>
 
-            <Button
-              variant="ghost"
-              onClick={handleViewDetails}
-              className="w-full mt-2 text-primary hover:text-accent"
-            >
-              View Full Details
-            </Button>
           </div>
         </div>
       </DialogContent>
