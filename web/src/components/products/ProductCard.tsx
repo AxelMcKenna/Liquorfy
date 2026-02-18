@@ -5,7 +5,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { useNavigate } from "react-router-dom";
 import { QuickView } from "./QuickView";
 import {
   formatPromoEndDate,
@@ -23,7 +22,6 @@ const ProductCardComponent = ({
   product,
   index,
 }: ProductCardProps) => {
-  const navigate = useNavigate();
   const [imageError, setImageError] = useState(false);
   const [showQuickView, setShowQuickView] = useState(false);
   const hasPromo = product.price.promo_price_nzd &&
@@ -35,7 +33,7 @@ const ProductCardComponent = ({
   const distanceColorClass = getDistanceColorClass(product.price.distance_km);
 
   const handleCardClick = () => {
-    navigate(`/product/${product.id}`);
+    setShowQuickView(true);
   };
 
   return (
