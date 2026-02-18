@@ -89,8 +89,11 @@ class WorkerScheduler:
                 task = asyncio.create_task(self.run_scraper(chain))
                 self.running_chains[chain] = task
 
-                # Wait for completion
-                await task
+                # Wait for completion — catch failures so remaining chains still run
+                try:
+                    await task
+                except Exception as e:
+                    logger.error(f"❌ Scraper failed for chain={chain}: {e}")
 
                 # Delay between scrapers to avoid overwhelming the system
                 logger.info(f"⏸️  Waiting {SEQUENTIAL_DELAY_SECONDS}s before next scraper...")
