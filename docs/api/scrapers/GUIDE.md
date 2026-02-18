@@ -10,27 +10,28 @@ Complete guide to running product scrapers to populate the Liquorfy database wit
 4. [Quick Start](#quick-start)
 5. [Detailed Usage](#detailed-usage)
 6. [Understanding Output](#understanding-output)
-7. [Troubleshooting](#troubleshooting)
-8. [Best Practices](#best-practices)
+7. [Price Freshness System](#price-freshness-system)
+8. [Troubleshooting](#troubleshooting)
+9. [Best Practices](#best-practices)
 
 ---
 
 ## Overview
 
-Liquorfy uses automated scrapers to collect product and pricing data from 8 major New Zealand liquor retailers. Each scraper:
+Liquorfy uses automated scrapers to collect product and pricing data from 10 New Zealand liquor retailers. Each scraper:
 
-- Fetches product catalog pages (live scraping or browser automation)
+- Fetches product catalog data (live HTTP, API calls, or browser automation)
 - Parses product details (name, price, promotions, images, etc.)
-- Upserts products into the database
-- Creates/updates price records for each store
+- Upserts products and prices into the database
+- Sweeps stale promotional pricing after each run
 - Tracks changes and generates ingestion run reports
 
 **Data Flow:**
 ```
-Website → Scraper → Product Parser → Database
-                         ↓
-                  Promotion Detection
-                  (via promo_utils)
+Website/API → Scraper → Product Parser → Database Upsert
+                             ↓
+                    Promotion Detection        → Price freshness sweep
+                    (via promo_utils)             (clear unseen promos)
 ```
 
 ---
@@ -42,11 +43,9 @@ Website → Scraper → Product Parser → Database
 Ensure PostgreSQL is running:
 
 ```bash
-# Check if postgres container is running
 docker ps | grep postgres
 
-# If not running, start it
-cd /Users/axelmckenna/Liquorfy
+# If not running:
 docker-compose up -d postgres
 ```
 
@@ -54,17 +53,13 @@ docker-compose up -d postgres
 
 ```bash
 cd /Users/axelmckenna/Liquorfy/api
-
-# Install dependencies
 poetry install
 
-# For browser-based scrapers (New World, PakNSave, Countdown, Glengarry)
+# Required for browser-based scrapers (Liquorland, Glengarry, Bottle O, Liquor Centre)
 poetry run playwright install
 ```
 
 ### 3. Environment Variables
-
-Check your `.env` file contains:
 
 ```bash
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/liquorfy
@@ -75,35 +70,42 @@ ENVIRONMENT=development
 
 ## Available Scrapers
 
-| Chain | Type | Products | Notes |
-|-------|------|----------|-------|
-| **super_liquor** | HTTP | ~500 | Fast, reliable |
-| **liquorland** | HTTP | ~1,200 | Fast, reliable |
-| **liquor_centre** | HTTP | ~800 | Fast, reliable |
-| **bottle_o** | HTTP | ~450 | Fast, reliable |
-| **new_world** | Browser | ~1,800 | Slower (Playwright) |
-| **paknsave** | Browser | ~1,600 | Slower (Playwright) |
-| **countdown** | Browser | ~250 | Slower (Playwright) |
-| **glengarry** | Browser | ~650 | Slower (Playwright) |
+| Chain | Key | Type | Pricing | Specials | Status |
+|-------|-----|------|---------|---------|--------|
+| Super Liquor | `super_liquor` | HTTP (selectolax) | Chain-wide | `/super-specials` + categories | ✅ Active |
+| Liquorland | `liquorland` | Browser (Playwright) | Chain-wide (default prices only) | Digital mailer only — not scrapable | ✅ Active |
+| Liquor Centre | `liquor_centre` | Browser + HTTP (CityHive) | Per-store (~90 stores) | `/category/specials` | ✅ Active |
+| The Bottle O | `bottle_o` | HTTP (CityHive) + GTM fallback | Per-store | `/category/specials` | ✅ Active |
+| New World | `new_world` | API (Foodstuffs/Algolia) | Per-store (all NZ stores) | `onPromotion` inline per product | ✅ Active |
+| PakNSave | `paknsave` | API (Foodstuffs/Algolia) | Per-store (all NZ stores) | `onPromotion` inline per product | ✅ Active |
+| Glengarry | `glengarry` | Browser (Playwright) | Chain-wide | Inline from product listings | ✅ Active |
+| Thirsty Liquor | `thirsty_liquor` | Shopify JSON API | Chain-wide | `/collections/specials` | ✅ Active |
+| Black Bull | `black_bull` | Shopify JSON API | Per-store (DB-backed list) | `/collections/specials` | ✅ Active |
+| Countdown | `countdown` | API (Woolworths) | Chain-wide | `isSpecial` inline per product | ⚠️ Disabled (see notes) |
 
-**Total:** ~7,250 unique products across all chains
+### Notes
+
+**Liquorland:** 166 stores with per-store pricing, but per-store scraping requires complex browser UI automation (store selector modal). Currently captures only products with default/chain pricing. Products marked `no-cta` (requiring store selection) are skipped.
+
+**Countdown:** Disabled in `registry.py` — requires valid browser session cookies obtained via Playwright. The API implementation is complete; re-enable by uncommenting in `registry.py` once cookie acquisition is resolved.
+
+**Black Bull:** Per-store Shopify stores (60+ franchise locations). Only stores with active e-commerce subdomains are scraped. Store list is loaded from the `stores` DB table; falls back to a 3-store bootstrap list if the DB is empty.
+
+**Bottle O:** Stores with CityHive subdomains (`{slug}.shop.thebottleo.co.nz`) get per-store pricing via HTTP. Stores without online shops fall back to the franchise GTM catalog at `thebottleo.co.nz`.
 
 ---
 
 ## Quick Start
 
-### Option A: Run Everything (Recommended for Fresh Setup)
+### Option A: Run Everything
 
 ```bash
 cd /Users/axelmckenna/Liquorfy/api
 
-# 1. Clear old price data (optional, recommended for clean slate)
-poetry run python scripts/clear_price_data.py --confirm
-
-# 2. Test one scraper first
+# Test one scraper first
 poetry run python scripts/run_single_scraper.py super_liquor
 
-# 3. If test passes, run all scrapers
+# If successful, run all active scrapers
 poetry run python scripts/run_all_scrapers.py --confirm
 ```
 
@@ -112,13 +114,18 @@ poetry run python scripts/run_all_scrapers.py --confirm
 ```bash
 cd /Users/axelmckenna/Liquorfy/api
 
-# Run a specific chain
-poetry run python scripts/run_single_scraper.py <chain_name>
-
-# Examples:
+# HTTP / API scrapers (fast, no browser needed)
 poetry run python scripts/run_single_scraper.py super_liquor
-poetry run python scripts/run_single_scraper.py liquorland
 poetry run python scripts/run_single_scraper.py new_world
+poetry run python scripts/run_single_scraper.py paknsave
+poetry run python scripts/run_single_scraper.py thirsty_liquor
+poetry run python scripts/run_single_scraper.py black_bull
+
+# Browser-based scrapers (slower, require Playwright)
+poetry run python scripts/run_single_scraper.py liquorland
+poetry run python scripts/run_single_scraper.py liquor_centre
+poetry run python scripts/run_single_scraper.py bottle_o
+poetry run python scripts/run_single_scraper.py glengarry
 ```
 
 ---
@@ -129,167 +136,51 @@ poetry run python scripts/run_single_scraper.py new_world
 
 **Purpose:** Remove stale price records before a fresh scrape.
 
-**What it keeps:**
-- ✅ Products (product metadata)
-- ✅ Stores (store locations)
-- ✅ Ingestion Runs (scrape history)
-
-**What it deletes:**
-- ❌ All Price records
-
-**Usage:**
+**What it keeps:** Products, Stores, Ingestion Runs
+**What it deletes:** All Price records
 
 ```bash
-# Dry run (preview only, no changes)
+# Dry run (preview only)
 poetry run python scripts/clear_price_data.py
 
-# Actually delete data
+# Actually delete
 poetry run python scripts/clear_price_data.py --confirm
 ```
 
-**Example Output:**
-```
-============================================================
-DATABASE CLEANUP - CURRENT STATE
-============================================================
-📦 Products:  7,234 (will be KEPT)
-🏪 Stores:    156 (will be KEPT)
-💰 Prices:    52,847 (will be DELETED)
-============================================================
-
-Are you sure you want to continue? Type 'yes' to confirm: yes
-
-🗑️  Deleting price records...
-============================================================
-✅ CLEANUP COMPLETE
-============================================================
-Deleted:   52,847 price records
-Remaining: 0 prices
-Products:  7,234 (unchanged)
-Stores:    156 (unchanged)
-============================================================
-
-✨ Database is ready for fresh scraping!
-```
+> **Note:** Under normal operation, clearing prices is rarely needed. The scraper upsert is idempotent and the freshness system handles stale promos automatically.
 
 ### 2. Run Single Scraper
 
-**Purpose:** Test a single chain or update specific retailer data.
-
-**Usage:**
-
 ```bash
 poetry run python scripts/run_single_scraper.py <chain>
-
-# Available chains:
-poetry run python scripts/run_single_scraper.py super_liquor
-poetry run python scripts/run_single_scraper.py liquorland
-poetry run python scripts/run_single_scraper.py liquor_centre
-poetry run python scripts/run_single_scraper.py bottle_o
-poetry run python scripts/run_single_scraper.py new_world
-poetry run python scripts/run_single_scraper.py paknsave
-poetry run python scripts/run_single_scraper.py countdown
-poetry run python scripts/run_single_scraper.py glengarry
 ```
 
 **Example Output:**
 ```
 🚀 Running super_liquor scraper...
-   Class: SuperLiquorScraper
 
 ============================================================
 ✅ SCRAPER COMPLETED SUCCESSFULLY
 ============================================================
 Status:        completed
 Total items:   523
-Changed items: 523
+Changed items: 41
 Failed items:  0
-Started:       2025-12-26 15:43:26.061500+00:00
-Finished:      2025-12-26 15:45:12.140928
-Duration:      0:01:46.079428
+Duration:      0:01:46
 ============================================================
 ```
 
 ### 3. Run All Scrapers
 
-**Purpose:** Populate database with comprehensive pricing data from all retailers.
-
-**Usage:**
-
 ```bash
-# Dry run (preview execution plan)
+# Dry run (preview plan)
 poetry run python scripts/run_all_scrapers.py
 
-# Actually run all scrapers
+# Execute
 poetry run python scripts/run_all_scrapers.py --confirm
 ```
 
-**Execution Flow:**
-1. Shows execution plan (8 chains)
-2. Prompts for confirmation
-3. Runs scrapers sequentially
-4. Shows progress for each chain
-5. Handles errors gracefully (prompts to continue)
-6. Provides comprehensive summary
-
-**Example Output:**
-```
-======================================================================
-SCRAPER EXECUTION PLAN
-======================================================================
-Total scrapers: 8
-Chains to scrape:
-  1. super_liquor
-  2. liquorland
-  3. liquor_centre
-  4. bottle_o
-  5. new_world
-  6. paknsave
-  7. countdown
-  8. glengarry
-======================================================================
-
-⚠️  This will scrape all chains and update the database!
-⚠️  This may take 30-60 minutes depending on rate limits.
-
-Are you sure you want to continue? Type 'yes' to confirm: yes
-
-🚀 Starting scraper execution...
-
-======================================================================
-[1/8] Running super_liquor scraper...
-======================================================================
-
-✅ super_liquor completed successfully!
-   Status: completed
-   Total items: 523
-   Changed items: 523
-   Failed items: 0
-   Duration: 0:01:46.079428
-
-... (continues for all 8 chains)
-
-======================================================================
-SCRAPING COMPLETE - FINAL SUMMARY
-======================================================================
-Total duration: 0:45:23.123456
-Successful: 8/8
-Failed: 0/8
-
-✅ Successful scrapers:
-   • super_liquor: 523 products, 523 changed
-   • liquorland: 1,247 products, 1,247 changed
-   • liquor_centre: 892 products, 892 changed
-   • bottle_o: 456 products, 456 changed
-   • new_world: 1,834 products, 1,834 changed
-   • paknsave: 1,612 products, 1,612 changed
-   • countdown: 234 products, 234 changed
-   • glengarry: 678 products, 678 changed
-   TOTAL: 7,476 products, 7,476 price updates
-======================================================================
-
-🎉 All done! Database has been updated with fresh pricing data.
-```
+Scrapers run sequentially. If one fails, you are prompted to continue or abort. The final summary shows per-chain item counts and total duration.
 
 ---
 
@@ -297,298 +188,169 @@ Failed: 0/8
 
 ### Scraper Metrics
 
-Each scraper reports these metrics:
-
 | Metric | Description |
 |--------|-------------|
-| **Total items** | Total number of products processed |
+| **Total items** | Products processed |
 | **Changed items** | Products with price/data changes |
-| **Failed items** | Products that failed to process |
-| **Duration** | Time taken to complete scrape |
+| **Failed items** | Products that errored |
+| **Duration** | Wall-clock time for the run |
 
 ### Database Records
 
-After scraping, the database contains:
+**Products table** — one row per unique product, identified by `(chain, source_product_id)`. Contains name, brand, category, ABV, volume, image URL.
 
-**Products Table:**
-- One record per unique product (identified by `chain` + `source_product_id`)
-- Contains: name, brand, category, ABV, volume, images, etc.
+**Prices table** — one row per `(product, store)`. Contains current price, promo price, promo text, member-only flag, `last_seen_at`, `promo_ends_at`.
 
-**Prices Table:**
-- One record per product × store combination
-- Contains: current price, promo price, promo text, member-only flag
-- Tracks: `last_seen_at`, `price_last_changed_at`
+**Stores table** — pre-populated store locations. Each store belongs to a chain.
 
-**Stores Table:**
-- Pre-populated with retailer store locations
-- Each store belongs to a chain
-
-**Ingestion Runs Table:**
-- Historical log of all scraper executions
-- Tracks success/failure, item counts, timestamps
+**Ingestion Runs table** — historical log of all scraper runs (status, item counts, timestamps).
 
 ### Promotion Detection
 
-The scraper automatically detects and extracts promotions using `promo_utils.py`:
+Promotion data is extracted from:
+- **HTML badge text** (Super Liquor, Glengarry, Liquorland) — parsed via `promo_utils.py`
+- **API promotion objects** (New World, PakNSave) — `promotions[].rewardValue`, `decal`, `cardDependencyFlag`
+- **Shopify `compare_at_price`** (Thirsty Liquor, Black Bull) — sale = `price < compare_at_price`
+- **Shopify product tags** (`sale`, `special`, `clearance`, etc.)
+- **Woolworths `isSpecial`** + `salePrice` (Countdown)
+- **CityHive badge nodes** (Liquor Centre, Bottle O)
 
-**Detected Patterns:**
-- "2 for $X" → `promo_price_nzd`, `promo_text`
-- "Save $X" → Calculated promo price
-- "Members only" → `is_member_only = true`
-- "Free glass with purchase" → `promo_text`
-- Date ranges → `promo_ends_at`
+**Detected patterns:**
+- `2 for $X` / `3 for $X` → calculated unit `promo_price_nzd`
+- `Save $X` → `promo_price_nzd = price - save`
+- `Members only` / `Clubcard` → `is_member_only = true`
+- Date ranges (`Ends 31 Jan`) → `promo_ends_at`
 
-**Example:**
-```python
-# Input
-raw_price = "$49.99"
-promo_text = "2 for $80 - Members Only - Ends 31/12/2025"
+---
 
-# Output
-price_nzd = 49.99
-promo_price_nzd = 40.00  # $80 / 2
-promo_text = "2 for $80"
-is_member_only = True
-promo_ends_at = datetime(2025, 12, 31)
-```
+## Price Freshness System
+
+Three layers prevent stale or expired promo prices from being served:
+
+### Layer 1: Scraper Mark-and-Sweep
+After each successful scrape, promo fields (`promo_price_nzd`, `promo_text`, `promo_ends_at`) are cleared on any Price row for that chain/store that was **not seen** in the current run. This handles products whose promotions ended between scrapes.
+
+- Chain-wide scrapers (Super Liquor, New World, PakNSave, Countdown, Glengarry, Thirsty Liquor) sweep the whole chain.
+- Per-store scrapers (Liquor Centre, Bottle O, Black Bull) sweep each individual store after its batch completes.
+
+### Layer 2: Periodic Expiry Cleanup
+The worker loop (`api/app/workers/runner.py`) runs `run_promo_expiry_cleanup()` hourly. This NULLs promo fields on any Price row where `promo_ends_at < NOW()`, regardless of when the next scrape runs.
+
+### Layer 3: Query-Time Guard
+The search API (`api/app/services/search.py`) applies a SQL `CASE` expression so that `promo_price_nzd` is only used when `promo_ends_at IS NULL OR promo_ends_at > NOW()`. Expired promos are **never returned** to the frontend even if the DB hasn't been cleaned yet.
+
+Prices older than 7 days are flagged with `is_stale: true` in the API response so the frontend can show a "price may be outdated" indicator.
 
 ---
 
 ## Troubleshooting
 
-### Common Issues
-
-#### 1. Database Connection Error
-
-**Error:**
+### Database Connection Error
 ```
 sqlalchemy.exc.OperationalError: could not connect to server
 ```
-
-**Solution:**
 ```bash
-# Check postgres is running
-docker ps | grep postgres
-
-# Start postgres
 docker-compose up -d postgres
-
-# Verify DATABASE_URL in .env
-cat .env | grep DATABASE_URL
 ```
 
-#### 2. Browser Playwright Not Installed
-
-**Error:**
+### Playwright Not Installed
 ```
 playwright._impl._api_types.Error: Executable doesn't exist
 ```
-
-**Solution:**
 ```bash
-# Install playwright browsers
-poetry run playwright install
-
-# Or install specific browser
 poetry run playwright install chromium
 ```
 
-#### 3. High Failed Items Count
+### High Failed Items Count
 
-**Possible Causes:**
-- Website structure changed (scraper needs update)
-- Rate limiting / IP blocking
-- Network issues
-
-**Solution:**
+Check for site structure changes or rate limiting:
 ```bash
-# Check logs for specific errors
 poetry run python scripts/run_single_scraper.py <chain> 2>&1 | tee scraper.log
-
-# Review error patterns
 grep "ERROR" scraper.log | head -20
 ```
 
-#### 4. Timezone / Datetime Errors
+### Countdown Disabled
 
-**Error:**
-```
-TypeError: can't subtract offset-naive and offset-aware datetimes
-```
+Countdown requires fresh session cookies from a browser visit. To re-enable:
+1. Uncomment `"countdown": CountdownAPIScraper` in `api/app/scrapers/registry.py`
+2. Ensure Playwright is installed (used for cookie capture)
 
-**Solution:**
-This has been fixed in `scripts/run_single_scraper.py`. Make sure you're using the latest version.
+### New World / PakNSave Auth Failure
 
-#### 5. Slow Performance
-
-**Causes:**
-- Browser-based scrapers are inherently slower
-- Rate limits from websites
-- Large number of products
-
-**Solutions:**
-- Run HTTP-based scrapers first (faster)
-- Schedule during off-peak hours
-- Use `run_single_scraper.py` for targeted updates
+These scrapers obtain a guest JWT via `POST /api/user/get-current-user`. If this fails:
+- The scraper falls back to browser-based token capture (slower, requires Playwright)
+- If both fail, the run is aborted with `status=failed`
 
 ---
 
 ## Best Practices
 
-### 1. Regular Scraping Schedule
+### Scraping Schedule
 
-**Recommended:**
-- **Daily:** Run all scrapers to keep prices fresh
-- **Weekly:** Clear old price data and re-scrape
-- **On-Demand:** Run single scraper when specific chain needs update
+| Frequency | Action |
+|-----------|--------|
+| Hourly | Promo expiry cleanup (automatic via worker) |
+| Daily | Full scrape of all active chains |
+| On-demand | Single-chain scrape when specific data is needed |
 
-**Cron Example:**
 ```bash
 # Daily scrape at 2 AM
-0 2 * * * cd /Users/axelmckenna/Liquorfy/api && poetry run python scripts/run_all_scrapers.py --confirm
-
-# Weekly cleanup on Sunday at 1 AM
-0 1 * * 0 cd /Users/axelmckenna/Liquorfy/api && poetry run python scripts/clear_price_data.py --confirm
+0 2 * * * cd /path/to/Liquorfy/api && poetry run python scripts/run_all_scrapers.py --confirm
 ```
 
-### 2. Testing Before Production
+### Run Order
 
-Always test a single scraper before running all:
+Faster scrapers first:
+1. `thirsty_liquor`, `black_bull` (Shopify API — very fast)
+2. `new_world`, `paknsave` (Foodstuffs API — fast)
+3. `super_liquor` (HTTP — fast)
+4. `liquorland`, `glengarry` (Browser — moderate)
+5. `liquor_centre`, `bottle_o` (Browser + HTTP — slow, many stores)
 
-```bash
-# Test fastest scraper first
-poetry run python scripts/run_single_scraper.py super_liquor
-
-# If successful, run all
-poetry run python scripts/run_all_scrapers.py --confirm
-```
-
-### 3. Monitoring
-
-Track scraper health:
+### Monitoring
 
 ```bash
-# Check latest ingestion runs
+# Latest ingestion runs
 psql $DATABASE_URL -c "
 SELECT chain, status, items_total, items_changed, items_failed, started_at
 FROM ingestion_runs
 ORDER BY started_at DESC
-LIMIT 10;
+LIMIT 15;
 "
 
-# Check price freshness
+# Price freshness by chain
 psql $DATABASE_URL -c "
-SELECT chain, COUNT(*), MAX(last_seen_at) as latest_update
-FROM prices p
-JOIN products pr ON p.product_id = pr.id
-GROUP BY chain
-ORDER BY chain;
-"
-```
-
-### 4. Error Handling
-
-The `run_all_scrapers.py` script has built-in error handling:
-- If a scraper fails, you'll be prompted to continue or abort
-- Failed scrapers are reported in the final summary
-- Successful scrapers are not re-run if you abort and restart
-
-### 5. Database Backups
-
-Before major scraping operations:
-
-```bash
-# Backup database
-docker exec infra-db-1 pg_dump -U postgres liquorfy > backup_$(date +%Y%m%d).sql
-
-# Restore if needed
-cat backup_20251226.sql | docker exec -i infra-db-1 psql -U postgres liquorfy
-```
-
----
-
-## Advanced Usage
-
-### Custom Scraper Development
-
-To add a new scraper:
-
-1. Create scraper class in `app/scrapers/`
-2. Extend `Scraper` base class
-3. Implement `fetch_catalog_pages()` and `parse_products()`
-4. Register in `app/scrapers/registry.py`
-
-See existing scrapers for examples:
-- `super_liquor.py` - Simple HTTP scraper
-- `new_world.py` - Browser-based scraper
-- `liquor_centre.py` - HTML parsing with fixtures
-
-### Fixture-Based Development
-
-For testing scrapers without hitting live websites:
-
-```python
-# Save HTML fixture
-curl "https://website.com/products" > api/app/scrapers/fixtures/chain_live.html
-
-# Use fixture in scraper
-scraper = SuperLiquorScraper(use_fixtures=True)
-```
-
-### Database Queries
-
-Useful queries for analyzing scraped data:
-
-```sql
--- Products with promotions
-SELECT name, chain, promo_text, promo_price_nzd
-FROM products p
-JOIN prices pr ON p.id = pr.product_id
-WHERE pr.promo_price_nzd IS NOT NULL
-ORDER BY (p.price_nzd - pr.promo_price_nzd) DESC
-LIMIT 20;
-
--- Price distribution by chain
 SELECT
     chain,
-    COUNT(*) as product_count,
-    AVG(price_nzd) as avg_price,
-    MIN(price_nzd) as min_price,
-    MAX(price_nzd) as max_price
-FROM products p
+    COUNT(*) as price_rows,
+    COUNT(promo_price_nzd) as with_promo,
+    MAX(last_seen_at) as last_scraped
+FROM prices p
+JOIN stores s ON p.store_id = s.id
 GROUP BY chain
-ORDER BY avg_price DESC;
+ORDER BY last_scraped DESC;
+"
+```
 
--- Member-only deals
-SELECT chain, COUNT(*) as member_deals
-FROM prices
-WHERE is_member_only = true
-GROUP BY chain;
+### Database Backups
+
+```bash
+docker exec infra-db-1 pg_dump -U postgres liquorfy > backup_$(date +%Y%m%d).sql
 ```
 
 ---
 
-## Summary
+## Adding a New Scraper
 
-You now have everything needed to run Liquorfy scrapers:
+1. Create `api/app/scrapers/<chain>.py` extending `Scraper` (HTTP/API) or `BrowserScraper` (Playwright)
+2. Implement `fetch_catalog_pages()` and `parse_products()` (or override `run()` for API-based scrapers)
+3. Set `chain = "<chain_name>"` and `_sweep_per_store = True` if pricing is per-store
+4. Register in `api/app/scrapers/registry.py`
 
-**Quick Commands:**
-```bash
-# Full refresh workflow
-cd /Users/axelmckenna/Liquorfy/api
-poetry run python scripts/clear_price_data.py --confirm
-poetry run python scripts/run_all_scrapers.py --confirm
-
-# Test single scraper
-poetry run python scripts/run_single_scraper.py super_liquor
-
-# Check results
-psql $DATABASE_URL -c "SELECT chain, COUNT(*) FROM products GROUP BY chain;"
-```
-
-**Need Help?**
-- Check the [DB_SCHEMA.md](DB_SCHEMA.md) for database structure
-- Review scraper source code in `api/app/scrapers/`
-- Check promotion parsing in `api/app/services/promo_utils.py`
-
-Happy scraping! 🚀🍺
+**Reference implementations:**
+- Simple HTTP: `super_liquor.py`
+- Shopify JSON API: `thirsty_liquor.py`
+- Shopify per-store: `black_bull.py`
+- Algolia/API per-store: `foodstuffs_base.py` + `new_world_api.py`
+- CityHive per-store: `liquor_centre.py`
+- Browser (Playwright): `glengarry.py`
