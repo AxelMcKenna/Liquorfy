@@ -68,7 +68,7 @@ const ProductCardComponent = ({
         )}
 
         {/* Quick View button */}
-        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+        <div className="absolute inset-0 hidden items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 sm:flex">
           <Button
             size="sm"
             variant="secondary"
@@ -81,6 +81,18 @@ const ProductCardComponent = ({
             Quick View
           </Button>
         </div>
+        <Button
+          size="sm"
+          variant="secondary"
+          className="absolute bottom-2 right-2 sm:hidden"
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowQuickView(true);
+          }}
+        >
+          <Eye className="mr-1.5 h-4 w-4" />
+          Quick View
+        </Button>
       </div>
 
       <CardContent className="p-3 flex-1">

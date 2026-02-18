@@ -50,11 +50,8 @@ export const PriceRangeFilter = ({ min, max, onChange }: PriceRangeFilterProps) 
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-foreground">Price Range</h3>
-        <span className="text-sm text-tertiary-gray">
-          ${Math.round(range[0])} - ${Math.round(range[1])}
-        </span>
+      <div className="text-right text-sm text-tertiary-gray">
+        ${Math.round(range[0])} - ${Math.round(range[1])}
       </div>
       <Slider
         value={range}

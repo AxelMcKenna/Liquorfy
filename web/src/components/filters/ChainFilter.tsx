@@ -39,8 +39,7 @@ export const ChainFilter = ({ selected, onChange }: ChainFilterProps) => {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-foreground">Chains</h3>
+      <div className="flex justify-end">
         <div className="flex gap-2 text-xs">
           <button
             onClick={handleSelectAll}

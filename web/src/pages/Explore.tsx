@@ -7,7 +7,7 @@ import { LocationGate } from '@/components/location/LocationGate';
 import { usePaginatedProducts } from '@/hooks/usePaginatedProducts';
 import { useFilters } from '@/hooks/useFilters';
 import { useLocationContext } from '@/contexts/LocationContext';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { MapPin, Navigation } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -22,7 +22,6 @@ import {
 } from '@/components/ui/pagination';
 
 export const Explore = () => {
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -92,9 +91,17 @@ export const Explore = () => {
   };
 
   const handleSearch = () => {
-    if (searchQuery.trim()) {
-      navigate(`/explore?q=${encodeURIComponent(searchQuery)}`);
+    const trimmedQuery = searchQuery.trim();
+    const nextParams = new URLSearchParams(searchParams);
+
+    if (trimmedQuery) {
+      nextParams.set('q', trimmedQuery);
+    } else {
+      nextParams.delete('q');
     }
+
+    nextParams.delete('page');
+    setSearchParams(nextParams);
   };
 
   return (

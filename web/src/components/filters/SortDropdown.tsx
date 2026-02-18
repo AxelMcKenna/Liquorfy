@@ -23,22 +23,17 @@ const sortOptions = [
 
 export const SortDropdown = ({ value, onChange }: SortDropdownProps) => {
   return (
-    <div className="flex items-center gap-2">
-      <label htmlFor="sort" className="text-sm font-medium text-foreground whitespace-nowrap">
-        Sort by:
-      </label>
-      <Select value={value} onValueChange={onChange}>
-        <SelectTrigger id="sort" className="w-[200px]">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {sortOptions.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger id="sort" className="w-full">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {sortOptions.map((option) => (
+          <SelectItem key={option.value} value={option.value}>
+            {option.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 };

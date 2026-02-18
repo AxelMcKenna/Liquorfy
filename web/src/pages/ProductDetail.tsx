@@ -18,6 +18,7 @@ export const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [product, setProduct] = useState<Product | null>(null);
+  const [imageError, setImageError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,6 +34,7 @@ export const ProductDetail = () => {
 
         const data = await response.json();
         setProduct(data);
+        setImageError(false);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load product');
       } finally {
@@ -104,17 +106,14 @@ export const ProductDetail = () => {
             transition={{ duration: 0.5 }}
             className="h-full"
           >
-            <Card className="glass-card rounded-card-xl overflow-hidden h-full">
+            <Card className="h-full overflow-hidden rounded-lg border bg-card">
               <div className="aspect-square lg:aspect-auto lg:h-full bg-white p-8 flex items-center justify-center">
-                {product.image_url ? (
+                {product.image_url && !imageError ? (
                   <img
                     src={product.image_url}
                     alt={product.name}
                     className="w-full h-full object-contain"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                      e.currentTarget.parentElement?.classList.add('bg-gradient-to-br', 'from-tertiary', 'to-secondary');
-                    }}
+                    onError={() => setImageError(true)}
                   />
                 ) : (
                   <Wine className="h-32 w-32 text-tertiary-gray/30" />
@@ -130,7 +129,7 @@ export const ProductDetail = () => {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="h-full"
           >
-            <Card className="glass-card rounded-card-xl h-full flex flex-col">
+            <Card className="h-full rounded-lg border bg-card flex flex-col">
               <CardContent className="p-6 space-y-6">
                 <div>
                   {hasPromo && (
@@ -234,7 +233,7 @@ export const ProductDetail = () => {
             transition={{ duration: 0.5, delay: 0.15 }}
             className="lg:col-span-2"
           >
-            <Card className="glass-card rounded-card-xl">
+            <Card className="rounded-lg border bg-card">
               <CardContent className="p-6">
                 <h2 className="text-xl font-semibold mb-4 text-primary-gray">Product Details</h2>
                 <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
