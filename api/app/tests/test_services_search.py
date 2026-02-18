@@ -68,5 +68,5 @@ async def test_unique_products_row_selection_uses_requested_sort() -> None:
     sql = _sql(captured_statements[1])
     rownum_start = sql.find("row_number() over")
     rownum_window = sql[rownum_start:rownum_start + 500]
-    assert "order by coalesce(prices.promo_price_nzd, prices.price_nzd) asc" in rownum_window
+    assert "order by coalesce(case when (prices.promo_price_nzd is not null and (prices.promo_ends_at is null or prices.promo_ends_at > now())) then prices.promo_price_nzd end, prices.price_nzd) asc" in rownum_window
     assert "order by ((prices.price_nzd - coalesce" not in rownum_window
