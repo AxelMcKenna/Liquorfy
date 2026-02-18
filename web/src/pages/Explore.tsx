@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Header } from '@/components/layout/Header';
 import { FilterBar } from '@/components/filters/FilterBar';
 import { FilterSidebar } from '@/components/filters/FilterSidebar';
@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/pagination';
 
 export const Explore = () => {
+  const FETCH_DEBOUNCE_MS = 220;
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -29,6 +30,7 @@ export const Explore = () => {
   const { filters, updateFilters } = useFilters();
   const { products, total, loading, error, currentPage, totalPages, fetchProducts, goToPage } = usePaginatedProducts();
   const page = parseInt(searchParams.get('page') || '1', 10);
+  const previousFetchInputsRef = useRef<{ page: number; nonPageKey: string } | null>(null);
 
   useEffect(() => {
     setSearchQuery(filters.query || '');
@@ -39,6 +41,22 @@ export const Explore = () => {
       return;
     }
 
+    const nonPageKey = JSON.stringify({
+      filters,
+      location,
+      radiusKm,
+      isLocationSet,
+    });
+
+    const previous = previousFetchInputsRef.current;
+    const pageChangedOnly = Boolean(
+      previous &&
+      previous.page !== page &&
+      previous.nonPageKey === nonPageKey
+    );
+
+    previousFetchInputsRef.current = { page, nonPageKey };
+
     const fetchFilters = {
       ...filters,
       lat: location.lat,
@@ -46,7 +64,16 @@ export const Explore = () => {
       radius_km: radiusKm,
     };
 
-    fetchProducts(fetchFilters, page);
+    if (pageChangedOnly) {
+      fetchProducts(fetchFilters, page);
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      fetchProducts(fetchFilters, page);
+    }, FETCH_DEBOUNCE_MS);
+
+    return () => window.clearTimeout(timer);
     // fetchProducts is stable (wrapped in useCallback with empty deps), so omitting from deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, location, radiusKm, page, isLocationSet]);
