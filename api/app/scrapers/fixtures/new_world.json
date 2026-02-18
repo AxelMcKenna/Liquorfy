@@ -1,0 +1,51 @@
+{
+  "products": [
+    {
+      "productId": "R5001234",
+      "brand": "Speight's",
+      "name": "Summit",
+      "displayName": "Lager 12x330ml Bottles",
+      "singlePrice": {
+        "price": 2499
+      },
+      "promotions": [
+        {
+          "bestPromotion": true,
+          "rewardValue": 1999,
+          "rewardType": "NEW_PRICE",
+          "decal": "Now $19.99",
+          "cardDependencyFlag": true
+        }
+      ]
+    },
+    {
+      "productId": "R5005678",
+      "brand": "Corona",
+      "name": "Extra",
+      "displayName": "6x355ml Bottles",
+      "singlePrice": {
+        "price": 1999
+      },
+      "promotions": []
+    },
+    {
+      "productId": "R5009012",
+      "brand": "Villa Maria",
+      "name": "Private Bin",
+      "displayName": "Sauvignon Blanc 750ml",
+      "singlePrice": {
+        "price": 1299
+      },
+      "promotions": [
+        {
+          "bestPromotion": true,
+          "rewardValue": 999,
+          "rewardType": "NEW_PRICE",
+          "decal": "Now $9.99",
+          "cardDependencyFlag": false
+        }
+      ]
+    }
+  ],
+  "totalProducts": 3
+}
