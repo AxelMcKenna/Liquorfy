@@ -126,9 +126,10 @@ class BrowserScraper(Scraper):
             page = await self.context.new_page()
             try:
                 logger.debug(f"Navigating to {url}")
-                # Use 'load' instead of 'networkidle' - SPAs often have continuous network activity
-                # that prevents networkidle from ever triggering
-                await page.goto(url, wait_until="load")
+                # Use 'domcontentloaded' - faster than 'load' and avoids timeouts from
+                # slow analytics/tracking scripts. Subclass wait_for_content() handles
+                # waiting for actual product elements.
+                await page.goto(url, wait_until="domcontentloaded")
 
                 # Wait for content to load (can be overridden by subclasses)
                 await self.wait_for_content(page)
