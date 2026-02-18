@@ -153,6 +153,14 @@ async def main(chains_to_run: Optional[List[str]] = None) -> None:
         logger.info("⏰ Checking for scheduled scraper runs...")
         await scheduler.run_all_scrapers()
 
+        # Periodic promo expiry cleanup (lightweight, runs every cycle)
+        try:
+            from app.workers.cleanup import run_promo_expiry_cleanup
+
+            await run_promo_expiry_cleanup()
+        except Exception as e:
+            logger.warning(f"Promo expiry cleanup failed: {e}")
+
 
 if __name__ == "__main__":
     try:

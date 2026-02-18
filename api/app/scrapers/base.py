@@ -3,8 +3,7 @@ from __future__ import annotations
 import abc
 import logging
 from datetime import datetime
-from typing import Iterable, List, Optional
-from uuid import UUID
+from typing import List, Optional
 
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -22,18 +21,22 @@ logger = logging.getLogger(__name__)
 class Scraper(abc.ABC):
     chain: str
     catalog_urls: List[str] = []  # Override in subclasses for HTTP mode
+    _sweep_per_store: bool = False  # Override in per-store scrapers
 
     def __init__(self, use_fixtures: bool = True) -> None:
         self.client = AsyncClient(timeout=20)
         self.use_fixtures = use_fixtures
+        self._run_started_at: Optional[datetime] = None
 
     async def run(self) -> IngestionRun:
         """Run the scraper and persist data to database."""
+        self._run_started_at = datetime.utcnow()
+
         # Create ingestion run record
         run = IngestionRun(
             chain=self.chain,
             status="running",
-            started_at=datetime.utcnow(),
+            started_at=self._run_started_at,
         )
 
         async with async_transaction() as session:
@@ -87,6 +90,16 @@ class Scraper(abc.ABC):
                 run.items_total = total_items
                 run.items_changed = changed_items
                 run.items_failed = failed_items
+
+            # Sweep stale promos (chain-wide scrapers only)
+            if not self._sweep_per_store and self._run_started_at:
+                try:
+                    from app.services.freshness import sweep_chain_promos
+
+                    async with async_transaction() as session:
+                        await sweep_chain_promos(session, self.chain, self._run_started_at)
+                except Exception as e:
+                    logger.warning(f"Promo sweep failed for chain={self.chain}: {e}")
 
             logger.info(
                 f"Scraper completed: {total_items} items, "

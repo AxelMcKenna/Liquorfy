@@ -333,15 +333,19 @@ class FoodstuffsAPIScraper(Scraper, APIAuthBase):
         """Not used for API-based scraper - implemented for base class compatibility."""
         return []
 
+    _sweep_per_store = True
+
     async def run(self) -> IngestionRun:
         """
         Run the scraper and persist data to database.
         Overrides base class to use API-based scraping instead of HTML parsing.
         """
+        self._run_started_at = datetime.utcnow()
+
         run = IngestionRun(
             chain=self.chain,
             status="running",
-            started_at=datetime.utcnow(),
+            started_at=self._run_started_at,
         )
 
         async with async_transaction() as session:
@@ -353,6 +357,9 @@ class FoodstuffsAPIScraper(Scraper, APIAuthBase):
             total_items = len(products)
             changed_items = 0
             failed_items = 0
+
+            # Track store UUIDs we actually wrote to, for per-store sweep
+            seen_store_ids: set = set()
 
             # Process each product in its own transaction to avoid cascade failures
             for product_data in products:
@@ -369,6 +376,7 @@ class FoodstuffsAPIScraper(Scraper, APIAuthBase):
                             store = result.scalar_one_or_none()
 
                             if store:
+                                seen_store_ids.add(store.id)
                                 changed = await self._upsert_product_and_prices(
                                     session, product_data, [store]
                                 )
@@ -383,6 +391,17 @@ class FoodstuffsAPIScraper(Scraper, APIAuthBase):
                 except Exception as e:
                     logger.error(f"Failed to persist product {product_data.get('name')}: {e}")
                     failed_items += 1
+
+            # Sweep stale promos for each store we scraped
+            if self._run_started_at and seen_store_ids:
+                try:
+                    from app.services.freshness import sweep_store_promos
+
+                    async with async_transaction() as session:
+                        for sid in seen_store_ids:
+                            await sweep_store_promos(session, sid, self._run_started_at)
+                except Exception as e:
+                    logger.warning(f"Per-store promo sweep failed for chain={self.chain}: {e}")
 
             async with async_transaction() as session:
                 result = await session.execute(

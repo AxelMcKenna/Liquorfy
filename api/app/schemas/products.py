@@ -19,6 +19,7 @@ class PriceSchema(BaseModel):
     standard_drinks: Optional[float]
     price_per_standard_drink: Optional[float]
     is_member_only: bool
+    is_stale: bool = False
     distance_km: Optional[float]
 
 

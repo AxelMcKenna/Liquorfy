@@ -3,7 +3,9 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import and_, cast, func, literal, or_, select
+from datetime import datetime, timedelta, timezone
+
+from sqlalchemy import and_, case, cast, func, literal, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from geoalchemy2 import Geography
 
@@ -16,6 +18,29 @@ from app.services.parser_utils import CATEGORY_HIERARCHY, format_product_name
 from app.services.pricing import STANDARD_DRINK_FACTOR, compute_pricing_metrics
 
 settings = get_settings()
+
+# Prices not seen in over 7 days are considered stale
+_STALE_THRESHOLD = timedelta(days=7)
+
+
+def _effective_price(price: Price) -> float:
+    """Return the effective price, ignoring expired promos."""
+    if price.promo_price_nzd is not None:
+        if price.promo_ends_at is None or price.promo_ends_at > datetime.now(tz=timezone.utc):
+            return price.promo_price_nzd
+    return price.price_nzd
+
+
+def _is_stale(price: Price) -> bool:
+    """Return True if the price hasn't been seen recently."""
+    if price.last_seen_at is None:
+        return True
+    cutoff = datetime.now(tz=timezone.utc)
+    # last_seen_at may be naive (utcnow) — treat as UTC
+    last_seen = price.last_seen_at
+    if last_seen.tzinfo is None:
+        last_seen = last_seen.replace(tzinfo=timezone.utc)
+    return (cutoff - last_seen) > _STALE_THRESHOLD
 
 
 def _store_bucket_key(lat: float, lon: float, radius_km: float) -> str:
@@ -127,15 +152,28 @@ async def fetch_products(
         filters.append(Product.total_volume_ml >= params.vol_min_ml)
     if params.vol_max_ml is not None:
         filters.append(Product.total_volume_ml <= params.vol_max_ml)
-    effective_price = func.coalesce(Price.promo_price_nzd, Price.price_nzd)
+    # Only count a promo as valid if promo_ends_at is NULL or in the future
+    now_ts = func.now()
+    valid_promo = case(
+        (
+            and_(
+                Price.promo_price_nzd.is_not(None),
+                or_(Price.promo_ends_at.is_(None), Price.promo_ends_at > now_ts),
+            ),
+            Price.promo_price_nzd,
+        ),
+        else_=None,
+    )
+    effective_price = func.coalesce(valid_promo, Price.price_nzd)
     if params.price_min is not None:
         filters.append(effective_price >= params.price_min)
     if params.price_max is not None:
         filters.append(effective_price <= params.price_max)
     if params.promo_only:
-        # Only return products with actual discounts (promo price < regular price)
+        # Only return products with actual, non-expired discounts
         filters.append(Price.promo_price_nzd.is_not(None))
         filters.append(Price.promo_price_nzd < Price.price_nzd)
+        filters.append(or_(Price.promo_ends_at.is_(None), Price.promo_ends_at > now_ts))
 
     discount_ratio = (
         (Price.price_nzd - effective_price)
@@ -238,7 +276,7 @@ async def fetch_products(
             product, price, store, _, distance_m_value = row
         else:
             product, price, store, distance_m_value = row
-        effective = price.promo_price_nzd or price.price_nzd
+        effective = _effective_price(price)
         metrics = compute_pricing_metrics(
             total_volume_ml=product.total_volume_ml,
             abv_percent=product.abv_percent,
@@ -270,6 +308,7 @@ async def fetch_products(
                     standard_drinks=metrics.standard_drinks,
                     price_per_standard_drink=metrics.price_per_standard_drink,
                     is_member_only=price.is_member_only,
+                    is_stale=_is_stale(price),
                     distance_km=distance,
                 ),
                 last_updated=price.last_seen_at,
@@ -291,7 +330,7 @@ async def fetch_product_detail(session: AsyncSession, product_id: UUID) -> Produ
     if not row:
         raise ValueError("Product not found")
     product, price, store = row
-    effective = price.promo_price_nzd or price.price_nzd
+    effective = _effective_price(price)
     metrics = compute_pricing_metrics(
         total_volume_ml=product.total_volume_ml,
         abv_percent=product.abv_percent,
@@ -321,6 +360,7 @@ async def fetch_product_detail(session: AsyncSession, product_id: UUID) -> Produ
             standard_drinks=metrics.standard_drinks,
             price_per_standard_drink=metrics.price_per_standard_drink,
             is_member_only=price.is_member_only,
+            is_stale=_is_stale(price),
             distance_km=None,
         ),
         last_updated=price.last_seen_at,
