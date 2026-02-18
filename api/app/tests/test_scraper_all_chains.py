@@ -272,11 +272,48 @@ class TestBottleOScraper:
         assert len(scraper.catalog_urls) > 0
 
     @pytest.mark.asyncio
-    async def test_parse_products_from_gtm_data(self):
-        """Test parsing products from GTM dataLayer."""
+    async def test_parse_products_from_cityhive_html(self):
+        """Test parsing products from CityHive .talker HTML."""
         scraper = BottleOScraper()
 
-        # Combined GTM + HTML data
+        tagged_html = (
+            '<!--METADATA:store=test-store,category=beer,page=1-->'
+            '<html><body>'
+            '<div class="talker" id="line_abc123def456">'
+            '  <a href="/product/test-beer">'
+            '    <div class="talker__name">'
+            '      <span>Test Beer</span>'
+            '      <span class="talker__name__size">6 x 330ml</span>'
+            '    </div>'
+            '    <div class="price"><span class="price__sell">$24.99</span></div>'
+            '  </a>'
+            '</div>'
+            '<div class="talker" id="line_789abc012def">'
+            '  <a href="/product/test-wine">'
+            '    <div class="talker__name">'
+            '      <span>Test Wine</span>'
+            '      <span class="talker__name__size">750ml</span>'
+            '    </div>'
+            '    <div class="price"><span class="price__sell">$15.99</span></div>'
+            '  </a>'
+            '</div>'
+            '</body></html>'
+        )
+
+        products = await scraper.parse_products(tagged_html)
+
+        assert len(products) == 2
+        assert products[0]["source_id"] == "abc123def456"
+        assert products[0]["name"] == "Test Beer 6 x 330ml"
+        assert products[0]["price_nzd"] == 24.99
+        assert products[0]["chain"] == "bottle_o"
+        assert products[0]["store_identifier"] == "test-store"
+
+    @pytest.mark.asyncio
+    async def test_parse_products_from_gtm_data(self):
+        """Test parsing franchise products from GTM dataLayer."""
+        scraper = BottleOScraper()
+
         combined_data = json.dumps({
             "gtm": [
                 {
@@ -311,6 +348,35 @@ class TestBottleOScraper:
         assert products[0]["name"] == "Test Beer 6x330ml"
         assert products[0]["price_nzd"] == 24.99
         assert products[0]["chain"] == "bottle_o"
+        assert products[0].get("_franchise") is True
+
+    @pytest.mark.asyncio
+    async def test_parse_cityhive_special_product(self):
+        """Test parsing a product with Special class from CityHive HTML."""
+        scraper = BottleOScraper()
+
+        tagged_html = (
+            '<!--METADATA:store=test-store,category=beer,page=1-->'
+            '<html><body>'
+            '<div class="talker talker--Special" id="line_aabbccdd1122">'
+            '  <a href="/product/promo-beer">'
+            '    <div class="talker__name">'
+            '      <span>Promo Beer</span>'
+            '      <span class="talker__name__size">12 x 330ml</span>'
+            '    </div>'
+            '    <div class="price"><span class="price__sell">$22.99</span></div>'
+            '    <div class="talker__sticker">'
+            '      <span class="talker__sticker__label">2 for $40</span>'
+            '    </div>'
+            '  </a>'
+            '</div>'
+            '</body></html>'
+        )
+
+        products = await scraper.parse_products(tagged_html)
+
+        assert len(products) == 1
+        assert products[0]["promo_text"] is not None
 
     def test_normalize_name(self):
         """Test product name normalization."""
