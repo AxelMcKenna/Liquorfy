@@ -412,6 +412,20 @@ class FoodstuffsAPIScraper(Scraper, APIAuthBase):
                 run.finished_at = datetime.utcnow()
             raise
 
+    async def _validate_auth(self) -> bool:
+        """Validate that the auth token is still valid by making a lightweight API call."""
+        if not self.categories:
+            return False
+        level0, level1 = self.categories[0]
+        try:
+            response = await self._fetch_category(level0, level1, page=0, hits_per_page=1)
+            count = response.get("totalProducts", 0)
+            logger.info(f"{self.chain}: auth validation passed ({count} products in {level1})")
+            return True
+        except Exception as e:
+            logger.warning(f"{self.chain}: auth validation failed: {e}")
+            return False
+
     async def scrape(self) -> List[dict]:
         """
         Scrape all products using the Foodstuffs API.
@@ -426,6 +440,14 @@ class FoodstuffsAPIScraper(Scraper, APIAuthBase):
                     f"Unable to authenticate {self.chain}: "
                     "both direct HTTP and browser token capture failed"
                 )
+                return []
+
+        # Validate auth before full scrape
+        if not await self._validate_auth():
+            logger.warning(f"{self.chain}: stale token detected, refreshing...")
+            self.auth_token = await self._get_auth_token()
+            if not self.auth_token or not await self._validate_auth():
+                logger.error(f"{self.chain}: auth validation failed after refresh")
                 return []
 
         all_products: List[dict] = []
