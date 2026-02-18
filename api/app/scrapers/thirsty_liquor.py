@@ -159,6 +159,20 @@ class ThirstyLiquorScraper(Scraper):
                 price = compare_price  # Use original price as base price
                 promo_text = "Sale"
 
+        # Enrich promo info from product tags (comma-separated string)
+        tags_raw = product.get("tags", "")
+        if isinstance(tags_raw, list):
+            tags = [t.strip().lower() for t in tags_raw]
+        else:
+            tags = [t.strip().lower() for t in str(tags_raw).split(",") if t.strip()]
+
+        _SALE_TAGS = {"sale", "special", "on-sale", "promotion", "clearance", "reduced"}
+        matched_tags = _SALE_TAGS & set(tags)
+        if matched_tags and not promo_text:
+            promo_text = matched_tags.pop().title()
+            if not promo_price:
+                promo_price = price  # Flag as promotional even without compare_at
+
         # Image URL
         image_url = None
         images = product.get("images", [])

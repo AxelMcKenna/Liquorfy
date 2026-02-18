@@ -1,0 +1,63 @@
+{
+  "products": [
+    {
+      "id": 8001001,
+      "title": "Garage Project Hapi Daze Pacific Pale Ale 6 x 330ml",
+      "handle": "garage-project-hapi-daze-6pk",
+      "vendor": "Garage Project",
+      "product_type": "Beer",
+      "tags": "beer, craft, pale-ale",
+      "variants": [
+        {
+          "id": 80010011,
+          "price": "21.99",
+          "compare_at_price": null,
+          "available": true
+        }
+      ],
+      "images": [
+        {"src": "https://cdn.shopify.com/s/files/hapi-daze.jpg"}
+      ]
+    },
+    {
+      "id": 8001002,
+      "title": "Hendrick's Gin 700ml",
+      "handle": "hendricks-gin-700ml",
+      "vendor": "Hendrick's",
+      "product_type": "Spirits",
+      "tags": "spirits, gin, clearance",
+      "variants": [
+        {
+          "id": 80010021,
+          "price": "64.99",
+          "compare_at_price": "74.99",
+          "available": true
+        }
+      ],
+      "images": [
+        {"src": "https://cdn.shopify.com/s/files/hendricks.jpg"}
+      ]
+    },
+    {
+      "id": 8001003,
+      "title": "Oyster Bay Sauvignon Blanc 750ml",
+      "handle": "oyster-bay-sauvignon-blanc",
+      "vendor": "Oyster Bay",
+      "product_type": "Wine",
+      "tags": "wine, white, sauvignon-blanc",
+      "variants": [
+        {
+          "id": 80010031,
+          "price": "14.99",
+          "compare_at_price": null,
+          "available": true
+        }
+      ],
+      "images": [
+        {"src": "https://cdn.shopify.com/s/files/oyster-bay.jpg"}
+      ]
+    }
+  ],
+  "store_id": "porirua",
+  "store_name": "Porirua"
+}

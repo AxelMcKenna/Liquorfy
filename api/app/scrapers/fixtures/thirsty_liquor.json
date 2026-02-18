@@ -1,0 +1,78 @@
+{
+  "products": [
+    {
+      "id": 9001001,
+      "title": "Steinlager Pure 12 x 330ml",
+      "handle": "steinlager-pure-12-x-330ml",
+      "vendor": "Steinlager",
+      "product_type": "Beer",
+      "tags": "beer, lager, steinlager",
+      "variants": [
+        {
+          "id": 90010011,
+          "price": "28.99",
+          "compare_at_price": null,
+          "available": true
+        }
+      ],
+      "images": [
+        {"src": "https://cdn.shopify.com/s/files/steinlager-pure.jpg"}
+      ]
+    },
+    {
+      "id": 9001002,
+      "title": "Absolut Vodka 1L",
+      "handle": "absolut-vodka-1l",
+      "vendor": "Absolut",
+      "product_type": "Spirits",
+      "tags": "spirits, vodka, sale",
+      "variants": [
+        {
+          "id": 90010021,
+          "price": "44.99",
+          "compare_at_price": "54.99",
+          "available": true
+        }
+      ],
+      "images": [
+        {"src": "https://cdn.shopify.com/s/files/absolut-vodka.jpg"}
+      ]
+    },
+    {
+      "id": 9001003,
+      "title": "Penfolds Koonunga Hill Shiraz 750ml",
+      "handle": "penfolds-koonunga-hill-shiraz",
+      "vendor": "Penfolds",
+      "product_type": "Wine",
+      "tags": "wine, red, special",
+      "variants": [
+        {
+          "id": 90010031,
+          "price": "14.99",
+          "compare_at_price": null,
+          "available": true
+        }
+      ],
+      "images": [
+        {"src": "https://cdn.shopify.com/s/files/penfolds-shiraz.jpg"}
+      ]
+    },
+    {
+      "id": 9001004,
+      "title": "Smirnoff Ice Double Black 10 x 250ml",
+      "handle": "smirnoff-ice-double-black-10pk",
+      "vendor": "Smirnoff",
+      "product_type": "RTD",
+      "tags": "rtd, vodka-based",
+      "variants": [
+        {
+          "id": 90010041,
+          "price": "24.99",
+          "compare_at_price": null,
+          "available": false
+        }
+      ],
+      "images": []
+    }
+  ]
+}
