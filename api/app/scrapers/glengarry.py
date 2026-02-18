@@ -15,7 +15,12 @@ from playwright.async_api import Page
 from selectolax.parser import HTMLParser
 
 from app.scrapers.browser_base import BrowserScraper
-from app.services.promo_utils import parse_promo_end_date, detect_member_only
+from app.services.promo_utils import (
+    parse_promo_price,
+    parse_multi_buy_deal,
+    parse_promo_end_date,
+    detect_member_only,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -25,17 +30,40 @@ class GlengarryScraper(BrowserScraper):
 
     chain = "glengarry"
 
-    # Glengarry liquor catalog sections
+    # Glengarry catalog sections.
+    # /beer is a landing page (4 products) - use JSP sub-category URLs instead.
+    # ?page=N is ignored by Glengarry, so pagination returns same page.
+    # Each JSP sub-category shows up to 75 products.
     catalog_urls = [
-        "https://www.glengarrywines.co.nz/beer",
+        # Wine
         "https://www.glengarrywines.co.nz/wine/red",
         "https://www.glengarrywines.co.nz/wine/white",
         "https://www.glengarrywines.co.nz/wine/rose",
+        "https://www.glengarrywines.co.nz/champagne",
+        # Beer - Mainstream
+        "https://www.glengarrywines.co.nz/beercider.jsp?style=ale&variety=main stream",
+        "https://www.glengarrywines.co.nz/beercider.jsp?style=lager&variety=main stream",
+        "https://www.glengarrywines.co.nz/beercider.jsp?style=pale ale&variety=main stream",
+        "https://www.glengarrywines.co.nz/beercider.jsp?style=stout&variety=main stream",
+        "https://www.glengarrywines.co.nz/beercider.jsp?style=other&variety=main stream",
+        "https://www.glengarrywines.co.nz/beercider.jsp?style=low/ no alcohol&variety=main stream",
+        # Beer - Craft
+        "https://www.glengarrywines.co.nz/beercider.jsp?style=ale&variety=craft",
+        "https://www.glengarrywines.co.nz/beercider.jsp?style=lager&variety=craft",
+        "https://www.glengarrywines.co.nz/beercider.jsp?style=pale ale&variety=craft",
+        "https://www.glengarrywines.co.nz/beercider.jsp?style=pilsner&variety=craft",
+        "https://www.glengarrywines.co.nz/beercider.jsp?style=stout&variety=craft",
+        "https://www.glengarrywines.co.nz/beercider.jsp?style=dark&variety=craft",
+        "https://www.glengarrywines.co.nz/beercider.jsp?style=bitter&variety=craft",
+        "https://www.glengarrywines.co.nz/beercider.jsp?style=sours&variety=craft",
+        "https://www.glengarrywines.co.nz/beercider.jsp?style=other&variety=craft",
+        "https://www.glengarrywines.co.nz/beercider.jsp?style=low/ no alcohol&variety=craft",
+        # Spirits
         "https://www.glengarrywines.co.nz/spirits/whisky",
         "https://www.glengarrywines.co.nz/spirits/gin",
         "https://www.glengarrywines.co.nz/spirits/vodka",
         "https://www.glengarrywines.co.nz/spirits/rum",
-        "https://www.glengarrywines.co.nz/champagne",
+        # Specials
         "https://www.glengarrywines.co.nz/specials",
     ]
 
@@ -185,12 +213,40 @@ class GlengarryScraper(BrowserScraper):
                 promo_ends_at = None
                 is_member_only = False
 
+                # Check for promo badges (multi-buy deals, specials)
+                badge_elem = (
+                    card.css_first('.productDisplayBadge')
+                    or card.css_first('[class*="badge"]')
+                    or card.css_first('[class*="promo"]')
+                    or card.css_first('[class*="special"]')
+                )
+                if badge_elem:
+                    badge_text = badge_elem.text(strip=True)
+                    if badge_text:
+                        # Check for multi-buy deals first
+                        multi_buy = parse_multi_buy_deal(badge_text)
+                        if multi_buy:
+                            if multi_buy.get('unit_price'):
+                                promo_price = multi_buy['unit_price']
+                            promo_text = multi_buy['deal_text'][:255]
+                        elif not promo_text:
+                            # Regular badge promo
+                            promo_text = badge_text[:255]
+                            extracted = parse_promo_price(badge_text)
+                            if extracted and extracted < price:
+                                promo_price = extracted
+
+                        promo_ends_at = parse_promo_end_date(badge_text)
+                        is_member_only = detect_member_only(badge_text)
+
                 # Check for additional promo info in productDisplayInfo
                 info_elem = card.css_first('.productDisplayInfo')
-                if info_elem and promo_text:
+                if info_elem:
                     info_text = info_elem.text(strip=True)
-                    promo_ends_at = parse_promo_end_date(info_text)
-                    is_member_only = detect_member_only(info_text)
+                    if not promo_ends_at:
+                        promo_ends_at = parse_promo_end_date(info_text)
+                    if not is_member_only:
+                        is_member_only = detect_member_only(info_text)
 
                 # Extract image URL using helper
                 image_url = self.extract_image_url(
