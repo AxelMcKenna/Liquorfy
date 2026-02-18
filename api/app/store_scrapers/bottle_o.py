@@ -2,11 +2,17 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import List, Dict, Any
 
 from app.store_scrapers.base import StoreLocationScraper
 
 logger = logging.getLogger(__name__)
+
+# Pattern to extract the store subdomain from a resolved shop URL
+_SHOP_URL_PATTERN = re.compile(
+    r"https?://([a-z0-9-]+)\.shop\.thebottleo\.co\.nz", re.IGNORECASE
+)
 
 
 class BottleOLocationScraper(StoreLocationScraper):
@@ -33,10 +39,6 @@ class BottleOLocationScraper(StoreLocationScraper):
             try:
                 await page.goto(self.store_locator_url, wait_until="domcontentloaded")
                 await page.wait_for_timeout(5000)  # Give JS time to render stores
-
-                # Look for StoreCard sections (there are many divs with StoreCard in class)
-                # We need the ones that contain the actual store info
-                all_text = await page.inner_text('body')
 
                 # Extract using JavaScript to get the actual store card containers
                 stores_data = await page.evaluate("""() => {
@@ -103,7 +105,7 @@ class BottleOLocationScraper(StoreLocationScraper):
 
                 logger.info(f"Found {len(stores_data)} stores")
 
-                # Deduplicate by URL (some stores appear multiple times)
+                # Deduplicate by URL and resolve i_choose_you redirects
                 seen_urls = set()
                 stores = []
 
@@ -119,13 +121,16 @@ class BottleOLocationScraper(StoreLocationScraper):
                     if not url.startswith('http'):
                         url = f"https://shop.thebottleo.co.nz{url}"
 
+                    # Resolve i_choose_you redirect to get real store subdomain
+                    resolved_url = await self._resolve_shop_url(page, url)
+
                     stores.append({
                         "name": data['name'],
                         "address": data.get('address'),
                         "region": None,
                         "lat": None,
                         "lon": None,
-                        "url": url,
+                        "url": resolved_url,
                     })
 
                 logger.info(f"Successfully extracted {len(stores)} Bottle O stores")
@@ -138,70 +143,29 @@ class BottleOLocationScraper(StoreLocationScraper):
             logger.error(f"Failed to fetch Bottle O stores: {e}", exc_info=True)
             return []
 
-    def _parse_store_data(self, data: Any) -> List[Dict[str, Any]]:
-        """Parse store data from window.store_data array."""
-        stores = []
+    async def _resolve_shop_url(self, page, i_choose_you_url: str) -> str:
+        """
+        Follow an i_choose_you redirect to discover the store's actual
+        subdomain URL (e.g. https://albany.shop.thebottleo.co.nz).
 
-        if not isinstance(data, list):
-            logger.warning(f"Expected list but got {type(data)}")
-            return stores
+        Falls back to the original URL if the redirect cannot be resolved.
+        """
+        try:
+            response = await page.request.fetch(
+                i_choose_you_url,
+                max_redirects=0,  # Don't follow — just read the Location header
+            )
+            location = response.headers.get("location", "")
+            match = _SHOP_URL_PATTERN.search(location)
+            if match:
+                resolved = f"https://{match.group(1)}.shop.thebottleo.co.nz"
+                logger.debug(f"Resolved {i_choose_you_url} -> {resolved}")
+                return resolved
+        except Exception as e:
+            logger.debug(f"Could not resolve redirect for {i_choose_you_url}: {e}")
 
-        for item in data:
-            if not isinstance(item, dict):
-                continue
-
-            store = self._parse_store_dict(item)
-            if store:
-                stores.append(store)
-
-        return stores
-
-    def _parse_store_dict(self, data: Dict[str, Any]) -> Dict[str, Any] | None:
-        """Parse a single store from dictionary."""
-        # Extract name
-        name = (
-            data.get("name") or data.get("title") or
-            data.get("storeName") or data.get("store_name") or
-            data.get("label") or ""
-        )
-
-        if not name:
-            return None
-
-        # Extract address - might be string or dict
-        address = ""
-        if isinstance(data.get("address"), str):
-            address = data["address"]
-        elif isinstance(data.get("address"), dict):
-            addr_parts = [
-                data["address"].get("street", ""),
-                data["address"].get("suburb", ""),
-                data["address"].get("city", ""),
-                data["address"].get("postcode", ""),
-            ]
-            address = ", ".join(filter(None, addr_parts))
-
-        # Extract region/city
-        region = (
-            data.get("region") or data.get("city") or
-            data.get("suburb") or data.get("state") or None
-        )
-
-        # Extract coordinates
-        lat = data.get("lat") or data.get("latitude")
-        lon = data.get("lng") or data.get("lon") or data.get("longitude")
-
-        # Extract URL
-        url = data.get("url") or data.get("link") or data.get("store_url")
-
-        return {
-            "name": name,
-            "address": address,
-            "region": region,
-            "lat": float(lat) if lat and lat != "" and lat != "null" else None,
-            "lon": float(lon) if lon and lon != "" and lon != "null" else None,
-            "url": url,
-        }
+        # Fallback: return the original URL
+        return i_choose_you_url
 
 
 __all__ = ["BottleOLocationScraper"]
