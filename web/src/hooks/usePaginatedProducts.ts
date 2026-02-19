@@ -75,6 +75,11 @@ export const usePaginatedProducts = () => {
     }
   }, [totalPages]);
 
+  const clearProducts = useCallback(() => {
+    setProducts([]);
+    setTotal(0);
+  }, []);
+
   return {
     products,
     total,
@@ -85,5 +90,6 @@ export const usePaginatedProducts = () => {
     pageSize: PAGE_SIZE,
     fetchProducts,
     goToPage,
+    clearProducts,
   };
 };

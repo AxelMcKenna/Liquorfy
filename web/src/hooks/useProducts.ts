@@ -53,6 +53,7 @@ export const useProducts = () => {
         return;
       }
       setError("Failed to load products");
+      setProducts(null);
     } finally {
       if (requestId === latestRequestId.current) {
         setLoading(false);
