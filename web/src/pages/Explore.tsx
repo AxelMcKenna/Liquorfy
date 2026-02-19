@@ -28,7 +28,7 @@ export const Explore = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const { location, radiusKm, isLocationSet, openLocationModal, requestAutoLocation, loading: locationLoading, error: locationError } = useLocationContext();
   const { filters, updateFilters } = useFilters();
-  const { products, total, loading, error, currentPage, totalPages, fetchProducts, goToPage } = usePaginatedProducts();
+  const { products, total, loading, error, currentPage, totalPages, fetchProducts, goToPage, clearProducts } = usePaginatedProducts();
   const page = parseInt(searchParams.get('page') || '1', 10);
   const previousFetchInputsRef = useRef<{ page: number; nonPageKey: string } | null>(null);
 
@@ -69,6 +69,8 @@ export const Explore = () => {
       return;
     }
 
+    clearProducts();
+
     const timer = window.setTimeout(() => {
       fetchProducts(fetchFilters, page);
     }, FETCH_DEBOUNCE_MS);
@@ -76,7 +78,7 @@ export const Explore = () => {
     return () => window.clearTimeout(timer);
     // fetchProducts is stable (wrapped in useCallback with empty deps), so omitting from deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, location, radiusKm, page, isLocationSet]);
+  }, [filters, location, radiusKm, page, isLocationSet, clearProducts]);
 
   const handlePageChange = (newPage: number) => {
     const newParams = new URLSearchParams(searchParams);
