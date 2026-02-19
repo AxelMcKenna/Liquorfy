@@ -53,7 +53,7 @@ class SuperLiquorScraper(Scraper):
         "https://www.superliquor.co.nz/premix",
     ]
 
-    def __init__(self, chain: str = "super_liquor", use_fixtures: bool = True) -> None:
+    def __init__(self, chain: str = "super_liquor", use_fixtures: bool = False) -> None:
         super().__init__(use_fixtures=use_fixtures)
         self.chain = chain
 
