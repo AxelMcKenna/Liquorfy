@@ -33,7 +33,7 @@ export const QuickView = ({
   const distanceColorClass = getDistanceColorClass(product.price.distance_km);
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[700px] p-0 max-h-[90dvh] overflow-y-auto">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-0">
           {/* Image Section */}
