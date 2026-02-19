@@ -259,7 +259,12 @@ class TestSuperLiquorScraper:
 
         assert scraper.chain == "super_liquor"
         assert len(scraper.catalog_urls) > 0
-        assert scraper.use_fixtures is True  # Default to fixtures for testing
+        assert scraper.use_fixtures is False  # Default to live mode in production
+
+    def test_initialization_with_fixtures_enabled(self):
+        """Test scraper supports explicit fixture mode for tests."""
+        scraper = SuperLiquorScraper(use_fixtures=True)
+        assert scraper.use_fixtures is True
 
     def test_catalog_urls_comprehensive(self):
         """Test that all major categories are covered."""
