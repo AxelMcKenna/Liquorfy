@@ -306,7 +306,7 @@ class Scraper(abc.ABC):
                 chunk = price_values[idx: idx + PRICE_UPSERT_CHUNK_SIZE]
                 stmt = insert(Price).values(chunk)
                 stmt = stmt.on_conflict_do_update(
-                    index_elements=["product_id", "store_id"],
+                    constraint="uq_price_product_store",
                     set_={
                         "price_nzd": stmt.excluded.price_nzd,
                         "promo_price_nzd": stmt.excluded.promo_price_nzd,
