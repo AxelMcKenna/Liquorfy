@@ -1,9 +1,14 @@
 import { useSearchParams } from 'react-router-dom';
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useEffect, useRef } from 'react';
 import { ProductFilters, SortOption, ChainType } from '@/types';
 
 export const useFilters = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const latestSearchParamsRef = useRef(new URLSearchParams(searchParams));
+
+  useEffect(() => {
+    latestSearchParamsRef.current = new URLSearchParams(searchParams);
+  }, [searchParams]);
 
   const filters: ProductFilters = useMemo(() => {
     const query = searchParams.get('q') || undefined;
@@ -31,7 +36,7 @@ export const useFilters = () => {
   }, [searchParams]);
 
   const updateFilters = useCallback((updates: Partial<ProductFilters>) => {
-    const newParams = new URLSearchParams(searchParams);
+    const newParams = new URLSearchParams(latestSearchParamsRef.current);
     if (Object.keys(updates).length > 0) {
       newParams.delete('page');
     }
@@ -62,10 +67,12 @@ export const useFilters = () => {
       }
     });
 
+    latestSearchParamsRef.current = new URLSearchParams(newParams);
     setSearchParams(newParams);
-  }, [searchParams, setSearchParams]);
+  }, [setSearchParams]);
 
   const clearFilters = useCallback(() => {
+    latestSearchParamsRef.current = new URLSearchParams();
     setSearchParams({});
   }, [setSearchParams]);
 
