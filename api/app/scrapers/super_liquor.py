@@ -4,7 +4,7 @@ import asyncio
 import logging
 import re
 from pathlib import Path
-from typing import List
+from typing import Dict, List, Optional
 
 from selectolax.parser import HTMLParser
 
@@ -56,6 +56,9 @@ class SuperLiquorScraper(Scraper):
     def __init__(self, chain: str = "super_liquor", use_fixtures: bool = False) -> None:
         super().__init__(use_fixtures=use_fixtures)
         self.chain = chain
+        self._page_urls: List[str] = []
+        self._specials_by_source_id: Dict[str, float] = {}
+        self._specials_by_name: Dict[str, float] = {}
 
         # Set respectful User-Agent header
         self.client.headers.update({
@@ -81,8 +84,13 @@ class SuperLiquorScraper(Scraper):
 
     async def fetch_catalog_pages(self) -> List[str]:
         """Fetch catalog pages from fixtures or live HTTP with pagination and rate limiting."""
+        self._page_urls = []
+        self._specials_by_source_id = {}
+        self._specials_by_name = {}
+
         if self.use_fixtures:
             logger.info(f"Using fixture data for {self.chain}")
+            self._page_urls.append(str(FIXTURE))
             return [FIXTURE.read_text()]
 
         # Fetch from real URLs with pagination and rate limiting
@@ -101,6 +109,7 @@ class SuperLiquorScraper(Scraper):
                 logger.info(f"Fetching {base_url}")
                 first_page = await self._fetch_with_retry(base_url)
                 pages.append(first_page)
+                self._page_urls.append(base_url)
 
                 # Parse to find total number of pages
                 total_pages = self._extract_total_pages(first_page)
@@ -117,6 +126,7 @@ class SuperLiquorScraper(Scraper):
                         try:
                             page_html = await self._fetch_with_retry(page_url)
                             pages.append(page_html)
+                            self._page_urls.append(page_url)
                             logger.info(f"  Fetched page {page_num}/{total_pages}")
                         except Exception as e:
                             logger.error(f"  Failed to fetch page {page_num} after retries: {e}")
@@ -131,6 +141,28 @@ class SuperLiquorScraper(Scraper):
 
         logger.info(f"Fetched total of {len(pages)} pages across all categories")
         return pages
+
+    @staticmethod
+    def _normalized_name(name: str) -> str:
+        return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9]+", " ", name.lower())).strip()
+
+    def _store_special_candidate(self, source_id: str, name: str, specials_price: float) -> None:
+        if specials_price <= 0:
+            return
+        if source_id:
+            existing = self._specials_by_source_id.get(source_id)
+            if existing is None or specials_price < existing:
+                self._specials_by_source_id[source_id] = specials_price
+        normalized = self._normalized_name(name)
+        if normalized:
+            existing = self._specials_by_name.get(normalized)
+            if existing is None or specials_price < existing:
+                self._specials_by_name[normalized] = specials_price
+
+    def _find_special_candidate(self, source_id: str, name: str) -> Optional[float]:
+        if source_id and source_id in self._specials_by_source_id:
+            return self._specials_by_source_id[source_id]
+        return self._specials_by_name.get(self._normalized_name(name))
 
     def _extract_total_pages(self, html: str) -> int:
         """Extract total number of pages from pagination HTML."""
@@ -149,8 +181,14 @@ class SuperLiquorScraper(Scraper):
         return 1
 
     async def parse_products(self, payload: str) -> List[dict]:
+        page_url = self._page_urls.pop(0) if self._page_urls else None
+        is_specials_page = bool(page_url and "/super-specials" in page_url)
+
         tree = HTMLParser(payload)
         products: List[dict] = []
+        specials_candidates_seen = 0
+        specials_candidates_applied = 0
+
         for node in tree.css("div.product-item"):
             # Extract title
             title_node = node.css_first("h2.product-title a")
@@ -290,27 +328,50 @@ class SuperLiquorScraper(Scraper):
             brand = infer_brand(name)
             category = infer_category(name)
 
-            products.append(
-                {
-                    "chain": self.chain,
-                    "source_id": source_id,
-                    "name": name,
-                    "brand": brand,
-                    "category": category,
-                    "price_nzd": price,
-                    "promo_price_nzd": promo_price,
-                    "promo_text": promo_text,
-                    "promo_ends_at": promo_ends_at,
-                    "is_member_only": is_member_only,
-                    "pack_count": volume.pack_count,
-                    "unit_volume_ml": volume.unit_volume_ml,
-                    "total_volume_ml": volume.total_volume_ml,
-                    "abv_percent": abv,
-                    "url": url,
-                    "image_url": image_url,
-                }
+            product = {
+                "chain": self.chain,
+                "source_id": source_id,
+                "name": name,
+                "brand": brand,
+                "category": category,
+                "price_nzd": price,
+                "promo_price_nzd": promo_price,
+                "promo_text": promo_text,
+                "promo_ends_at": promo_ends_at,
+                "is_member_only": is_member_only,
+                "pack_count": volume.pack_count,
+                "unit_volume_ml": volume.unit_volume_ml,
+                "total_volume_ml": volume.total_volume_ml,
+                "abv_percent": abv,
+                "url": url,
+                "image_url": image_url,
+            }
+
+            if is_specials_page:
+                specials_price = promo_price if promo_price is not None and promo_price < price else price
+                self._store_special_candidate(source_id, name, specials_price)
+                specials_candidates_seen += 1
+            else:
+                special_candidate = self._find_special_candidate(source_id, name)
+                if special_candidate is not None and special_candidate < price:
+                    existing_promo = promo_price if promo_price is not None and promo_price < price else None
+                    if existing_promo is None or special_candidate < existing_promo:
+                        product["promo_price_nzd"] = special_candidate
+                        product["promo_text"] = (product.get("promo_text") or "Super Special")[:255]
+                        specials_candidates_applied += 1
+
+            products.append(product)
+
+        if is_specials_page:
+            logger.info(
+                f"Parsed {len(products)} products from specials page; "
+                f"captured {specials_candidates_seen} specials candidates"
             )
-        logger.info(f"Parsed {len(products)} products from page")
+        else:
+            logger.info(
+                f"Parsed {len(products)} products from page; "
+                f"applied {specials_candidates_applied} specials candidates"
+            )
         return products
 
 
