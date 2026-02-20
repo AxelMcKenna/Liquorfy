@@ -11,7 +11,7 @@ import math
 import re
 from datetime import datetime
 from html import unescape
-from typing import Any, List
+from typing import Any, AsyncIterator, List
 
 from playwright.async_api import async_playwright, Browser, BrowserContext, Page
 from selectolax.parser import HTMLParser
@@ -157,11 +157,18 @@ class LiquorlandScraper(Scraper):
     # ------------------------------------------------------------------
 
     async def fetch_catalog_pages(self) -> List[str]:
-        """Fetch all catalog pages using Playwright.
+        """Materialize streamed payloads into a list for compatibility."""
+        pages_html: List[str] = []
+        async for payload in self.stream_catalog_pages():
+            pages_html.append(payload)
+        return pages_html
 
-        1. Loads any page to read window.navigation and discover category URLs.
-        2. For each category, reads window.category.pagination to determine
-        total pages, then fetches each page via ?p=N.
+    async def stream_catalog_pages(self) -> AsyncIterator[str]:
+        """Yield Liquorland payloads incrementally.
+
+        Specials are emitted first so promo data lands early, then emitted again
+        at the end to ensure digital mailer promos override any non-promo
+        category rows.
         """
         self._catalog_price_by_source_id = {}
         logger.info(f"Starting browser-based scraping for {self.chain}")
@@ -169,6 +176,11 @@ class LiquorlandScraper(Scraper):
             f"Rate limiting: {DELAY_BETWEEN_REQUESTS}s between pages, "
             f"{DELAY_BETWEEN_CATEGORIES}s between categories"
         )
+
+        specials_payload = await self._fetch_specials_payload()
+        if specials_payload:
+            logger.info("Fetched Liquorland specials payload; processing before catalog pages")
+            yield specials_payload
 
         self.playwright = await async_playwright().start()
         self.browser = await self.playwright.chromium.launch(headless=True)
@@ -188,8 +200,7 @@ class LiquorlandScraper(Scraper):
             ),
         )
 
-        pages_html: List[str] = []
-
+        fetched_catalog_pages = 0
         try:
             # Discover categories from live navigation
             discovery_page = await self.context.new_page()
@@ -213,8 +224,8 @@ class LiquorlandScraper(Scraper):
                         await page.goto(base_url, wait_until="domcontentloaded", timeout=60000)
                         await self._wait_for_content(page)
 
-                        first_page_html = await page.content()
-                        pages_html.append(first_page_html)
+                        fetched_catalog_pages += 1
+                        yield await page.content()
 
                         total_pages = await self._extract_total_pages_js(page)
 
@@ -228,7 +239,8 @@ class LiquorlandScraper(Scraper):
                                         page_url, wait_until="domcontentloaded", timeout=60000
                                     )
                                     await self._wait_for_content(page)
-                                    pages_html.append(await page.content())
+                                    fetched_catalog_pages += 1
+                                    yield await page.content()
                                     logger.info(f"  Fetched page {page_num}/{total_pages}")
                                 except Exception as e:
                                     logger.error(f"  Failed to fetch page {page_num}: {e}")
@@ -251,12 +263,11 @@ class LiquorlandScraper(Scraper):
                 await self.playwright.stop()
             logger.info(f"Browser closed for {self.chain}")
 
-        specials_payload = await self._fetch_specials_payload()
         if specials_payload:
-            pages_html.append(specials_payload)
+            logger.info("Re-processing Liquorland specials payload after catalog pages")
+            yield specials_payload
 
-        logger.info(f"Fetched {len(pages_html)} total pages across all categories")
-        return pages_html
+        logger.info(f"Fetched {fetched_catalog_pages} total catalog pages across all categories")
 
     async def _fetch_specials_payload(self) -> str | None:
         """Fetch active digital mailer products from SaleFinder APIs."""

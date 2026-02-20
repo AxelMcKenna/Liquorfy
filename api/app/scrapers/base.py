@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import abc
+import asyncio
 import logging
 from datetime import datetime
-from typing import List, Optional
+from typing import AsyncIterator, List, Optional
 
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -45,8 +46,6 @@ class Scraper(abc.ABC):
             await session.flush()
 
         try:
-            # Fetch and process catalog pages
-            pages = await self.fetch_catalog_pages()
             total_items = 0
             changed_items = 0
             failed_items = 0
@@ -62,23 +61,25 @@ class Scraper(abc.ABC):
                     logger.warning(f"No stores found for chain {self.chain}")
                     stores = []
 
-                for page in pages:
-                    try:
-                        products = await self.parse_products(page)
-                        total_items += len(products)
+            # Stream pages and persist each page in its own transaction so
+            # long-running scrapers retain partial progress even if interrupted.
+            async for page in self.stream_catalog_pages():
+                try:
+                    products = await self.parse_products(page)
+                    total_items += len(products)
 
-                        # Batch process products for better performance
+                    async with async_transaction() as session:
                         changed_count = await self._upsert_products_batch(
                             session, products, stores
                         )
-                        changed_items += changed_count
-                        # changed_count is DB row-level (product/store upserts),
-                        # while total_items is product-level; do not derive failures
-                        # from changed_count or it can go negative.
+                    changed_items += changed_count
+                    # changed_count is DB row-level (product/store upserts),
+                    # while total_items is product-level; do not derive failures
+                    # from changed_count or it can go negative.
 
-                    except Exception as e:
-                        logger.error(f"Failed to parse page: {e}")
-                        failed_items += 1
+                except Exception as e:
+                    logger.error(f"Failed to parse page: {e}")
+                    failed_items += 1
 
             # Update ingestion run with results
             async with async_transaction() as session:
@@ -107,6 +108,18 @@ class Scraper(abc.ABC):
                 f"{changed_items} changed, {failed_items} failed"
             )
             return run
+
+        except asyncio.CancelledError:
+            logger.error(f"Scraper cancelled: {self.chain}")
+            # Update run status to failed so timed-out runs are not left "running"
+            async with async_transaction() as session:
+                result = await session.execute(
+                    select(IngestionRun).where(IngestionRun.id == run.id)
+                )
+                run = result.scalar_one()
+                run.status = "failed"
+                run.finished_at = datetime.utcnow()
+            raise
 
         except Exception as e:
             logger.error(f"Scraper failed: {e}")
@@ -421,6 +434,16 @@ class Scraper(abc.ABC):
     @abc.abstractmethod
     async def parse_products(self, payload: str) -> List[dict]:
         raise NotImplementedError
+
+    async def stream_catalog_pages(self) -> AsyncIterator[str]:
+        """Yield catalog payloads incrementally.
+
+        Subclasses can override this for true streaming fetchers. By default,
+        this wraps fetch_catalog_pages().
+        """
+        pages = await self.fetch_catalog_pages()
+        for page in pages:
+            yield page
 
 
 __all__ = ["Scraper"]
