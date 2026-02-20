@@ -18,6 +18,10 @@ logger = logging.getLogger(__name__)
 SCRAPER_INTERVAL_HOURS = 24  # Run scrapers once per day
 SCRAPER_TIMEOUT_MINUTES = 120  # Max time per scraper (Liquor Centre has 90 stores!)
 SEQUENTIAL_DELAY_SECONDS = 60  # Delay between scrapers to avoid overwhelming system
+CHAIN_TIMEOUT_MINUTES = {
+    # Liquorland category pagination is significantly larger than other chains.
+    "liquorland": 300,
+}
 
 
 class WorkerScheduler:
@@ -38,6 +42,7 @@ class WorkerScheduler:
         """Run a single scraper with timeout and error handling."""
         logger.info(f"🚀 Starting scraper: {chain}")
         start_time = datetime.utcnow()
+        timeout_minutes = CHAIN_TIMEOUT_MINUTES.get(chain, SCRAPER_TIMEOUT_MINUTES)
 
         try:
             scraper = get_chain_scraper(chain)
@@ -45,7 +50,7 @@ class WorkerScheduler:
             # Run with timeout
             await asyncio.wait_for(
                 scraper.run(),
-                timeout=SCRAPER_TIMEOUT_MINUTES * 60
+                timeout=timeout_minutes * 60
             )
 
             duration = (datetime.utcnow() - start_time).total_seconds()
@@ -54,7 +59,9 @@ class WorkerScheduler:
 
         except asyncio.TimeoutError:
             duration = (datetime.utcnow() - start_time).total_seconds()
-            logger.error(f"⏱️ Scraper timeout: {chain} (>{duration:.1f}s)")
+            logger.error(
+                f"⏱️ Scraper timeout: {chain} (>{duration:.1f}s, limit={timeout_minutes}m)"
+            )
 
         except Exception as e:
             duration = (datetime.utcnow() - start_time).total_seconds()
@@ -140,6 +147,11 @@ async def main(chains_to_run: Optional[List[str]] = None) -> None:
 
     logger.info(f"Interval: {SCRAPER_INTERVAL_HOURS}h")
     logger.info(f"Timeout: {SCRAPER_TIMEOUT_MINUTES}m")
+    if CHAIN_TIMEOUT_MINUTES:
+        overrides = ", ".join(
+            f"{chain}={minutes}m" for chain, minutes in CHAIN_TIMEOUT_MINUTES.items()
+        )
+        logger.info(f"Timeout overrides: {overrides}")
     logger.info("=" * 60)
 
     scheduler = WorkerScheduler(chains_to_run=chains_to_run)
