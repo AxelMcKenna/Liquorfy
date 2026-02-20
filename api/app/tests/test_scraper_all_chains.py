@@ -19,7 +19,7 @@ from app.scrapers.base import Scraper
 from app.scrapers.countdown_api import CountdownAPIScraper
 from app.scrapers.new_world_api import NewWorldAPIScraper
 from app.scrapers.paknsave_api import PakNSaveAPIScraper
-from app.scrapers.liquorland import LiquorlandScraper
+from app.scrapers.liquorland import LiquorlandScraper, SPECIALS_PAYLOAD_PREFIX
 from app.scrapers.super_liquor import SuperLiquorScraper
 from app.scrapers.bottle_o import BottleOScraper
 from app.scrapers.glengarry import GlengarryScraper
@@ -231,6 +231,83 @@ class TestLiquorlandScraper:
 
         assert "p=3" in result
         assert "&" in result  # Should use & not ?
+
+    @pytest.mark.asyncio
+    async def test_parse_specials_payload_uses_catalog_price_as_regular(self):
+        """SaleFinder specials should use catalog price as regular baseline."""
+        scraper = LiquorlandScraper()
+
+        html = """
+        <div class="s-product">
+            <a class="s-product__name" href="/products/test-gin-700ml">Test Gin 700ml</a>
+            <div class="s-price">$49.99</div>
+        </div>
+        """
+        await scraper.parse_products(html)
+
+        specials_payload = {
+            "__liquorland_specials": True,
+            "items": [
+                {
+                    "itemId": "999",
+                    "itemName": "Test Gin 700ml",
+                    "URL": "https://www.liquorland.co.nz/products/test-gin-700ml",
+                    "endDate": "2026-02-22 23:59:59",
+                    "prices": [
+                        {
+                            "priceSaleDesc": "Hot Price",
+                            "priceSale": "39.99",
+                        }
+                    ],
+                }
+            ],
+        }
+
+        products = await scraper.parse_products(
+            f"{SPECIALS_PAYLOAD_PREFIX}{json.dumps(specials_payload)}"
+        )
+
+        assert len(products) == 1
+        assert products[0]["source_id"] == "test-gin-700ml"
+        assert products[0]["price_nzd"] == 49.99
+        assert products[0]["promo_price_nzd"] == 39.99
+        assert products[0]["promo_ends_at"] is not None
+
+    @pytest.mark.asyncio
+    async def test_parse_specials_payload_extracts_multibuy_unit_price(self):
+        """SaleFinder multi-buy deals should map to unit promo price."""
+        scraper = LiquorlandScraper()
+
+        specials_payload = {
+            "__liquorland_specials": True,
+            "items": [
+                {
+                    "itemId": "1000",
+                    "itemName": "Sample RTD 10x330ml",
+                    "URL": "https://www.liquorland.co.nz/products/sample-rtd-10x330ml",
+                    "endDate": "2026-02-22 23:59:59",
+                    "prices": [
+                        {
+                            "priceSaleDesc": "2 for",
+                            "priceSale": "40.00",
+                        },
+                        {
+                            "priceOptionDesc": "Or",
+                            "priceReg": "22.99",
+                            "priceRegSuffix": "each",
+                        },
+                    ],
+                }
+            ],
+        }
+
+        products = await scraper.parse_products(
+            f"{SPECIALS_PAYLOAD_PREFIX}{json.dumps(specials_payload)}"
+        )
+
+        assert len(products) == 1
+        assert products[0]["price_nzd"] == 22.99
+        assert products[0]["promo_price_nzd"] == 20.00
 
 
 # ============================================================================
