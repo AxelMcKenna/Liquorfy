@@ -73,7 +73,7 @@ ENVIRONMENT=development
 | Chain | Key | Type | Pricing | Specials | Status |
 |-------|-----|------|---------|---------|--------|
 | Super Liquor | `super_liquor` | HTTP (selectolax) | Chain-wide | `/super-specials` + categories | ✅ Active |
-| Liquorland | `liquorland` | Browser (Playwright) | Chain-wide (default prices only) | Digital mailer only — not scrapable | ✅ Active |
+| Liquorland | `liquorland` | Browser (Playwright) + SaleFinder API | Chain-wide | Digital mailer via SaleFinder API | ✅ Active |
 | Liquor Centre | `liquor_centre` | Browser + HTTP (CityHive) | Per-store (~90 stores) | `/category/specials` | ✅ Active |
 | The Bottle O | `bottle_o` | HTTP (CityHive) + GTM fallback | Per-store | `/category/specials` | ✅ Active |
 | New World | `new_world` | API (Foodstuffs/Algolia) | Per-store (all NZ stores) | `onPromotion` inline per product | ✅ Active |
@@ -85,7 +85,7 @@ ENVIRONMENT=development
 
 ### Notes
 
-**Liquorland:** 166 stores with per-store pricing, but per-store scraping requires complex browser UI automation (store selector modal). Currently captures only products with default/chain pricing. Products marked `no-cta` (requiring store selection) are skipped.
+**Liquorland:** 166 stores with per-store pricing, but per-store scraping requires complex browser UI automation (store selector modal). Catalog categories are scraped via Playwright and digital mailer specials are ingested via SaleFinder APIs. Products marked `no-cta` (requiring store selection) are still skipped from category HTML pages.
 
 **Countdown:** Rebranded to Woolworths NZ (October 2023). `countdown.co.nz` still redirects; the live site and API are at `woolworths.co.nz`. Auth is cookieless — the scraper probes the API without cookies first. If the probe returns no items it captures session cookies via a plain HTTP GET (no browser, no JS) and retries once.
 
@@ -209,7 +209,8 @@ Scrapers run sequentially. If one fails, you are prompted to continue or abort. 
 ### Promotion Detection
 
 Promotion data is extracted from:
-- **HTML badge text** (Super Liquor, Glengarry, Liquorland) — parsed via `promo_utils.py`
+- **HTML badge text** (Super Liquor, Glengarry, Liquorland category pages) — parsed via `promo_utils.py`
+- **SaleFinder specials API pricing** (Liquorland digital mailer)
 - **API promotion objects** (New World, PakNSave) — `promotions[].rewardValue`, `decal`, `cardDependencyFlag`
 - **Shopify `compare_at_price`** (Thirsty Liquor, Black Bull) — sale = `price < compare_at_price`
 - **Shopify product tags** (`sale`, `special`, `clearance`, etc.)
