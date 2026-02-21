@@ -12,10 +12,15 @@ import asyncio
 import json
 import logging
 import re
+from contextlib import suppress
 from datetime import datetime
 from typing import List, Optional
 
-from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeout
+from playwright.async_api import (
+    Error as PlaywrightError,
+    TimeoutError as PlaywrightTimeout,
+    async_playwright,
+)
 from selectolax.parser import HTMLParser
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
@@ -160,85 +165,98 @@ class BottleOScraper(Scraper):
 
             # Block resources we don't need — significantly reduces page load time.
             _BLOCK_TYPES = {"image", "media", "font", "stylesheet"}
+            async def _route_handler(route):
+                """Ignore route errors that happen during shutdown/cancellation."""
+                try:
+                    if route.request.resource_type in _BLOCK_TYPES:
+                        await route.abort()
+                    else:
+                        await route.continue_()
+                except PlaywrightError as e:
+                    if "Target page, context or browser has been closed" not in str(e):
+                        raise
             await context.route(
                 "**/*",
-                lambda route: (
-                    route.abort()
-                    if route.request.resource_type in _BLOCK_TYPES
-                    else route.continue_()
-                ),
+                _route_handler,
             )
 
             page = await context.new_page()
 
             # --- Per-store scraping ---
             shoppable_slugs: set[str] = set()
+            try:
+                for store_slug in self.stores:
+                    logger.info(f"Scraping store: {store_slug}")
+                    consecutive_failures = 0
+                    max_failures = 3
+                    store_had_products = False
 
-            for store_slug in self.stores:
-                logger.info(f"Scraping store: {store_slug}")
-                consecutive_failures = 0
-                max_failures = 3
-                store_had_products = False
+                    for category in CATEGORIES:
+                        if consecutive_failures >= max_failures:
+                            logger.warning(f"  Skipping remaining categories for {store_slug}")
+                            break
 
-                for category in CATEGORIES:
-                    if consecutive_failures >= max_failures:
-                        logger.warning(f"  Skipping remaining categories for {store_slug}")
-                        break
+                        logger.info(f"  Category: {category}")
+                        category_success = False
+                        page_num = 1
 
-                    logger.info(f"  Category: {category}")
-                    category_success = False
-                    page_num = 1
+                        while True:
+                            url = self._build_url(store_slug, category, page_num)
 
-                    while True:
-                        url = self._build_url(store_slug, category, page_num)
-
-                        try:
-                            await page.goto(url, wait_until="domcontentloaded", timeout=30000)
                             try:
-                                await page.wait_for_selector(".talker", state="attached", timeout=8000)
-                            except Exception:
-                                pass  # Page may be empty (no products in category)
-                            await asyncio.sleep(DELAY_BETWEEN_REQUESTS)
+                                await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+                                try:
+                                    await page.wait_for_selector(".talker", state="attached", timeout=8000)
+                                except Exception:
+                                    pass  # Page may be empty (no products in category)
+                                await asyncio.sleep(DELAY_BETWEEN_REQUESTS)
 
-                            html = await page.content()
-                            tagged_html = self._tag_html(html, store_slug, category, page_num)
-                            pages.append(tagged_html)
-                            category_success = True
-                            store_had_products = True
+                                html = await page.content()
+                                tagged_html = self._tag_html(html, store_slug, category, page_num)
+                                pages.append(tagged_html)
+                                category_success = True
+                                store_had_products = True
 
-                            has_next = await self._has_next_page(page)
-                            if not has_next:
-                                logger.info(f"    Scraped {page_num} page(s)")
+                                has_next = await self._has_next_page(page)
+                                if not has_next:
+                                    logger.info(f"    Scraped {page_num} page(s)")
+                                    break
+
+                                page_num += 1
+                                if page_num > 50:
+                                    logger.warning(f"    Hit page limit at page {page_num}")
+                                    break
+
+                            except PlaywrightTimeout:
+                                logger.error(f"    Timeout loading {url}")
+                                break
+                            except Exception as e:
+                                logger.error(f"    Error loading {url}: {e}")
                                 break
 
-                            page_num += 1
-                            if page_num > 50:
-                                logger.warning(f"    Hit page limit at page {page_num}")
-                                break
+                        if category_success:
+                            consecutive_failures = 0
+                        else:
+                            consecutive_failures += 1
 
-                        except PlaywrightTimeout:
-                            logger.error(f"    Timeout loading {url}")
-                            break
-                        except Exception as e:
-                            logger.error(f"    Error loading {url}: {e}")
-                            break
+                        await asyncio.sleep(DELAY_BETWEEN_CATEGORIES)
 
-                    if category_success:
-                        consecutive_failures = 0
-                    else:
-                        consecutive_failures += 1
+                    if store_had_products:
+                        shoppable_slugs.add(store_slug)
 
-                    await asyncio.sleep(DELAY_BETWEEN_CATEGORIES)
-
-                if store_had_products:
-                    shoppable_slugs.add(store_slug)
-
-            # --- Franchise fallback for non-shoppable stores ---
-            franchise_pages = await self._fetch_franchise_pages(page)
-            if franchise_pages:
-                pages.extend(franchise_pages)
-
-            await browser.close()
+                # --- Franchise fallback for non-shoppable stores ---
+                franchise_pages = await self._fetch_franchise_pages(page)
+                if franchise_pages:
+                    pages.extend(franchise_pages)
+            finally:
+                with suppress(Exception):
+                    await context.unroute_all(behavior="ignoreErrors")
+                with suppress(Exception):
+                    await page.close()
+                with suppress(Exception):
+                    await context.close()
+                with suppress(Exception):
+                    await browser.close()
 
         logger.info(
             f"Fetched {len(pages)} total pages "

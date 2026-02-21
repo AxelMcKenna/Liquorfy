@@ -9,10 +9,15 @@ import asyncio
 import json
 import logging
 import re
+from contextlib import suppress
 from pathlib import Path
-from typing import List, Optional
+from typing import AsyncIterator, List, Optional
 from selectolax.parser import HTMLParser
-from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeout
+from playwright.async_api import (
+    Error as PlaywrightError,
+    TimeoutError as PlaywrightTimeout,
+    async_playwright,
+)
 
 from datetime import datetime
 from sqlalchemy import select
@@ -87,7 +92,9 @@ class LiquorCentreScraper(Scraper):
     CATEGORIES = ["beer", "wine", "spirits", "cider", "rtds", "specials"]
 
     def __init__(self, chain: str = None, use_fixtures: bool = False, stores: List[str] = None, scrape_all_stores: bool = True):
-        super().__init__(chain or self.chain)
+        super().__init__(use_fixtures=use_fixtures)
+        if chain:
+            self.chain = chain
         self.use_fixtures = use_fixtures
         self._stores_explicit = bool(stores)
         self._scrape_all_stores = scrape_all_stores
@@ -135,12 +142,25 @@ class LiquorCentreScraper(Scraper):
 
     async def fetch_catalog_pages(self) -> List[str]:
         """
-        Fetch all product pages from Liquor Centre stores.
+        Materialize streamed Liquor Centre pages into a list.
 
         Returns HTML pages as strings, each tagged with metadata for parsing.
         """
+        pages: List[str] = []
+        async for payload in self.stream_catalog_pages():
+            pages.append(payload)
+        logger.info(f"Fetched {len(pages)} total pages")
+        return pages
+
+    async def stream_catalog_pages(self) -> AsyncIterator[str]:
+        """
+        Yield Liquor Centre pages incrementally for page-level persistence.
+        """
         if self.use_fixtures:
-            return await self._fetch_from_fixtures()
+            fixture_pages = await self._fetch_from_fixtures()
+            for payload in fixture_pages:
+                yield payload
+            return
 
         # For production runs, treat DB as source of truth and fallback to JSON/bootstrap list.
         if not self._stores_explicit and self._scrape_all_stores:
@@ -151,8 +171,6 @@ class LiquorCentreScraper(Scraper):
             else:
                 logger.info(f"Using fallback Liquor Centre store list ({len(self.stores)} stores)")
 
-        pages = []
-
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True)
             context = await browser.new_context(
@@ -161,86 +179,99 @@ class LiquorCentreScraper(Scraper):
 
             # Block resources we don't need — significantly reduces page load time.
             _BLOCK_TYPES = {"image", "media", "font", "stylesheet"}
+            async def _route_handler(route):
+                """Ignore route errors that happen during shutdown/cancellation."""
+                try:
+                    if route.request.resource_type in _BLOCK_TYPES:
+                        await route.abort()
+                    else:
+                        await route.continue_()
+                except PlaywrightError as e:
+                    if "Target page, context or browser has been closed" not in str(e):
+                        raise
             await context.route(
                 "**/*",
-                lambda route: (
-                    route.abort()
-                    if route.request.resource_type in _BLOCK_TYPES
-                    else route.continue_()
-                ),
+                _route_handler,
             )
 
             page = await context.new_page()
 
-            for store_slug in self.stores:
-                logger.info(f"Scraping store: {store_slug}")
-                consecutive_failures = 0
-                max_failures = 3  # Skip store if 3 consecutive categories fail
+            try:
+                for store_slug in self.stores:
+                    logger.info(f"Scraping store: {store_slug}")
+                    consecutive_failures = 0
+                    max_failures = 3  # Skip store if 3 consecutive categories fail
 
-                for category in self.CATEGORIES:
-                    # Skip remaining categories if store is unresponsive
-                    if consecutive_failures >= max_failures:
-                        logger.warning(f"  Skipping remaining categories for {store_slug} (too many failures)")
-                        break
+                    for category in self.CATEGORIES:
+                        # Skip remaining categories if store is unresponsive
+                        if consecutive_failures >= max_failures:
+                            logger.warning(
+                                f"  Skipping remaining categories for {store_slug} (too many failures)"
+                            )
+                            break
 
-                    logger.info(f"  Category: {category}")
-                    category_success = False
+                        logger.info(f"  Category: {category}")
+                        category_success = False
 
-                    # Start with page 1
-                    page_num = 1
-                    while True:
-                        url = self._build_url(store_slug, category, page_num)
+                        # Start with page 1
+                        page_num = 1
+                        while True:
+                            url = self._build_url(store_slug, category, page_num)
 
-                        try:
-                            # domcontentloaded is enough — we wait for .talker
-                            # elements below, which is more precise than networkidle
-                            # (networkidle waits for analytics/ads to settle, ~5-15s extra)
-                            await page.goto(url, wait_until="domcontentloaded", timeout=30000)
                             try:
-                                await page.wait_for_selector(".talker", state="attached", timeout=8000)
-                            except Exception:
-                                pass  # Page may be empty (no products in category)
+                                # domcontentloaded is enough — we wait for .talker
+                                # elements below, which is more precise than networkidle
+                                # (networkidle waits for analytics/ads to settle, ~5-15s extra)
+                                await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+                                try:
+                                    await page.wait_for_selector(".talker", state="attached", timeout=8000)
+                                except Exception:
+                                    pass  # Page may be empty (no products in category)
 
-                            html = await page.content()
+                                html = await page.content()
+                                tagged_html = self._tag_html(html, store_slug, category, page_num)
+                                yield tagged_html
+                                category_success = True
 
-                            # Tag HTML with metadata for parsing
-                            tagged_html = self._tag_html(html, store_slug, category, page_num)
-                            pages.append(tagged_html)
-                            category_success = True
+                                # Check for pagination
+                                has_next = await self._has_next_page(page)
+                                if not has_next:
+                                    logger.info(f"    Scraped {page_num} page(s)")
+                                    break
 
-                            # Check for pagination
-                            has_next = await self._has_next_page(page)
-                            if not has_next:
-                                logger.info(f"    Scraped {page_num} page(s)")
+                                page_num += 1
+
+                                # Safety limit
+                                if page_num > 50:
+                                    logger.warning(f"    Hit page limit at page {page_num}")
+                                    break
+
+                            except PlaywrightTimeout:
+                                logger.error(f"    Timeout loading {url}")
+                                break
+                            except Exception as e:
+                                logger.error(f"    Error loading {url}: {e}")
                                 break
 
-                            page_num += 1
+                        # Track consecutive failures
+                        if category_success:
+                            consecutive_failures = 0  # Reset on success
+                        else:
+                            consecutive_failures += 1
 
-                            # Safety limit
-                            if page_num > 50:
-                                logger.warning(f"    Hit page limit at page {page_num}")
-                                break
-
-                        except PlaywrightTimeout:
-                            logger.error(f"    Timeout loading {url}")
-                            break
-                        except Exception as e:
-                            logger.error(f"    Error loading {url}: {e}")
-                            break
-
-                    # Track consecutive failures
-                    if category_success:
-                        consecutive_failures = 0  # Reset on success
-                    else:
-                        consecutive_failures += 1
-
-                    # Delay between categories
-                    await asyncio.sleep(1.0)
-
-            await browser.close()
-
-        logger.info(f"Fetched {len(pages)} total pages")
-        return pages
+                        # Delay between categories
+                        await asyncio.sleep(1.0)
+            finally:
+                # Route callbacks can still be in-flight when a scraper is cancelled.
+                # Unroute first and ignore residual route errors during shutdown.
+                with suppress(Exception):
+                    await context.unroute_all(behavior="ignoreErrors")
+                with suppress(Exception):
+                    await page.close()
+                with suppress(Exception):
+                    await context.close()
+                with suppress(Exception):
+                    await browser.close()
 
     async def parse_products(self, payload: str) -> List[dict]:
         """
