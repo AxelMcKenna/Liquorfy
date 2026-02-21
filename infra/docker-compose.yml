@@ -28,7 +28,7 @@ services:
   worker:
     build:
       context: ..
-      dockerfile: infra/dockerfiles/api.Dockerfile
+      dockerfile: infra/dockerfiles/worker.prod.Dockerfile
     command: poetry run python -m app.workers.runner
     env_file: ../.env.example
     volumes:
