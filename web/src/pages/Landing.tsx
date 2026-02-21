@@ -101,7 +101,7 @@ export const Landing = () => {
       {/* Hero */}
       <section className="bg-primary">
         <div className="max-w-3xl mx-auto px-4 py-16 md:py-20 text-center">
-          <h1 className="text-3xl md:text-4xl font-semibold text-white mb-3 tracking-tight">
+          <h1 className="text-4xl md:text-5xl font-semibold text-white mb-3 tracking-tight">
             Compare liquor prices across NZ
           </h1>
           <p className="text-base text-white/80 mb-8 max-w-lg mx-auto">
