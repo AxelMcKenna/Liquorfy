@@ -6,11 +6,18 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from contextlib import suppress
 from datetime import datetime
 from typing import List, Optional
 from abc import ABC, abstractmethod
 
-from playwright.async_api import async_playwright, Browser, Page, BrowserContext
+from playwright.async_api import (
+    Error as PlaywrightError,
+    Browser,
+    BrowserContext,
+    Page,
+    async_playwright,
+)
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 
@@ -92,13 +99,18 @@ class BrowserScraper(Scraper):
         # Image/font/media files are never downloaded; their URL strings in HTML
         # attributes (src, data-src) are unaffected and still extracted correctly.
         _BLOCK_TYPES = {"image", "media", "font", "stylesheet"}
+        async def _route_handler(route):
+            try:
+                if route.request.resource_type in _BLOCK_TYPES:
+                    await route.abort()
+                else:
+                    await route.continue_()
+            except PlaywrightError as e:
+                if "Target page, context or browser has been closed" not in str(e):
+                    raise
         await self.context.route(
             "**/*",
-            lambda route: (
-                route.abort()
-                if route.request.resource_type in _BLOCK_TYPES
-                else route.continue_()
-            ),
+            _route_handler,
         )
 
         # Apply stealth if available
@@ -115,11 +127,16 @@ class BrowserScraper(Scraper):
     async def close_browser(self) -> None:
         """Close the browser and cleanup."""
         if self.context:
-            await self.context.close()
+            with suppress(Exception):
+                await self.context.unroute_all(behavior="ignoreErrors")
+            with suppress(Exception):
+                await self.context.close()
         if self.browser:
-            await self.browser.close()
+            with suppress(Exception):
+                await self.browser.close()
         if self.playwright:
-            await self.playwright.stop()
+            with suppress(Exception):
+                await self.playwright.stop()
         logger.info(f"Browser closed for {self.chain}")
 
     async def _fetch_page_with_retry(
