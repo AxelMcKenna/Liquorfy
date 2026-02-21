@@ -19,6 +19,7 @@ Production deployment: [https://liquorfy.co.nz](https://liquorfy.co.nz)
 - [Architecture](#architecture)
 - [Data Flow](#data-flow)
 - [Core Capabilities](#core-capabilities)
+- [Tab Icon](#tab-icon)
 - [Getting Started](#getting-started)
 - [Local Development](#local-development)
 - [API Overview](#api-overview)
@@ -76,6 +77,17 @@ flowchart TD
 - Provides scheduled scraper execution via a dedicated worker service.
 - Includes Redis-backed response caching for high-traffic queries.
 - Ships with production-minded defaults: health checks, security headers, and rate limiting.
+
+## Tab Icon
+
+To use a custom browser tab icon (favicon), place your file at:
+
+- `web/public/branding/favicon.png`
+
+Notes:
+
+- The web app loads this file at `/branding/favicon.png`.
+- This only affects the tab icon and does not change any in-page UI.
 
 ## Getting Started
 
