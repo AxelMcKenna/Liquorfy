@@ -92,12 +92,12 @@ class Price(Base):
     store: Mapped[Store] = relationship(back_populates="prices")
 
     __table_args__ = (
+        UniqueConstraint("product_id", "store_id", name="uq_price_product_store"),
         Index("ix_price_price_nzd", "price_nzd"),
         Index("ix_price_promo_price_nzd", "promo_price_nzd"),
         Index("ix_price_last_changed", "price_last_changed_at"),
         Index("ix_price_product_id", "product_id"),  # FK index for JOINs
         Index("ix_price_store_id", "store_id"),  # FK index for JOINs
-        Index("ix_price_product_store", "product_id", "store_id"),  # Composite for lookups
         Index("ix_price_last_seen", "last_seen_at"),  # For cleanup queries
     )
 
