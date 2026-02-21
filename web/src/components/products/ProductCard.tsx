@@ -39,7 +39,7 @@ const ProductCardComponent = ({
   return (
     <>
       <Card
-        className="h-full flex flex-col overflow-hidden border bg-card hover:shadow-sm transition-shadow cursor-pointer group"
+        className="h-full flex flex-col overflow-hidden border bg-white hover:shadow-sm transition-shadow cursor-pointer group"
         onClick={handleCardClick}
       >
         {/* Product Image */}
