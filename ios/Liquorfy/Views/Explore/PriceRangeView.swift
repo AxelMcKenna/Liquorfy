@@ -20,7 +20,7 @@ struct PriceRangeView: View {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
-            .background(Color(.systemGray6))
+            .background(Color.appTertiaryBackground)
             .clipShape(RoundedRectangle(cornerRadius: 8))
 
             Text("to")
@@ -37,7 +37,7 @@ struct PriceRangeView: View {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
-            .background(Color(.systemGray6))
+            .background(Color.appTertiaryBackground)
             .clipShape(RoundedRectangle(cornerRadius: 8))
         }
         .onAppear {

@@ -8,7 +8,7 @@ struct DealCardView: View {
             ZStack(alignment: .topTrailing) {
                 AsyncProductImageView(url: product.imageUrl, size: 120)
                     .frame(maxWidth: .infinity)
-                    .background(Color(.systemBackground))
+                    .background(Color.appBackground)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
 
                 if product.price.savingsPercent > 0 {
@@ -47,7 +47,7 @@ struct DealCardView: View {
         }
         .frame(width: 160)
         .padding(10)
-        .background(Color(.secondarySystemGroupedBackground))
+        .background(Color.appCardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }

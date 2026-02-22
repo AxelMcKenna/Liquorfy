@@ -93,8 +93,7 @@ struct ExploreView: View {
                 .foregroundStyle(.tint)
 
             Text("Location Required")
-                .font(.title2)
-                .fontWeight(.semibold)
+                .font(.appTitle2)
 
             Text("Enable location to see products from stores in your area.")
                 .font(.subheadline)

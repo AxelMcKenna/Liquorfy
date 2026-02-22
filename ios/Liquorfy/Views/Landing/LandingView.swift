@@ -18,7 +18,7 @@ struct LandingView: View {
                 statsSection
             }
         }
-        .background(Color(.systemGroupedBackground))
+        .background(Color.appBackground)
         .navigationTitle("")
         .navigationBarHidden(true)
         .refreshable {
@@ -46,8 +46,7 @@ struct LandingView: View {
     private var heroSection: some View {
         VStack(spacing: 16) {
             Text("Compare liquor prices across NZ")
-                .font(.title2)
-                .fontWeight(.semibold)
+                .font(.appTitle2)
                 .foregroundStyle(.white)
                 .multilineTextAlignment(.center)
 
@@ -67,14 +66,14 @@ struct LandingView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.white)
-                .foregroundStyle(Color(hex: "#0066cc"))
+                .foregroundStyle(Color.appPrimary)
             }
             .padding(.horizontal)
         }
         .padding(.vertical, 40)
         .padding(.horizontal)
         .frame(maxWidth: .infinity)
-        .background(Color(hex: "#0066cc"))
+        .background(Color.appPrimary)
     }
 
     // MARK: - Deals
@@ -84,8 +83,7 @@ struct LandingView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(locationManager.isLocationSet ? "Deals Near You" : "Top Deals")
-                        .font(.title3)
-                        .fontWeight(.semibold)
+                        .font(.appTitle3)
 
                     if !locationManager.isLocationSet {
                         Text("Enable location for personalized results")
