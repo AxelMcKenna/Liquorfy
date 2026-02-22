@@ -53,7 +53,7 @@ CHAIN_DISPLAY_NAMES: Dict[str, str] = {
     "black_bull": "Black Bull",
     "glengarry": "Glengarry",
     "bottle_o": "Bottle-O",
-    "countdown": "Countdown",
+    "countdown": "Woolworths",
     "new_world": "New World",
     "paknsave": "PAK'nSAVE",
     "liquor_centre": "Liquor Centre",
@@ -109,8 +109,13 @@ async def upsert_stores(chain: str, stores: list[dict]) -> tuple[int, int]:
 
             # Prepend chain display name if not already present (e.g. "Ashhurst" → "Bottle-O Ashhurst")
             display = CHAIN_DISPLAY_NAMES.get(chain, "")
-            if display and not name.lower().startswith(display.lower()):
-                name = f"{display} {name}"
+            if display:
+                display_lower = display.lower()
+                # Strip display name if it appears as a suffix (e.g. "Aotea Woolworths" → "Aotea")
+                if name.lower().endswith(f" {display_lower}"):
+                    name = name[: -(len(display) + 1)].strip()
+                if not name.lower().startswith(display_lower):
+                    name = f"{display} {name}"
 
             address = _pick_str(store, "address", "Address", "FullAddress")
             if not address:
