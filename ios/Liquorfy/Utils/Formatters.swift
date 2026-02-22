@@ -23,9 +23,9 @@ enum Formatters {
 
     static func distanceColor(_ km: Double?) -> Color {
         guard let km else { return .secondary }
-        if km < DistanceThreshold.close { return .green }
-        if km < DistanceThreshold.medium { return .orange }
-        return .red
+        if km < DistanceThreshold.close { return .distanceClose }
+        if km < DistanceThreshold.medium { return .distanceMedium }
+        return .secondary
     }
 
     // MARK: - Price
