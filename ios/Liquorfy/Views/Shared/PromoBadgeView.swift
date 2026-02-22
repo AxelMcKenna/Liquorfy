@@ -9,7 +9,7 @@ struct PromoBadgeView: View {
             .fontWeight(.bold)
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
-            .background(.red)
+            .background(Color.appPrimary)
             .foregroundStyle(.white)
             .clipShape(Capsule())
     }

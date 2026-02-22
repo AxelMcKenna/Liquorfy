@@ -21,7 +21,7 @@ struct PriceMetricsView: View {
                 }
             }
             .padding()
-            .background(Color(.systemGray6))
+            .background(Color.appTertiaryBackground)
             .clipShape(RoundedRectangle(cornerRadius: 10))
         }
     }
