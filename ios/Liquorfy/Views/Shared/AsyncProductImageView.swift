@@ -31,7 +31,7 @@ struct AsyncProductImageView: View {
             .font(.system(size: size * 0.35))
             .foregroundStyle(.tertiary)
             .frame(width: size, height: size)
-            .background(Color(.systemGray6))
+            .background(Color.appTertiaryBackground)
     }
 }
 

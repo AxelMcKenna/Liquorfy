@@ -4,9 +4,9 @@ enum Constants {
     static let apiBaseURL = "https://api.liquorfy.co.nz"
 
     enum Radius {
-        static let min: Double = 5
-        static let max: Double = 40
-        static let `default`: Double = 20
+        static let min: Double = 1
+        static let max: Double = 10
+        static let `default`: Double = 3
     }
 
     enum Pagination {
