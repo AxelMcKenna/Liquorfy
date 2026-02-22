@@ -29,7 +29,7 @@ struct LiquorfyApp: App {
             .environment(\.navigate, NavigateAction { destination in
                 navigationPath.append(destination)
             })
-            .tint(Color(hex: "#0066cc"))
+            .tint(.appPrimary)
         }
     }
 }

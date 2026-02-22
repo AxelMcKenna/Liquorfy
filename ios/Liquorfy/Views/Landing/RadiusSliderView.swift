@@ -42,7 +42,7 @@ struct RadiusSliderView: View {
             }
         }
         .padding()
-        .background(Color(.secondarySystemGroupedBackground))
+        .background(Color.appCardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }

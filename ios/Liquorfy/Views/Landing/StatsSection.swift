@@ -4,8 +4,7 @@ struct StatsSection: View {
     var body: some View {
         VStack(spacing: 20) {
             Text("Transparent Pricing")
-                .font(.title3)
-                .fontWeight(.semibold)
+                .font(.appTitle3)
 
             Text("Compare prices across major retailers in real-time")
                 .font(.subheadline)
@@ -29,7 +28,7 @@ struct StatsSection: View {
             }
             .padding()
             .frame(maxWidth: .infinity)
-            .background(Color(.secondarySystemGroupedBackground))
+            .background(Color.appCardBackground)
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
     }
