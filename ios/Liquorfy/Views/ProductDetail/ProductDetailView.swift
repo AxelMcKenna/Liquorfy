@@ -33,7 +33,7 @@ struct ProductDetailView: View {
                 AsyncProductImageView(url: product.imageUrl, size: 200)
                     .frame(maxWidth: .infinity)
                     .frame(height: 250)
-                    .background(Color(.systemBackground))
+                    .background(Color.appBackground)
                     .clipShape(RoundedRectangle(cornerRadius: 16))
                     .padding(.horizontal)
 
@@ -49,8 +49,7 @@ struct ProductDetailView: View {
 
                     // Name
                     Text(product.name)
-                        .font(.title2)
-                        .fontWeight(.bold)
+                        .font(.appTitle2)
 
                     if let brand = product.brand {
                         Text(brand)
@@ -116,13 +115,13 @@ struct ProductDetailView: View {
                     }
                 }
                 .padding()
-                .background(Color(.secondarySystemGroupedBackground))
+                .background(Color.appCardBackground)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
                 .padding(.horizontal)
             }
             .padding(.vertical)
         }
-        .background(Color(.systemGroupedBackground))
+        .background(Color.appBackground)
     }
 
     private func promoInfo(_ product: Product) -> some View {

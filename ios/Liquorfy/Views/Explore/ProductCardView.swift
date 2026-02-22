@@ -16,7 +16,7 @@ struct ProductCardView: View {
                 AsyncProductImageView(url: product.imageUrl, size: 100)
                     .frame(maxWidth: .infinity)
                     .frame(height: 120)
-                    .background(Color(.systemBackground))
+                    .background(Color.appBackground)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
 
                 if product.price.savingsPercent > 0 {
@@ -65,7 +65,7 @@ struct ProductCardView: View {
             }
         }
         .padding(10)
-        .background(Color(.secondarySystemGroupedBackground))
+        .background(Color.appCardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
