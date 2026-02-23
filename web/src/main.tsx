@@ -11,6 +11,8 @@ import "./styles.css";
 // Lazy load route components for code splitting
 const Landing = lazy(() => import("@/pages/Landing"));
 const Explore = lazy(() => import("@/pages/Explore"));
+const Privacy = lazy(() => import("@/pages/Privacy"));
+const Support = lazy(() => import("@/pages/Support"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -32,6 +34,8 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <Route path="/" element={<Landing />} />
             <Route path="/explore" element={<Explore />} />
             <Route path="/product/:id" element={<Navigate to="/explore" replace />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/support" element={<Support />} />
           </Routes>
         </Suspense>
       </LocationProvider>
