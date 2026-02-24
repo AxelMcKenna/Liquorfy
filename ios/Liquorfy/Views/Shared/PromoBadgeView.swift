@@ -12,6 +12,7 @@ struct PromoBadgeView: View {
             .background(Color.appPrimary)
             .foregroundStyle(.white)
             .clipShape(Capsule())
+            .accessibilityLabel("\(percent) percent off")
     }
 }
 

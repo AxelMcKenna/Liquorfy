@@ -13,6 +13,7 @@ struct DistanceBadgeView: View {
                     .fontWeight(.medium)
             }
             .foregroundStyle(Formatters.distanceColor(distanceKm))
+            .accessibilityLabel(text + " away")
         }
     }
 }

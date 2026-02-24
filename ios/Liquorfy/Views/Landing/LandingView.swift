@@ -2,7 +2,6 @@ import SwiftUI
 
 struct LandingView: View {
     @Environment(LocationManager.self) private var locationManager
-    @Environment(ComparisonManager.self) private var comparisonManager
     @Environment(\.navigate) private var navigate
 
     @State private var viewModel = LandingViewModel()
@@ -33,11 +32,6 @@ struct LandingView: View {
         }
         .onChange(of: locationManager.radiusKm) {
             Task { await refresh() }
-        }
-        .safeAreaInset(edge: .bottom) {
-            if !comparisonManager.isEmpty {
-                ComparisonTrayView()
-            }
         }
     }
 
@@ -199,5 +193,4 @@ struct LandingView: View {
         LandingView()
     }
     .environment(LocationManager())
-    .environment(ComparisonManager())
 }

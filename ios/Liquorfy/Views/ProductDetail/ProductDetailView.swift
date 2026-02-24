@@ -3,7 +3,6 @@ import SwiftUI
 struct ProductDetailView: View {
     let productId: UUID
 
-    @Environment(ComparisonManager.self) private var comparisonManager
     @State private var viewModel = ProductDetailViewModel()
 
     var body: some View {
@@ -89,29 +88,13 @@ struct ProductDetailView: View {
                     // Product specs
                     ProductSpecsView(product: product)
 
-                    // Actions
-                    HStack(spacing: 12) {
-                        // Compare toggle
-                        Button {
-                            comparisonManager.toggle(product)
-                        } label: {
-                            Label(
-                                comparisonManager.contains(product) ? "Remove from Compare" : "Add to Compare",
-                                systemImage: comparisonManager.contains(product) ? "checkmark.circle.fill" : "plus.circle"
-                            )
-                            .frame(maxWidth: .infinity)
+                    // View at store
+                    if let urlString = product.productUrl, let url = URL(string: urlString) {
+                        Link(destination: url) {
+                            Label("View at Store", systemImage: "safari")
+                                .frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(.bordered)
-                        .disabled(!comparisonManager.contains(product) && comparisonManager.isAtLimit)
-
-                        // View at store
-                        if let urlString = product.productUrl, let url = URL(string: urlString) {
-                            Link(destination: url) {
-                                Label("View at Store", systemImage: "safari")
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.borderedProminent)
-                        }
+                        .buttonStyle(.borderedProminent)
                     }
                 }
                 .padding()
@@ -172,5 +155,4 @@ struct ProductDetailView: View {
     NavigationStack {
         ProductDetailView(productId: UUID())
     }
-    .environment(ComparisonManager())
 }

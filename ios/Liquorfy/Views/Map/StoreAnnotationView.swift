@@ -12,6 +12,7 @@ struct StoreAnnotationView: View {
                     .fill(.white)
                     .frame(width: 20, height: 20)
             )
+            .accessibilityLabel("\(ChainConstants.displayName(for: chain)) store")
     }
 }
 

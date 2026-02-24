@@ -12,6 +12,7 @@ struct Price: Codable, Hashable, Sendable {
     let standardDrinks: Double?
     let pricePerStandardDrink: Double?
     let isMemberOnly: Bool
+    let isStale: Bool
     let distanceKm: Double?
 
     enum CodingKeys: String, CodingKey {
@@ -26,6 +27,7 @@ struct Price: Codable, Hashable, Sendable {
         case standardDrinks = "standard_drinks"
         case pricePerStandardDrink = "price_per_standard_drink"
         case isMemberOnly = "is_member_only"
+        case isStale = "is_stale"
         case distanceKm = "distance_km"
     }
 

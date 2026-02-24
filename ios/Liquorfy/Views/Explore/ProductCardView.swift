@@ -3,12 +3,6 @@ import SwiftUI
 struct ProductCardView: View {
     let product: Product
 
-    @Environment(ComparisonManager.self) private var comparisonManager
-
-    private var isComparing: Bool {
-        comparisonManager.contains(product)
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             // Image
@@ -48,30 +42,29 @@ struct ProductCardView: View {
                     }
                 }
 
-                HStack {
-                    DistanceBadgeView(distanceKm: product.price.distanceKm)
-                    Spacer()
-
-                    // Compare button
-                    Button {
-                        comparisonManager.toggle(product)
-                    } label: {
-                        Image(systemName: isComparing ? "checkmark.circle.fill" : "plus.circle")
-                            .font(.body)
-                            .foregroundStyle(isComparing ? .tint : .secondary)
-                    }
-                    .disabled(!isComparing && comparisonManager.isAtLimit)
-                }
+                DistanceBadgeView(distanceKm: product.price.distanceKm)
             }
         }
         .padding(10)
         .background(Color.appCardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 12))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(productAccessibilityLabel)
+    }
+
+    private var productAccessibilityLabel: String {
+        var parts = [product.name, Formatters.formatPrice(product.price.currentPrice)]
+        if product.price.hasPromo {
+            parts.append("\(product.price.savingsPercent)% off")
+        }
+        if let distance = Formatters.formatDistance(product.price.distanceKm) {
+            parts.append(distance + " away")
+        }
+        return parts.joined(separator: ", ")
     }
 }
 
 #Preview {
     ProductCardView(product: PreviewData.product)
         .frame(width: 180)
-        .environment(ComparisonManager())
 }
