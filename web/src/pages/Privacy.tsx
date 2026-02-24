@@ -85,6 +85,19 @@ export const Privacy = () => {
                 .
               </li>
               <li>
+                <strong>Supabase</strong> — Database hosting. Product and store data is stored on
+                Supabase infrastructure. No personal user data is stored. See{" "}
+                <a
+                  href="https://supabase.com/privacy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  Supabase's Privacy Policy
+                </a>
+                .
+              </li>
+              <li>
                 <strong>MapLibre / Map tiles</strong> — Used to display store locations on a map.
                 Your approximate location is sent to tile servers to load map imagery.
               </li>
@@ -130,8 +143,8 @@ export const Privacy = () => {
             <h2 className="text-lg font-semibold text-foreground mb-3">Contact</h2>
             <p>
               If you have questions about this privacy policy, email us at{" "}
-              <a href="mailto:support@liquorfy.co.nz" className="text-primary hover:underline">
-                support@liquorfy.co.nz
+              <a href="mailto:liquorfy@gmail.com" className="text-primary hover:underline">
+                liquorfy@gmail.com
               </a>
               .
             </p>
