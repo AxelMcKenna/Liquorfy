@@ -12,6 +12,7 @@ struct ChainBadgeView: View {
             .background(ChainConstants.color(for: chain))
             .foregroundStyle(ChainConstants.needsLightText(for: chain) ? .white : .black)
             .clipShape(Capsule())
+            .accessibilityLabel(ChainConstants.displayName(for: chain))
     }
 }
 

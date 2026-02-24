@@ -35,6 +35,7 @@ final class ModelsDecodingTests: XCTestCase {
             "standard_drinks": 10.0,
             "price_per_standard_drink": 2.00,
             "is_member_only": false,
+            "is_stale": false,
             "distance_km": 1.2
         }
         """.data(using: .utf8)!
@@ -62,6 +63,7 @@ final class ModelsDecodingTests: XCTestCase {
             "standard_drinks": null,
             "price_per_standard_drink": null,
             "is_member_only": false,
+            "is_stale": false,
             "distance_km": null
         }
         """.data(using: .utf8)!
@@ -99,6 +101,7 @@ final class ModelsDecodingTests: XCTestCase {
                 "standard_drinks": null,
                 "price_per_standard_drink": null,
                 "is_member_only": false,
+                "is_stale": false,
                 "distance_km": null
             },
             "last_updated": "2026-02-15T10:30:00Z"

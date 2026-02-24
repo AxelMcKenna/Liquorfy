@@ -30,6 +30,15 @@ struct StatsSection: View {
             .frame(maxWidth: .infinity)
             .background(Color.appCardBackground)
             .clipShape(RoundedRectangle(cornerRadius: 12))
+
+            HStack(spacing: 16) {
+                Link("Privacy Policy", destination: URL(string: "https://www.liquorfy.co.nz/privacy")!)
+                Text("·")
+                    .foregroundStyle(.secondary)
+                Link("Support", destination: URL(string: "https://www.liquorfy.co.nz/support")!)
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
         }
     }
 

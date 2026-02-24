@@ -13,6 +13,7 @@ enum PreviewData {
         standardDrinks: 10.0,
         pricePerStandardDrink: 2.00,
         isMemberOnly: false,
+        isStale: false,
         distanceKm: 1.2
     )
 
@@ -28,6 +29,7 @@ enum PreviewData {
         standardDrinks: 7.9,
         pricePerStandardDrink: 3.80,
         isMemberOnly: false,
+        isStale: false,
         distanceKm: 3.5
     )
 

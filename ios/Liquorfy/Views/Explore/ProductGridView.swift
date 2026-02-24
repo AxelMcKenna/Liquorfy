@@ -26,5 +26,4 @@ struct ProductGridView: View {
     ScrollView {
         ProductGridView(products: PreviewData.products)
     }
-    .environment(ComparisonManager())
 }

@@ -5,7 +5,6 @@ struct ExploreView: View {
     var initialPromoOnly: Bool = false
 
     @Environment(LocationManager.self) private var locationManager
-    @Environment(ComparisonManager.self) private var comparisonManager
     @Environment(\.navigate) private var navigate
 
     @State private var viewModel = ExploreViewModel()
@@ -75,47 +74,14 @@ struct ExploreView: View {
         .refreshable {
             await fetchProducts()
         }
-        .safeAreaInset(edge: .bottom) {
-            if !comparisonManager.isEmpty {
-                ComparisonTrayView()
-            }
-        }
     }
 
     // MARK: - Location Gate
 
     private var locationGate: some View {
-        VStack(spacing: 20) {
+        VStack {
             Spacer()
-
-            Image(systemName: "location.circle.fill")
-                .font(.system(size: 50))
-                .foregroundStyle(.tint)
-
-            Text("Location Required")
-                .font(.appTitle2)
-
-            Text("Enable location to see products from stores in your area.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
-
-            if let error = locationManager.error {
-                Text(error)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-                    .padding(.horizontal)
-            }
-
-            Button {
-                locationManager.requestLocation()
-            } label: {
-                Label("Use My Location", systemImage: "location.fill")
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(locationManager.isLoading)
-
+            LocationRequestView()
             Spacer()
         }
     }
@@ -201,5 +167,4 @@ struct ExploreView: View {
         ExploreView()
     }
     .environment(LocationManager())
-    .environment(ComparisonManager())
 }

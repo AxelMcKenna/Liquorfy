@@ -6,7 +6,7 @@ enum Constants {
     enum Radius {
         static let min: Double = 1
         static let max: Double = 10
-        static let `default`: Double = 3
+        static let `default`: Double = 2
     }
 
     enum Pagination {
@@ -17,7 +17,4 @@ enum Constants {
         static let locationTTL: TimeInterval = 5 * 60 // 5 minutes
     }
 
-    enum Comparison {
-        static let maxProducts = 4
-    }
 }

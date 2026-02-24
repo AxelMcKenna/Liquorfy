@@ -8,7 +8,6 @@ enum AppDestination: Hashable {
 @main
 struct LiquorfyApp: App {
     @State private var locationManager = LocationManager()
-    @State private var comparisonManager = ComparisonManager()
     @State private var navigationPath = NavigationPath()
 
     var body: some Scene {
@@ -25,7 +24,6 @@ struct LiquorfyApp: App {
                     }
             }
             .environment(locationManager)
-            .environment(comparisonManager)
             .environment(\.navigate, NavigateAction { destination in
                 navigationPath.append(destination)
             })
