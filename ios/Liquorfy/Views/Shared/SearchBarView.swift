@@ -8,10 +8,13 @@ struct SearchBarView: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
+                .font(.system(size: 14))
+                .foregroundStyle(.primary.opacity(0.5))
 
-            TextField(placeholder, text: $text)
+            TextField("", text: $text, prompt: Text(placeholder).foregroundStyle(.primary.opacity(0.5)))
+                .font(.appCardBody)
                 .textFieldStyle(.plain)
+                .foregroundStyle(.primary)
                 .submitLabel(.search)
                 .onSubmit(onSubmit)
                 .autocorrectionDisabled()

@@ -124,10 +124,11 @@ struct ExploreView: View {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 14))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.primary.opacity(0.5))
 
-                TextField("Search products", text: $filterState.query)
+                TextField("", text: $filterState.query, prompt: Text("Search products").foregroundStyle(.primary.opacity(0.5)))
                     .font(.appCardBody)
+                    .foregroundStyle(.primary)
                     .focused($isSearchFocused)
                     .submitLabel(.search)
                     .onSubmit {

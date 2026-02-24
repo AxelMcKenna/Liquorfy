@@ -21,14 +21,14 @@ struct SortPickerView: View {
             HStack {
                 Image(systemName: selection.iconName)
                     .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.primary)
                 Text(selection.displayName)
                     .font(.appCardBody)
                     .foregroundStyle(.primary)
                 Spacer()
                 Image(systemName: "chevron.down")
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.primary)
             }
             .padding(.horizontal, 12)
             .frame(height: 40)

@@ -44,7 +44,7 @@ struct CategoryPickerView: View {
                 Spacer()
                 Image(systemName: "chevron.down")
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.primary)
             }
             .padding(.horizontal, 12)
             .frame(height: 40)

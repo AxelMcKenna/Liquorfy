@@ -28,6 +28,7 @@ struct ProductGridView: View {
             }
         }
         .padding(.horizontal)
+        .padding(.vertical, 4)
     }
 
     @State private var appeared: Set<UUID> = []

@@ -21,6 +21,24 @@ struct RadiusSliderView: View {
                 in: Constants.Radius.min...Constants.Radius.max,
                 step: 1
             )
+            .tint(Color.appPrimary)
+            .onAppear {
+                // Unfilled track: hsl(38, 12%, 83%) = #d8d5ce from web app
+                UISlider.appearance().maximumTrackTintColor = UIColor(Color(hex: "#d8d5ce"))
+                // Green-bordered circular thumb matching web app
+                let size = CGSize(width: 22, height: 22)
+                let renderer = UIGraphicsImageRenderer(size: size)
+                let thumbImage = renderer.image { ctx in
+                    let rect = CGRect(origin: .zero, size: size).insetBy(dx: 1, dy: 1)
+                    ctx.cgContext.setFillColor(UIColor.white.cgColor)
+                    ctx.cgContext.fillEllipse(in: rect)
+                    ctx.cgContext.setStrokeColor(UIColor(Color.appPrimary).cgColor)
+                    ctx.cgContext.setLineWidth(2)
+                    ctx.cgContext.strokeEllipse(in: rect)
+                }
+                UISlider.appearance().setThumbImage(thumbImage, for: .normal)
+                UISlider.appearance().setThumbImage(thumbImage, for: .highlighted)
+            }
             .onChange(of: radius) { _, newValue in
                 onChanged?(newValue)
             }
@@ -40,7 +58,8 @@ struct RadiusSliderView: View {
             }
         }
         .padding()
-        .cardStyle()
+        .background(Color.appTertiaryBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
 

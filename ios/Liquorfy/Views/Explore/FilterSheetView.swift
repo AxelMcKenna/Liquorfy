@@ -36,7 +36,7 @@ struct FilterSheetView: View {
                                 } label: {
                                     Text("Clear all filters")
                                         .font(.appSans(size: 12, relativeTo: .caption))
-                                        .foregroundStyle(.secondary)
+                                        .foregroundStyle(.primary)
                                 }
                             }
                         }
@@ -131,10 +131,10 @@ struct FilterSheetView: View {
             HStack(spacing: 8) {
                 Image(systemName: icon)
                     .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.primary)
                 Text(title)
                     .font(.appSansSemiBold(size: 13, relativeTo: .caption))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.primary)
                     .textCase(.uppercase)
             }
             content()
@@ -150,7 +150,7 @@ struct FilterSheetView: View {
             HStack(spacing: 10) {
                 Image(systemName: isOn.wrappedValue ? "checkmark.square.fill" : "square")
                     .font(.system(size: 16))
-                    .foregroundStyle(isOn.wrappedValue ? .primary : .secondary)
+                    .foregroundStyle(.primary)
 
                 Text(label)
                     .font(.appSansMedium(size: 14, relativeTo: .subheadline))

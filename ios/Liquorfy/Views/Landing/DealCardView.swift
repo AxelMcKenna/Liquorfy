@@ -19,13 +19,16 @@ struct DealCardView: View {
             }
 
             VStack(alignment: .leading, spacing: 4) {
+                // Name — always 2 lines
                 Text(product.name)
                     .font(.appSerif(size: 14, relativeTo: .subheadline))
                     .lineLimit(2)
+                    .frame(minHeight: 36, alignment: .topLeading)
                     .foregroundStyle(.primary)
 
                 ChainBadgeView(chain: product.chain)
 
+                // Price — always reserve space for strikethrough
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     Text(Formatters.formatPrice(product.price.currentPrice))
                         .font(.appPrice)
@@ -37,15 +40,23 @@ struct DealCardView: View {
                             .strikethrough()
                             .foregroundStyle(.secondary)
                     }
-                }
 
+                    Spacer()
+                }
+                .frame(minHeight: 22)
+
+                // Distance — always reserve space
                 if let distance = product.price.distanceKm {
                     DistanceBadgeView(distanceKm: distance)
+                } else {
+                    Text(" ")
+                        .font(.appCaption)
                 }
             }
         }
         .frame(width: 180)
         .padding(12)
+        .frame(maxHeight: .infinity, alignment: .top)
         .cardStyle()
     }
 }
