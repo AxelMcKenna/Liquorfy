@@ -3,78 +3,72 @@ import SwiftUI
 struct LocationRequestView: View {
     @Environment(LocationManager.self) private var locationManager
 
-    @State private var showManualEntry = false
-    @State private var selectedCity: NZCity?
 
     var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "mappin.circle.fill")
-                .font(.system(size: 40))
-                .foregroundStyle(.tint)
+        VStack(spacing: 20) {
+            // Icon — matches web: bg-secondary rounded-lg with green MapPin
+            Image(systemName: "mappin.and.ellipse")
+                .font(.system(size: 24))
+                .foregroundStyle(Color.appPrimary)
+                .frame(width: 48, height: 48)
+                .background(Color.appTertiaryBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
 
-            Text("Enable Location")
-                .font(.headline)
+            // Title + description
+            VStack(spacing: 8) {
+                Text("Enable Location")
+                    .font(.appSansSemiBold(size: 20, relativeTo: .title3))
 
-            Text("See deals from stores in your area")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-
-            Button {
-                locationManager.requestLocation()
-            } label: {
-                if locationManager.isLoading {
-                    ProgressView()
-                        .padding(.horizontal)
-                } else {
-                    Label("Use My Location", systemImage: "location.fill")
-                }
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(locationManager.isLoading)
-
-            if let error = locationManager.error {
-                Text(error)
-                    .font(.caption)
-                    .foregroundStyle(.red)
+                Text("See deals from stores in your area")
+                    .font(.appCardBody)
+                    .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
 
-            Button {
-                withAnimation { showManualEntry.toggle() }
-            } label: {
-                Text(showManualEntry ? "Hide manual entry" : "Or set location manually")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            if showManualEntry {
-                VStack(spacing: 12) {
-                    Text("Select a city")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                        ForEach(NZCity.allCases) { city in
-                            Button {
-                                selectedCity = city
-                                locationManager.setManualLocation(lat: city.lat, lon: city.lon)
-                            } label: {
-                                Text(city.name)
-                                    .font(.subheadline)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 10)
-                                    .background(selectedCity == city ? Color.appPrimary : Color.appCardBackground)
-                                    .foregroundStyle(selectedCity == city ? .white : .primary)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                            }
-                        }
-                    }
+            if let error = locationManager.error {
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "exclamationmark.circle.fill")
+                        .foregroundStyle(.red)
+                    Text(error)
+                        .font(.appCaption)
+                        .foregroundStyle(.red)
                 }
-                .padding(.top, 4)
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.red.opacity(0.05))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.red.opacity(0.2), lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 8))
             }
+
+            // Single button — Enable Location
+            Button {
+                locationManager.requestLocation()
+            } label: {
+                HStack(spacing: 8) {
+                    if locationManager.isLoading {
+                        ProgressView()
+                            .tint(.white)
+                    } else {
+                        Image(systemName: "location.fill")
+                            .font(.system(size: 16))
+                    }
+                    Text(locationManager.isLoading ? "Getting location..." : "Enable Location")
+                        .font(.appSansSemiBold(size: 16, relativeTo: .body))
+                }
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 52)
+                .background(Color.appPrimary)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+            .buttonStyle(.plain)
+            .disabled(locationManager.isLoading)
         }
         .padding(.vertical, 32)
-        .padding(.horizontal)
+        .padding(.horizontal, 24)
         .frame(maxWidth: .infinity)
     }
 }

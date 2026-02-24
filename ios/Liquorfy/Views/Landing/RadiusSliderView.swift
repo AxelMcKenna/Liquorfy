@@ -9,12 +9,10 @@ struct RadiusSliderView: View {
         VStack(spacing: 8) {
             HStack {
                 Text("Search radius")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+                    .font(.appSansMedium(size: 14, relativeTo: .subheadline))
                 Spacer()
                 Text("\(Int(radius)) km")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+                    .font(.appSansSemiBold(size: 14, relativeTo: .subheadline))
                     .foregroundStyle(.tint)
             }
 
@@ -29,21 +27,20 @@ struct RadiusSliderView: View {
 
             HStack {
                 Text("\(Int(Constants.Radius.min)) km")
-                    .font(.caption2)
+                    .font(.appCaption)
                     .foregroundStyle(.secondary)
                 Spacer()
                 Text("\(storeCount) stores")
-                    .font(.caption2)
+                    .font(.appCaption)
                     .foregroundStyle(.secondary)
                 Spacer()
                 Text("\(Int(Constants.Radius.max)) km")
-                    .font(.caption2)
+                    .font(.appCaption)
                     .foregroundStyle(.secondary)
             }
         }
         .padding()
-        .background(Color.appCardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .cardStyle()
     }
 }
 

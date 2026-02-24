@@ -6,5 +6,12 @@
 	<string>Liquorfy uses your location to find nearby stores and show you the best deals in your area.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Liquorfy uses your location to find nearby stores and show you the best deals in your area.</string>
+	<key>UIAppFonts</key>
+	<array>
+		<string>DMSans-Regular.ttf</string>
+		<string>DMSans-Medium.ttf</string>
+		<string>DMSans-SemiBold.ttf</string>
+		<string>DMSans-Bold.ttf</string>
+	</array>
 </dict>
 </plist>
