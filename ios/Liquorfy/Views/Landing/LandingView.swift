@@ -7,6 +7,7 @@ struct LandingView: View {
     @State private var viewModel = LandingViewModel()
     @State private var searchQuery = ""
     @State private var tempRadius: Double = Constants.Radius.default
+    @State private var quickViewProduct: Product?
 
     var body: some View {
         ScrollView {
@@ -20,6 +21,10 @@ struct LandingView: View {
         .background(Color.appBackground)
         .navigationTitle("")
         .navigationBarHidden(true)
+        .sheet(item: $quickViewProduct) { product in
+            QuickViewSheet(product: product)
+                .presentationDetents([.large])
+        }
         .refreshable {
             await refresh()
         }
@@ -40,7 +45,7 @@ struct LandingView: View {
     private var heroSection: some View {
         VStack(spacing: 20) {
             Text("Compare liquor prices across NZ")
-                .font(.appTitle2)
+                .font(.appTitle)
                 .foregroundStyle(.white)
                 .multilineTextAlignment(.center)
 
@@ -62,9 +67,9 @@ struct LandingView: View {
     // MARK: - Deals
 
     private var dealsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             HStack {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 6) {
                     Text(locationManager.isLocationSet ? "Deals Near You" : "Top Deals")
                         .font(.appTitle3)
 
@@ -103,7 +108,7 @@ struct LandingView: View {
                     LazyHStack(spacing: 12) {
                         ForEach(viewModel.deals) { product in
                             Button {
-                                navigate(.productDetail(id: product.id))
+                                quickViewProduct = product
                             } label: {
                                 DealCardView(product: product)
                             }
@@ -114,13 +119,14 @@ struct LandingView: View {
                 }
             }
         }
-        .padding()
+        .padding(.horizontal)
+        .padding(.vertical, 24)
     }
 
     // MARK: - Map
 
     private var mapSection: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 20) {
             Divider()
 
             if !locationManager.isLocationSet {
@@ -145,17 +151,19 @@ struct LandingView: View {
                 }
             }
         }
-        .padding()
+        .padding(.horizontal)
+        .padding(.vertical, 24)
     }
 
     // MARK: - Stats
 
     private var statsSection: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 20) {
             Divider()
             StatsSection()
         }
-        .padding()
+        .padding(.horizontal)
+        .padding(.vertical, 24)
     }
 
     // MARK: - Actions

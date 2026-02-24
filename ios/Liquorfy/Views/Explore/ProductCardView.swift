@@ -4,7 +4,7 @@ struct ProductCardView: View {
     let product: Product
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             // Image — fixed height so all cards match
             ZStack(alignment: .topLeading) {
                 AsyncProductImageView(url: product.imageUrl, size: 130)
@@ -22,7 +22,7 @@ struct ProductCardView: View {
             }
 
             // Info — fixed layout so all cards are equal height
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 8) {
                 // Name (always reserves 2 lines)
                 Text(product.name)
                     .font(.appSerif(size: 14, relativeTo: .subheadline))
