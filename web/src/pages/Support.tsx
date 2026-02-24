@@ -3,9 +3,9 @@ import { Link } from "react-router-dom";
 export const Support = () => {
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b py-6">
-        <div className="max-w-3xl mx-auto px-4">
-          <Link to="/" className="text-xl font-semibold text-primary tracking-tight">
+      <header className="bg-primary py-6">
+        <div className="max-w-6xl mx-auto px-4">
+          <Link to="/" className="text-xl font-semibold text-white tracking-tight">
             LIQUORFY
           </Link>
         </div>
