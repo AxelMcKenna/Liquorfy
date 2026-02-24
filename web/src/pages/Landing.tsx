@@ -10,6 +10,7 @@ import { useProducts } from '@/hooks/useProducts';
 import { useLocationContext } from '@/contexts/LocationContext';
 import { useStores } from '@/hooks/useStores';
 import { Search, ArrowRight, MapPin } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { SortOption } from '@/types';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 
@@ -269,6 +270,11 @@ export const Landing = () => {
               </a>
             </p>
           </div>
+          <p className="text-xs text-muted-foreground mt-6 text-right">
+            <Link to="/privacy" className="hover:underline">Privacy</Link>
+            {' · '}
+            <Link to="/support" className="hover:underline">Support</Link>
+          </p>
         </section>
       </main>
 
