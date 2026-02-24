@@ -17,11 +17,12 @@ extension Color {
     static let appTertiaryBackground = Color("AppTertiaryBackground")
 
     // MARK: Distance indicator colors (matching web CSS variables)
-    /// Close (<2 km) — green
-    static let distanceClose = Color(hex: "#22c55e")
-    /// Medium (2–5 km) — amber
-    static let distanceMedium = Color(hex: "#d4a500")
-    /// Far (>5 km) — uses .secondary (gray)
+    /// Close (<2 km) — green hsl(142, 71%, 45%)
+    static let distanceClose = Color(hex: "#21c45d")
+    /// Medium (2–5 km) — amber hsl(45, 93%, 47%)
+    static let distanceMedium = Color(hex: "#e7af08")
+    /// Far (>5 km) — gray hsl(0, 0%, 45%)
+    static let distanceFar = Color(hex: "#727272")
 }
 
 // MARK: - Typography

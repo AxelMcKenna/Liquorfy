@@ -44,6 +44,7 @@ struct ProductCardView: View {
                         Text(ChainConstants.displayName(for: product.chain))
                             .lineLimit(1)
                     }
+                    .foregroundStyle(.secondary)
 
                     if let distanceKm = product.price.distanceKm,
                        let distanceText = Formatters.formatDistance(distanceKm) {
@@ -53,10 +54,10 @@ struct ProductCardView: View {
                             Text(distanceText)
                                 .lineLimit(1)
                         }
+                        .foregroundStyle(Formatters.distanceColor(distanceKm))
                     }
                 }
                 .font(.appCaption)
-                .foregroundStyle(.secondary)
 
                 // Price
                 HStack(alignment: .firstTextBaseline, spacing: 4) {

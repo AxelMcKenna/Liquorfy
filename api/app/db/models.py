@@ -64,6 +64,7 @@ class Product(Base):
     total_volume_ml: Mapped[Optional[float]] = mapped_column(Float)
     image_url: Mapped[Optional[str]] = mapped_column(String(512))
     product_url: Mapped[Optional[str]] = mapped_column(String(512))
+    is_sugar_free: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="0")
 
     prices: Mapped[list["Price"]] = relationship(back_populates="product")
 

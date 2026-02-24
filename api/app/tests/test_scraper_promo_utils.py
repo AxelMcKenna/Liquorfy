@@ -222,7 +222,6 @@ class TestDetectMemberOnly:
         "Onecard Special",
         "Loyalty Price",
         "Rewards Members",
-        "Card holders only",
         "CLUBCARD PRICE",  # Uppercase
         "member special",  # Lowercase
     ])
@@ -349,3 +348,30 @@ class TestPromoEdgeCases:
         assert multi_buy is not None
         assert multi_buy["quantity"] == 3
         assert end_date is not None
+
+
+# ============================================================================
+# Member Keyword False-Positive Tests
+# ============================================================================
+
+class TestMemberKeywordFalsePositives:
+    """Verify word-boundary matching prevents member-only false positives."""
+
+    def test_cardboard_not_member(self):
+        """'Cardboard box packaging' should NOT trigger member-only."""
+        assert detect_member_only("Cardboard box packaging") is False
+
+    def test_nightclub_not_member(self):
+        """'Nightclub special' should NOT trigger member-only."""
+        assert detect_member_only("Nightclub special") is False
+
+    def test_gift_card_not_member(self):
+        """'Gift card' should NOT trigger member-only (bare 'card' removed)."""
+        assert detect_member_only("Gift card included") is False
+
+    def test_real_member_keywords_still_work(self):
+        """Actual member keywords should still be detected."""
+        assert detect_member_only("Clubcard Price $19.99") is True
+        assert detect_member_only("Member Price") is True
+        assert detect_member_only("Onecard Special") is True
+        assert detect_member_only("Loyalty discount") is True

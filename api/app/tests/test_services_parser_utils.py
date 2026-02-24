@@ -259,6 +259,18 @@ class TestKnownBrands:
             assert brand in KNOWN_BRANDS, f"Missing brand: {brand}"
 
 
+class TestDataIntegrity:
+    """Data integrity checks for static lists and maps."""
+
+    def test_no_duplicate_known_brands(self):
+        """KNOWN_BRANDS should have no duplicates."""
+        seen: set[str] = set()
+        for brand in KNOWN_BRANDS:
+            key = brand.lower()
+            assert key not in seen, f"Duplicate brand: {brand}"
+            seen.add(key)
+
+
 class TestBrandCategoryMap:
     """Tests for brand to category mapping."""
 

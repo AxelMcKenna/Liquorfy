@@ -11,10 +11,11 @@ struct SearchBarView: View {
                 .font(.system(size: 14))
                 .foregroundStyle(.primary.opacity(0.5))
 
-            TextField("", text: $text, prompt: Text(placeholder).foregroundStyle(.primary.opacity(0.5)))
+            TextField("", text: $text, prompt: Text(placeholder).foregroundStyle(.primary))
                 .font(.appCardBody)
                 .textFieldStyle(.plain)
                 .foregroundStyle(.primary)
+                .tint(.primary)
                 .submitLabel(.search)
                 .onSubmit(onSubmit)
                 .autocorrectionDisabled()

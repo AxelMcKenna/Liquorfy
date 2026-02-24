@@ -35,6 +35,7 @@ class ProductSchema(BaseModel):
     unit_volume_ml: Optional[float]
     image_url: Optional[str]
     product_url: Optional[str]
+    is_sugar_free: bool = False
     price: PriceSchema
     last_updated: datetime
 

@@ -173,7 +173,8 @@ class Scraper(abc.ABC):
             Standardized product dictionary
         """
         from app.services.parser_utils import (
-            parse_volume, extract_abv, infer_brand, infer_category
+            parse_volume, extract_abv, infer_brand, infer_category,
+            detect_sugar_free,
         )
 
         # Parse volume from name
@@ -194,6 +195,7 @@ class Scraper(abc.ABC):
             "unit_volume_ml": volume.unit_volume_ml,
             "total_volume_ml": volume.total_volume_ml,
             "abv_percent": extract_abv(name),
+            "is_sugar_free": detect_sugar_free(name),
             "url": url,
             "image_url": image_url,
             **kwargs  # Additional fields
@@ -227,6 +229,7 @@ class Scraper(abc.ABC):
                 "total_volume_ml": product_data.get("total_volume_ml"),
                 "image_url": product_data.get("image_url"),
                 "product_url": product_data.get("url"),
+                "is_sugar_free": product_data.get("is_sugar_free", False),
             })
 
         stmt = insert(Product).values(product_values)
@@ -242,6 +245,7 @@ class Scraper(abc.ABC):
                 "total_volume_ml": stmt.excluded.total_volume_ml,
                 "image_url": stmt.excluded.image_url,
                 "product_url": stmt.excluded.product_url,
+                "is_sugar_free": stmt.excluded.is_sugar_free,
                 "updated_at": now,
             },
         )
@@ -357,6 +361,7 @@ class Scraper(abc.ABC):
             total_volume_ml=product_data.get("total_volume_ml"),
             image_url=product_data.get("image_url"),
             product_url=product_data.get("url"),
+            is_sugar_free=product_data.get("is_sugar_free", False),
         )
         stmt = stmt.on_conflict_do_update(
             index_elements=["chain", "source_product_id"],
@@ -370,6 +375,7 @@ class Scraper(abc.ABC):
                 "total_volume_ml": stmt.excluded.total_volume_ml,
                 "image_url": stmt.excluded.image_url,
                 "product_url": stmt.excluded.product_url,
+                "is_sugar_free": stmt.excluded.is_sugar_free,
                 "updated_at": now,
             },
         )

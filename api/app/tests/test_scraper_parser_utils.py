@@ -13,6 +13,7 @@ from app.services.parser_utils import (
     extract_abv,
     infer_brand,
     infer_category,
+    detect_sugar_free,
     CATEGORY_HIERARCHY,
 )
 
@@ -177,11 +178,10 @@ class TestExtractABV:
 
     def test_edge_case_abv_extraction(self):
         """Test edge cases in ABV extraction."""
-        # "0%" is a valid ABV for alcohol-free products
+        # "100% Natural" should NOT match — the lookbehind prevents
+        # matching digits that are part of a larger number.
         result = extract_abv("100% Natural")
-        # The regex matches 0% in "100%" - this is expected behavior
-        # The pattern \d{1,2} matches the last 1-2 digits before %
-        assert result == 0.0  # Matches the "0" before "%"
+        assert result is None
 
     def test_first_percentage_matched(self):
         """Test that first percentage is matched when multiple exist."""
@@ -345,6 +345,45 @@ class TestInferCategory:
 
 
 # ============================================================================
+# Sugar-Free Detection Tests
+# ============================================================================
+
+class TestDetectSugarFree:
+    """Tests for detect_sugar_free function."""
+
+    @pytest.mark.parametrize("text", [
+        "Codys Sugar Free 7% 12x250ml",
+        "KGB Sugar-Free Lemon Ice",
+        "Cody's & Zero Sugar Cola 7%",
+        "Epic Low Carb Pale Ale",
+        "Better Beer Zero Carb",
+        "No Sugar RTD 5%",
+        "Diet Mixer Vodka 330ml",
+        "Zero Carbs Lager 330ml",
+        "No Carbs Seltzer 4%",
+        "Low-Carb Craft Beer",
+    ])
+    def test_sugar_free_detected(self, text):
+        """Products with sugar-free keywords should be detected."""
+        assert detect_sugar_free(text) is True, f"Expected True for '{text}'"
+
+    def test_sugar_free_brand_detection(self):
+        """Clean Collective products should be detected by brand."""
+        assert detect_sugar_free("Clean Collective Gin & Tonic 5%") is True
+
+    @pytest.mark.parametrize("text", [
+        "Heineken Lager 330ml",
+        "Smirnoff Vodka 1L",
+        "Cloudy Bay Sauvignon Blanc 750ml",
+        "Sugar Loaf Vineyard Pinot Noir",  # "sugar" alone is NOT a match
+        "Carbine Stout 440ml",  # "carb" inside another word
+    ])
+    def test_sugar_free_not_detected(self, text):
+        """Regular products should not be flagged as sugar-free."""
+        assert detect_sugar_free(text) is False, f"Expected False for '{text}'"
+
+
+# ============================================================================
 # Integration Tests
 # ============================================================================
 
@@ -442,3 +481,96 @@ class TestEdgeCases:
         # 1800 Tequila
         result = infer_category("1800 Tequila Silver 700ml")
         assert result == "tequila"
+
+
+# ============================================================================
+# Word-Boundary & False-Positive Tests
+# ============================================================================
+
+class TestWordBoundaryBrand:
+    """Verify word-boundary matching prevents brand false positives."""
+
+    def test_tui_does_not_match_tuition(self):
+        """'Tui' brand should not match inside 'Tuition'."""
+        result = infer_brand("Tuition Fee Payment")
+        assert result != "Tui"
+
+    def test_db_does_not_match_database(self):
+        """'DB' brand should not match inside 'Database'."""
+        result = infer_brand("Database Migration Tool")
+        assert result != "DB"
+
+    def test_sol_does_not_match_absolut(self):
+        """'Sol' brand-category entry should not match inside 'Absolut'."""
+        result = infer_category("Absolut Vodka 700ml")
+        assert result == "vodka"  # should NOT fall through to "beer" via "sol"
+
+    def test_smirnoff_ice_matches_before_smirnoff(self):
+        """Longer brand 'Smirnoff Ice' should match before shorter 'Smirnoff'."""
+        result = infer_brand("Smirnoff Ice Raspberry 4x300ml")
+        assert result == "Smirnoff Ice"
+
+
+class TestWordBoundaryCategory:
+    """Verify word-boundary matching prevents category keyword false positives."""
+
+    def test_ginger_beer_not_gin(self):
+        """'Ginger Beer' should match 'mixer', not 'gin'."""
+        result = infer_category("Bundaberg Ginger Beer 375ml")
+        assert result != "gin"
+
+    def test_export_gold_not_port(self):
+        """'Export Gold' should not match 'port' from 'export'."""
+        result = infer_category("Export Gold 15x330ml")
+        assert result != "fortified_wine"
+
+    def test_sale_item_not_ale(self):
+        """'Sale Item' should not match 'ale'."""
+        result = infer_category("Sale Item Clearance")
+        assert result != "ale"
+
+    def test_rummage_not_rum(self):
+        """'Rummage' should not match 'rum'."""
+        result = infer_category("Rummage Market Deals")
+        assert result != "rum"
+
+
+class TestVolumeClParsing:
+    """Test centilitre (cl) volume parsing."""
+
+    def test_single_cl_volume(self):
+        """'70cl' should parse to 700ml."""
+        result = parse_volume("Cognac 70cl")
+        assert result.unit_volume_ml == 700.0
+        assert result.total_volume_ml == 700.0
+        assert result.pack_count is None
+
+    def test_pack_cl_volume(self):
+        """'6x70cl' should parse to 6 × 700ml = 4200ml."""
+        result = parse_volume("Whisky 6x70cl")
+        assert result.pack_count == 6
+        assert result.unit_volume_ml == 700.0
+        assert result.total_volume_ml == 4200.0
+
+    def test_cl_50(self):
+        """'50cl' should parse to 500ml."""
+        result = parse_volume("Rum 50cl")
+        assert result.unit_volume_ml == 500.0
+
+
+class TestABVFalsePositives:
+    """Verify the ABV lookbehind prevents false matches."""
+
+    def test_100_percent_natural(self):
+        """'100% Natural' should NOT extract 0.0 ABV."""
+        assert extract_abv("100% Natural") is None
+
+    def test_200_percent_markup(self):
+        """'200% Markup' should NOT extract any ABV."""
+        assert extract_abv("200% Markup") is None
+
+    def test_legitimate_abv_still_works(self):
+        """Normal ABV values should still be extracted."""
+        assert extract_abv("5% Lager") == 5.0
+        assert extract_abv("12.5% Wine") == 12.5
+        assert extract_abv("0% Alcohol Free") == 0.0
