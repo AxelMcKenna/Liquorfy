@@ -22,8 +22,8 @@ export const Support = () => {
             <h2 className="text-lg font-semibold text-foreground mb-2">Contact Us</h2>
             <p>
               For any questions, feedback, or issues, email us at{" "}
-              <a href="mailto:support@liquorfy.co.nz" className="text-primary hover:underline">
-                support@liquorfy.co.nz
+              <a href="mailto:liquorfy@gmail.com" className="text-primary hover:underline">
+                liquorfy@gmail.com
               </a>
               . We aim to respond within 48 hours.
             </p>
@@ -92,10 +92,10 @@ export const Support = () => {
                   Prices are scraped from retailer websites and may occasionally be inaccurate. If
                   you spot an error, please let us know at{" "}
                   <a
-                    href="mailto:support@liquorfy.co.nz"
+                    href="mailto:liquorfy@gmail.com"
                     className="text-primary hover:underline"
                   >
-                    support@liquorfy.co.nz
+                    liquorfy@gmail.com
                   </a>{" "}
                   and we'll investigate.
                 </p>
