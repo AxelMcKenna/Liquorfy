@@ -152,7 +152,7 @@ export const Explore = () => {
             onClose={() => setIsSidebarOpen(false)}
           />
 
-          <main className="flex-1 overflow-y-auto min-h-screen overscroll-none">
+          <main className="flex-1 min-h-screen">
             <div className="max-w-6xl mx-auto px-4 py-6 pb-32">
               {/* Location requirement gate */}
               {!isLocationSet && (

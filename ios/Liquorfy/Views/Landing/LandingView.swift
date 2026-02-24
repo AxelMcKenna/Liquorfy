@@ -18,6 +18,7 @@ struct LandingView: View {
                 statsSection
             }
         }
+        .ignoresSafeArea(edges: .top)
         .background(Color.appBackground)
         .navigationTitle("")
         .navigationBarHidden(true)
@@ -61,7 +62,7 @@ struct LandingView: View {
         .padding(.bottom, 48)
         .padding(.horizontal)
         .frame(maxWidth: .infinity)
-        .background(Color.appPrimary.ignoresSafeArea(.container, edges: .top))
+        .background(Color.appPrimary)
     }
 
     // MARK: - Deals

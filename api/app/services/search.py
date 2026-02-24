@@ -169,6 +169,8 @@ async def fetch_products(
         filters.append(effective_price >= params.price_min)
     if params.price_max is not None:
         filters.append(effective_price <= params.price_max)
+    if params.sugar_free is not None:
+        filters.append(Product.is_sugar_free == params.sugar_free)
     if params.promo_only:
         # Only return products with actual, non-expired discounts
         filters.append(Price.promo_price_nzd.is_not(None))
@@ -296,6 +298,7 @@ async def fetch_products(
                 unit_volume_ml=product.unit_volume_ml,
                 image_url=product.image_url,
                 product_url=product.product_url,
+                is_sugar_free=product.is_sugar_free,
                 price=PriceSchema(
                     store_id=store.id,
                     store_name=store.name,
@@ -348,6 +351,7 @@ async def fetch_product_detail(session: AsyncSession, product_id: UUID) -> Produ
         unit_volume_ml=product.unit_volume_ml,
         image_url=product.image_url,
         product_url=product.product_url,
+        is_sugar_free=product.is_sugar_free,
         price=PriceSchema(
             store_id=store.id,
             store_name=store.name,

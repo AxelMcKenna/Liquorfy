@@ -29,6 +29,7 @@ class ProductQueryParams(BaseModel):
     vol_max_ml: Optional[float] = None
     price_min: Optional[float] = None
     price_max: Optional[float] = None
+    sugar_free: Optional[bool] = None
     promo_only: bool = False
     unique_products: bool = False
     sort: str = "price_per_100ml"

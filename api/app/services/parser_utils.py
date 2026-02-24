@@ -5,12 +5,12 @@ from dataclasses import dataclass
 from typing import Optional
 
 VOLUME_PATTERN = re.compile(
-    r"(?P<count>\d+)\s*[x×]\s*(?P<unit>\d+(?:\.\d+)?)\s*(?P<measure>ml|l|ltr|litre|litres|liters)"
+    r"(?P<count>\d+)\s*[x×]\s*(?P<unit>\d+(?:\.\d+)?)\s*(?P<measure>ml|cl|l|ltr|litre|litres|liters)"
 )
 SINGLE_VOLUME_PATTERN = re.compile(
-    r"(?P<unit>\d+(?:\.\d+)?)\s*(?P<measure>ml|l|ltr|litre|litres|liters)"
+    r"(?P<unit>\d+(?:\.\d+)?)\s*(?P<measure>ml|cl|l|ltr|litre|litres|liters)"
 )
-ABV_PATTERN = re.compile(r"(?P<abv>\d{1,2}(?:\.\d+)?)\s*%")
+ABV_PATTERN = re.compile(r"(?<!\d)(?P<abv>\d{1,2}(?:\.\d+)?)\s*%")
 
 
 @dataclass(frozen=True)
@@ -28,13 +28,13 @@ def parse_volume(text: str) -> ParsedVolume:
         count = int(match.group("count"))
         unit_value = float(match.group("unit"))
         measure = match.group("measure")
-        unit_ml = unit_value * (1000 if measure == "l" else 1)
+        unit_ml = unit_value * (1000 if measure == "l" else 10 if measure == "cl" else 1)
         return ParsedVolume(pack_count=count, unit_volume_ml=unit_ml, total_volume_ml=count * unit_ml)
     match = SINGLE_VOLUME_PATTERN.search(normalized)
     if match:
         unit_value = float(match.group("unit"))
         measure = match.group("measure")
-        unit_ml = unit_value * (1000 if measure == "l" else 1)
+        unit_ml = unit_value * (1000 if measure == "l" else 10 if measure == "cl" else 1)
         return ParsedVolume(pack_count=None, unit_volume_ml=unit_ml, total_volume_ml=unit_ml)
     return ParsedVolume(pack_count=None, unit_volume_ml=None, total_volume_ml=None)
 
@@ -67,11 +67,18 @@ KNOWN_BRANDS = [
     "Jack Daniel's", "Jim Beam", "Johnnie Walker", "Jameson", "Chivas",
     "Glenfiddich", "Glenlivet", "Monkey Shoulder", "Famous Grouse",
     "Jose Cuervo", "Patron", "1800", "Sauza", "El Jimador",
-    "Baileys", "Kahlua", "Cointreau", "Malibu", "Midori",
+    "Baileys", "Kahlua", "Cointreau", "Midori",
 
     # RTD/Cider
     "Smirnoff Ice", "Cruiser", "Codys", "KGB", "Woodstock",
     "Somersby", "Rekorderlig", "Strongbow", "Old Mout", "Zeffer",
+]
+
+# Pre-compile word-boundary brand patterns, sorted longest-first so
+# "Smirnoff Ice" is tried before "Smirnoff".
+_BRAND_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
+    (brand, re.compile(r"\b" + re.escape(brand.lower()) + r"\b"))
+    for brand in sorted(KNOWN_BRANDS, key=len, reverse=True)
 ]
 
 # Category keywords (ordered by specificity - more specific first)
@@ -120,29 +127,48 @@ CATEGORY_KEYWORDS = {
     "non_alcoholic": ["non-alcoholic", "alcohol free", "0%", "zero alcohol"],
 }
 
+# Pre-compile word-boundary patterns for category keywords.
+# For each category, keywords sorted longest-first.
+_CATEGORY_KEYWORD_PATTERNS: dict[str, list[tuple[str, re.Pattern[str]]]] = {}
+for _cat, _kws in CATEGORY_KEYWORDS.items():
+    _CATEGORY_KEYWORD_PATTERNS[_cat] = [
+        (kw, re.compile(r"\b" + re.escape(kw) + r"\b"))
+        for kw in sorted(_kws, key=len, reverse=True)
+    ]
+
 
 def infer_brand(product_name: str) -> Optional[str]:
     """
     Infer brand from product name by matching against known brands.
-    Returns the first matching brand found.
+    Returns the longest matching brand found (word-boundary aware).
     """
     name_lower = product_name.lower()
 
-    for brand in KNOWN_BRANDS:
-        if brand.lower() in name_lower:
+    for brand, pattern in _BRAND_PATTERNS:
+        if pattern.search(name_lower):
             return brand
 
     # If no known brand found, try to extract first word(s) before common separators
     # This catches brands we don't know about
     words = product_name.split()
     if words:
-        # Return first 1-2 words as potential brand
-        potential_brand = words[0]
-        if len(words) > 1 and len(words[1]) > 2:
-            # Include second word if it's not a common descriptor
-            common_descriptors = ["red", "white", "dry", "sweet", "light", "dark", "premium"]
-            if words[1].lower() not in common_descriptors:
-                potential_brand = f"{words[0]} {words[1]}"
+        common_descriptors = {
+            "red", "white", "dry", "sweet", "light", "dark", "premium",
+            "classic", "special", "reserve", "estate", "select", "original",
+            "vintage", "gold", "silver", "extra", "super", "pure", "craft",
+            "limited", "edition", "double", "triple", "single", "old", "new",
+            "best", "fine", "smooth", "crisp", "fresh", "natural",
+        }
+        # Skip leading descriptors — they aren't brand names
+        start = 0
+        while start < len(words) and words[start].lower() in common_descriptors:
+            start += 1
+        if start >= len(words):
+            return None
+        potential_brand = words[start]
+        if start + 1 < len(words) and len(words[start + 1]) > 2:
+            if words[start + 1].lower() not in common_descriptors:
+                potential_brand = f"{words[start]} {words[start + 1]}"
         return potential_brand
 
     return None
@@ -198,7 +224,7 @@ BRAND_CATEGORY_MAP = {
     "cruiser": "rtd", "codys": "rtd", "woodstock": "rtd", "kgb": "rtd",
     "hyoketsu": "rtd", "kedah": "rtd", "alba": "rtd", "royal dutch": "rtd", "grog": "rtd",
     "odd co": "rtd", "speights summit": "rtd",
-    "long white": "rtd", "long": "rtd",  # "Long" alone often refers to Long White
+    "long white": "rtd",
     "hard rated": "rtd", "cheeky": "rtd", "batched": "rtd",
     "pals": "rtd", "nitro": "rtd", "white claw": "rtd",
     "clean collective": "rtd", "shots": "rtd",
@@ -227,7 +253,6 @@ BRAND_CATEGORY_MAP = {
     "woodford reserve": "bourbon",
     "finlandia": "vodka",
     "ciroc": "vodka",
-    "greenall's": "gin",
     "greenall’s": "gin",
     "martell": "brandy",
     "st-remy": "brandy",
@@ -261,8 +286,6 @@ BRAND_CATEGORY_MAP = {
     "stella": "beer",
     "flame": "beer",
     "purple goanna": "rtd",
-    "pal's": "rtd",
-    "pals": "rtd",
     "diesel": "rtd",
     "frankys lemon": "mixer",
     "gordon 4x6pk": "rtd",
@@ -281,7 +304,6 @@ BRAND_CATEGORY_MAP = {
     "fat bird": "cider",
     "mud shake": "rtd",
     "mudshake": "rtd",
-    "pal’s": "rtd",
     "nola rich": "wine",
     "corte vigna": "wine",
     "velluto rosso": "wine",
@@ -356,6 +378,12 @@ BRAND_CATEGORY_MAP = {
     "the macallan": "scotch",
 }
 
+# Pre-compile word-boundary patterns for brand-category map, sorted longest-first.
+_BRAND_CATEGORY_PATTERNS: list[tuple[str, str, re.Pattern[str]]] = [
+    (brand, cat, re.compile(r"\b" + re.escape(brand) + r"\b"))
+    for brand, cat in sorted(BRAND_CATEGORY_MAP.items(), key=lambda x: len(x[0]), reverse=True)
+]
+
 
 def infer_category(product_name: str) -> Optional[str]:
     """
@@ -368,9 +396,9 @@ def infer_category(product_name: str) -> Optional[str]:
         return bool(
             ABV_PATTERN.search(text)
             or "alcoholic" in text
-            or "alc" in text
+            or re.search(r"\balc\b", text)
             or "spiked" in text
-            or "hard " in text
+            or re.search(r"\bhard\b", text)
         )
 
     # First, try keyword-based matching (most specific)
@@ -378,9 +406,9 @@ def infer_category(product_name: str) -> Optional[str]:
     best_match = None
     best_match_length = 0
 
-    for category, keywords in CATEGORY_KEYWORDS.items():
-        for keyword in keywords:
-            if keyword in name_lower and len(keyword) > best_match_length:
+    for category, kw_patterns in _CATEGORY_KEYWORD_PATTERNS.items():
+        for keyword, pattern in kw_patterns:
+            if len(keyword) > best_match_length and pattern.search(name_lower):
                 best_match = category
                 best_match_length = len(keyword)
 
@@ -397,8 +425,8 @@ def infer_category(product_name: str) -> Optional[str]:
 
     # Otherwise, check brand-specific mappings as fallback
     # Only use these for products without clear type indicators
-    for brand, category in BRAND_CATEGORY_MAP.items():
-        if brand in name_lower:
+    for _brand, category, pattern in _BRAND_CATEGORY_PATTERNS:
+        if pattern.search(name_lower):
             return category
 
     # Return the keyword match even if it's short (e.g., "ale", "gin")
@@ -546,6 +574,27 @@ def _title_case_word(word: str) -> str:
     return word.capitalize()
 
 
+_SUGAR_FREE_KEYWORDS = [
+    "sugar free", "sugar-free", "zero sugar", "no sugar", "diet",
+    "low carb", "low-carb", "zero carb", "zero carbs", "no carbs",
+]
+
+_SUGAR_FREE_PATTERNS: list[re.Pattern[str]] = [
+    re.compile(r"\b" + re.escape(kw) + r"\b") for kw in _SUGAR_FREE_KEYWORDS
+]
+
+# Brands whose entire product line is sugar-free
+_SUGAR_FREE_BRANDS = {"clean collective"}
+
+
+def detect_sugar_free(product_name: str) -> bool:
+    """Detect if a product is sugar-free based on its name."""
+    name_lower = product_name.lower()
+    if any(p.search(name_lower) for p in _SUGAR_FREE_PATTERNS):
+        return True
+    return any(brand in name_lower for brand in _SUGAR_FREE_BRANDS)
+
+
 __all__ = [
     "parse_volume",
     "ParsedVolume",
@@ -554,4 +603,5 @@ __all__ = [
     "infer_category",
     "CATEGORY_HIERARCHY",
     "format_product_name",
+    "detect_sugar_free",
 ]

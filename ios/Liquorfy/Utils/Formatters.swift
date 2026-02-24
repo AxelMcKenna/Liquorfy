@@ -25,7 +25,7 @@ enum Formatters {
         guard let km else { return .secondary }
         if km < DistanceThreshold.close { return .distanceClose }
         if km < DistanceThreshold.medium { return .distanceMedium }
-        return .secondary
+        return .distanceFar
     }
 
     // MARK: - Price

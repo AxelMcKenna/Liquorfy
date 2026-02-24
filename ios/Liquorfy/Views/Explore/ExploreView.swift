@@ -126,9 +126,10 @@ struct ExploreView: View {
                     .font(.system(size: 14))
                     .foregroundStyle(.primary.opacity(0.5))
 
-                TextField("", text: $filterState.query, prompt: Text("Search products").foregroundStyle(.primary.opacity(0.5)))
+                TextField("", text: $filterState.query, prompt: Text("Search products").foregroundStyle(.primary))
                     .font(.appCardBody)
                     .foregroundStyle(.primary)
+                    .tint(.primary)
                     .focused($isSearchFocused)
                     .submitLabel(.search)
                     .onSubmit {

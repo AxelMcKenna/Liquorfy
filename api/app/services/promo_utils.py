@@ -15,10 +15,16 @@ MEMBER_KEYWORDS = [
     "club",
     "clubcard",
     "member",
+    "members",
     "onecard",
     "loyalty",
     "rewards",
-    "card",
+]
+
+# Pre-compiled word-boundary patterns for member-only detection
+_MEMBER_PATTERNS: list[re.Pattern[str]] = [
+    re.compile(r"\b" + re.escape(kw) + r"\b", re.IGNORECASE)
+    for kw in MEMBER_KEYWORDS
 ]
 
 
@@ -239,9 +245,7 @@ def detect_member_only(text: str) -> bool:
     if not text:
         return False
 
-    text_lower = text.lower()
-
-    return any(keyword in text_lower for keyword in MEMBER_KEYWORDS)
+    return any(pattern.search(text) for pattern in _MEMBER_PATTERNS)
 
 
 def extract_promo_badge_text(node, selectors: list[str]) -> Optional[str]:
