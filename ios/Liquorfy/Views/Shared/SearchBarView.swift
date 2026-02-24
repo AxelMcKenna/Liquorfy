@@ -25,14 +25,30 @@ struct SearchBarView: View {
                 }
                 .accessibilityLabel("Clear search")
             }
+
+            Button {
+                onSubmit()
+            } label: {
+                Text("Search")
+                    .font(.appSansSemiBold(size: 14, relativeTo: .subheadline))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(Color.appPrimary)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+            .buttonStyle(.plain)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(Color.appCardBackground)
+        .padding(.leading, 12)
+        .padding(.vertical, 5)
+        .padding(.trailing, 5)
+        .background(.white)
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
 
 #Preview {
     SearchBarView(text: .constant(""))
+        .padding()
+        .background(Color.appPrimary)
 }

@@ -6,7 +6,7 @@ struct StoreCalloutView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                ChainBadgeView(chain: store.chain)
+                ChainBadgeView(chain: store.chain, colored: true)
                 Spacer()
                 if let distance = store.distanceKm {
                     DistanceBadgeView(distanceKm: distance)

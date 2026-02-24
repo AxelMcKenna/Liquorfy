@@ -6,9 +6,10 @@ struct DealCardView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             ZStack(alignment: .topTrailing) {
-                AsyncProductImageView(url: product.imageUrl, size: 120)
+                AsyncProductImageView(url: product.imageUrl, size: 140)
                     .frame(maxWidth: .infinity)
-                    .background(Color.appBackground)
+                    .frame(height: 156)
+                    .background(.white)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
 
                 if product.price.savingsPercent > 0 {
@@ -19,8 +20,7 @@ struct DealCardView: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(product.name)
-                    .font(.caption)
-                    .fontWeight(.medium)
+                    .font(.appSerif(size: 14, relativeTo: .subheadline))
                     .lineLimit(2)
                     .foregroundStyle(.primary)
 
@@ -28,13 +28,12 @@ struct DealCardView: View {
 
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     Text(Formatters.formatPrice(product.price.currentPrice))
-                        .font(.subheadline)
-                        .fontWeight(.bold)
-                        .foregroundStyle(.primary)
+                        .font(.appPrice)
+                        .foregroundStyle(Color.appPrimary)
 
                     if product.price.hasPromo {
                         Text(Formatters.formatPrice(product.price.priceNzd))
-                            .font(.caption2)
+                            .font(.appCaption)
                             .strikethrough()
                             .foregroundStyle(.secondary)
                     }
@@ -45,10 +44,9 @@ struct DealCardView: View {
                 }
             }
         }
-        .frame(width: 160)
-        .padding(10)
-        .background(Color.appCardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .frame(width: 180)
+        .padding(12)
+        .cardStyle()
     }
 }
 

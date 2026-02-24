@@ -52,19 +52,19 @@ struct ProductDetailView: View {
 
                     if let brand = product.brand {
                         Text(brand)
-                            .font(.subheadline)
+                            .font(.appCardBody)
                             .foregroundStyle(.secondary)
                     }
 
                     // Price
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Text(Formatters.formatPrice(product.price.currentPrice))
-                            .font(.system(size: 36, weight: .black))
+                            .font(.appSansBold(size: 36, relativeTo: .largeTitle))
                             .foregroundStyle(.tint)
 
                         if product.price.hasPromo {
                             Text(Formatters.formatPrice(product.price.priceNzd))
-                                .font(.title3)
+                                .font(.appSans(size: 20, relativeTo: .title3))
                                 .strikethrough()
                                 .foregroundStyle(.secondary)
                         }
@@ -92,31 +92,32 @@ struct ProductDetailView: View {
                     if let urlString = product.productUrl, let url = URL(string: urlString) {
                         Link(destination: url) {
                             Label("View at Store", systemImage: "safari")
+                                .font(.appSansMedium(size: 16, relativeTo: .body))
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.borderedProminent)
                     }
                 }
                 .padding()
-                .background(Color.appCardBackground)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .cardStyle(cornerRadius: 16)
                 .padding(.horizontal)
             }
             .padding(.vertical)
         }
         .background(Color.appBackground)
+        .transition(.opacity)
     }
 
     private func promoInfo(_ product: Product) -> some View {
         HStack(spacing: 12) {
             if product.price.isMemberOnly {
                 Label("Members Only", systemImage: "crown.fill")
-                    .font(.caption)
+                    .font(.appCaption)
                     .foregroundStyle(.orange)
             }
             if let endText = Formatters.formatPromoEndDate(product.price.promoEndsAt) {
                 Label(endText, systemImage: "clock")
-                    .font(.caption)
+                    .font(.appCaption)
                     .foregroundStyle(.tint)
             }
         }
@@ -129,10 +130,9 @@ struct ProductDetailView: View {
                     .foregroundStyle(.tint)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(product.price.storeName)
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
+                        .font(.appSansSemiBold(size: 14, relativeTo: .subheadline))
                     Text(ChainConstants.displayName(for: product.chain))
-                        .font(.caption)
+                        .font(.appCaption)
                         .foregroundStyle(.secondary)
                 }
             }
@@ -142,7 +142,7 @@ struct ProductDetailView: View {
                     DistanceBadgeView(distanceKm: distance)
                     if let text = Formatters.formatDistanceAway(distance) {
                         Text(text)
-                            .font(.caption)
+                            .font(.appCaption)
                             .foregroundStyle(.secondary)
                     }
                 }

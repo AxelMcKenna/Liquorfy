@@ -4,32 +4,45 @@ struct SortPickerView: View {
     @Binding var selection: SortOption
 
     var body: some View {
-        ForEach(SortOption.allCases) { option in
-            Button {
-                selection = option
-            } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: option.iconName)
-                        .frame(width: 20)
-                        .foregroundStyle(.tint)
-
-                    Text(option.displayName)
-                        .foregroundStyle(.primary)
-
-                    Spacer()
-
-                    if selection == option {
-                        Image(systemName: "checkmark")
-                            .foregroundStyle(.tint)
+        Menu {
+            ForEach(SortOption.allCases) { option in
+                Button {
+                    selection = option
+                } label: {
+                    HStack {
+                        Label(option.displayName, systemImage: option.iconName)
+                        if selection == option {
+                            Image(systemName: "checkmark")
+                        }
                     }
                 }
             }
+        } label: {
+            HStack {
+                Image(systemName: selection.iconName)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                Text(selection.displayName)
+                    .font(.appCardBody)
+                    .foregroundStyle(.primary)
+                Spacer()
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 12)
+            .frame(height: 40)
+            .background(.white)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+            )
         }
     }
 }
 
 #Preview {
-    Form {
-        SortPickerView(selection: .constant(.discount))
-    }
+    SortPickerView(selection: .constant(.discount))
+        .padding()
 }

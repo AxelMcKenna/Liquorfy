@@ -38,33 +38,22 @@ struct LandingView: View {
     // MARK: - Hero
 
     private var heroSection: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 20) {
             Text("Compare liquor prices across NZ")
                 .font(.appTitle2)
                 .foregroundStyle(.white)
                 .multilineTextAlignment(.center)
 
             Text("Find the best deals from major retailers near you")
-                .font(.subheadline)
+                .font(.appCallout)
                 .foregroundStyle(.white.opacity(0.8))
+                .padding(.bottom, 8)
 
-            HStack(spacing: 8) {
-                SearchBarView(text: $searchQuery, onSubmit: handleSearch)
-
-                Button {
-                    handleSearch()
-                } label: {
-                    Text("Search")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.white)
-                .foregroundStyle(Color.appPrimary)
-            }
-            .padding(.horizontal)
+            SearchBarView(text: $searchQuery, onSubmit: handleSearch)
+                .padding(.horizontal)
         }
-        .padding(.vertical, 40)
+        .padding(.top, 56)
+        .padding(.bottom, 48)
         .padding(.horizontal)
         .frame(maxWidth: .infinity)
         .background(Color.appPrimary)
@@ -101,8 +90,8 @@ struct LandingView: View {
             }
 
             if viewModel.isLoadingDeals {
-                LoadingView(message: "Loading deals...")
-                    .frame(height: 200)
+                SkeletonDealScrollView()
+                    .frame(height: 260)
             } else if viewModel.deals.isEmpty {
                 Text("No deals available")
                     .font(.subheadline)
@@ -113,10 +102,12 @@ struct LandingView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(spacing: 12) {
                         ForEach(viewModel.deals) { product in
-                            DealCardView(product: product)
-                                .onTapGesture {
-                                    navigate(.productDetail(id: product.id))
-                                }
+                            Button {
+                                navigate(.productDetail(id: product.id))
+                            } label: {
+                                DealCardView(product: product)
+                            }
+                            .buttonStyle(.pressableCard)
                         }
                     }
                     .padding(.horizontal, 1)

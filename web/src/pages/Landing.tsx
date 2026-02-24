@@ -247,8 +247,8 @@ export const Landing = () => {
               <div className="text-xs text-muted-foreground">Retailers</div>
             </div>
             <div className="text-center">
-              <div className="text-xl sm:text-2xl font-semibold text-primary">Updated Daily</div>
-              <div className="text-xs text-muted-foreground">Prices</div>
+              <div className="text-2xl font-semibold text-primary">Daily</div>
+              <div className="text-xs text-muted-foreground">Updates</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-semibold text-primary">Free</div>

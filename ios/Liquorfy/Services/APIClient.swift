@@ -31,16 +31,17 @@ actor APIClient {
 
         let decoder = JSONDecoder()
         // Handle ISO 8601 dates with fractional seconds
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        let fallbackFormatter = ISO8601DateFormatter()
-        fallbackFormatter.formatOptions = [.withInternetDateTime]
-
         decoder.dateDecodingStrategy = .custom { decoder in
             let container = try decoder.singleValueContainer()
             let string = try container.decode(String.self)
+
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
             if let date = formatter.date(from: string) { return date }
-            if let date = fallbackFormatter.date(from: string) { return date }
+
+            formatter.formatOptions = [.withInternetDateTime]
+            if let date = formatter.date(from: string) { return date }
+
             throw DecodingError.dataCorruptedError(
                 in: container,
                 debugDescription: "Cannot decode date: \(string)"

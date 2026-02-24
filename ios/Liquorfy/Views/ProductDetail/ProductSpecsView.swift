@@ -9,7 +9,8 @@ struct ProductSpecsView: View {
         if !specs.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Product Details")
-                    .font(.headline)
+                    .font(.appSansSemiBold(size: 14, relativeTo: .subheadline))
+                    .foregroundStyle(.primary)
 
                 LazyVGrid(columns: [
                     GridItem(.flexible()),
@@ -18,11 +19,10 @@ struct ProductSpecsView: View {
                     ForEach(specs, id: \.label) { spec in
                         VStack(alignment: .leading, spacing: 2) {
                             Text(spec.label)
-                                .font(.caption)
+                                .font(.appCaption)
                                 .foregroundStyle(.secondary)
                             Text(spec.value)
-                                .font(.subheadline)
-                                .fontWeight(.medium)
+                                .font(.appCardTitle)
                         }
                     }
                 }
