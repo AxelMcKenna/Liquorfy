@@ -12,6 +12,7 @@ struct ExploreView: View {
     @State private var filterState = FilterState()
     @State private var showFilters = false
     @State private var showLocation = false
+    @State private var quickViewProduct: Product?
     @FocusState private var isSearchFocused: Bool
 
     var body: some View {
@@ -34,6 +35,10 @@ struct ExploreView: View {
                 filterState.currentPage = 1
                 Task { await fetchProducts() }
             }
+        }
+        .sheet(item: $quickViewProduct) { product in
+            QuickViewSheet(product: product)
+                .presentationDetents([.large])
         }
         .onAppear {
             if let initialQuery, !initialQuery.isEmpty {
@@ -203,7 +208,7 @@ struct ExploreView: View {
                         ProductGridView(
                             products: viewModel.products,
                             onTapProduct: { product in
-                                navigate(.productDetail(id: product.id))
+                                quickViewProduct = product
                             }
                         )
 

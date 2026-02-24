@@ -64,6 +64,7 @@
 		F5E2362455C741F5F5F77F36 /* ProductCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8D14E9A51392D160F09F9FE /* ProductCardView.swift */; };
 		F687A3FA63595D8B5ED4240A /* FormattersTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71828BCCB458C7B31FD17C68 /* FormattersTests.swift */; };
 		F71442C9B5898F844F2DD4DD /* ChainBadgeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F620708BAE0F07430204FB28 /* ChainBadgeView.swift */; };
+		DD00000000000000000001AC /* QuickViewSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000001AF /* QuickViewSheet.swift */; };
 		BB00000000000000000001AC /* CardStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB00000000000000000001AF /* CardStyle.swift */; };
 		BB00000000000000000002AC /* PressableCardStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB00000000000000000002AF /* PressableCardStyle.swift */; };
 		BB00000000000000000003AC /* SkeletonCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB00000000000000000003AF /* SkeletonCardView.swift */; };
@@ -87,6 +88,7 @@
 		05663527B21D6B4009213EDE /* ExploreViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreViewModel.swift; sourceTree = "<group>"; };
 		072411B68150D09B609214EB /* FilterSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterSheetView.swift; sourceTree = "<group>"; };
 		D6E7F8091A2B3C4D5E6F7081 /* LocationSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationSheetView.swift; sourceTree = "<group>"; };
+		DD00000000000000000001AF /* QuickViewSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickViewSheet.swift; sourceTree = "<group>"; };
 		0A2490F587D41AA8F2273018 /* StoreCalloutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreCalloutView.swift; sourceTree = "<group>"; };
 		0C01537CF499BBA8D510B49E /* APIClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientTests.swift; sourceTree = "<group>"; };
 		0C10ACCF6267BE9EBAD91715 /* PromoBadgeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromoBadgeView.swift; sourceTree = "<group>"; };
@@ -214,6 +216,7 @@
 				BF25F6B856751695C3A8A27B /* PaginationView.swift */,
 				5BDD2D9F5A857746096F9F90 /* PriceRangeView.swift */,
 				B8D14E9A51392D160F09F9FE /* ProductCardView.swift */,
+				DD00000000000000000001AF /* QuickViewSheet.swift */,
 				0D6500A47D0E4FFB7B878719 /* ProductGridView.swift */,
 				2EFF1849FA227F8E9D22E226 /* SortPickerView.swift */,
 			);
@@ -509,6 +512,7 @@
 				218156F192200B948EA40886 /* ExploreView.swift in Sources */,
 				8D0E5805CD235133ED760971 /* FilterSheetView.swift in Sources */,
 				A1B2C3D4E5F60718293A4B5C /* LocationSheetView.swift in Sources */,
+				DD00000000000000000001AC /* QuickViewSheet.swift in Sources */,
 				D7F31CE49032BD74263C335F /* PaginationView.swift in Sources */,
 				1E1D94761618DF9AA4765903 /* PriceRangeView.swift in Sources */,
 				F5E2362455C741F5F5F77F36 /* ProductCardView.swift in Sources */,

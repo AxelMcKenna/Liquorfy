@@ -3,10 +3,12 @@ import SwiftUI
 struct LocationRequestView: View {
     @Environment(LocationManager.self) private var locationManager
 
+    @State private var showManualPicker = false
+    @State private var selectedCity: NZCity?
 
     var body: some View {
         VStack(spacing: 20) {
-            // Icon — matches web: bg-secondary rounded-lg with green MapPin
+            // Icon
             Image(systemName: "mappin.and.ellipse")
                 .font(.system(size: 24))
                 .foregroundStyle(Color.appPrimary)
@@ -43,29 +45,105 @@ struct LocationRequestView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 8))
             }
 
-            // Single button — Enable Location
-            Button {
-                locationManager.requestLocation()
-            } label: {
-                HStack(spacing: 8) {
-                    if locationManager.isLoading {
-                        ProgressView()
-                            .tint(.white)
-                    } else {
-                        Image(systemName: "location.fill")
-                            .font(.system(size: 16))
+            if !showManualPicker {
+                // Enable Location button
+                Button {
+                    locationManager.requestLocation()
+                } label: {
+                    HStack(spacing: 8) {
+                        if locationManager.isLoading {
+                            ProgressView()
+                                .tint(.white)
+                        } else {
+                            Image(systemName: "location.fill")
+                                .font(.system(size: 16))
+                        }
+                        Text(locationManager.isLoading ? "Getting location..." : "Enable Location")
+                            .font(.appSansSemiBold(size: 16, relativeTo: .body))
                     }
-                    Text(locationManager.isLoading ? "Getting location..." : "Enable Location")
-                        .font(.appSansSemiBold(size: 16, relativeTo: .body))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 52)
+                    .background(Color.appPrimary)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .frame(height: 52)
-                .background(Color.appPrimary)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .buttonStyle(.plain)
+                .disabled(locationManager.isLoading)
+
+                // Show manual option when permission is denied
+                if locationManager.authorizationStatus == .denied || locationManager.authorizationStatus == .restricted {
+                    Button {
+                        withAnimation { showManualPicker = true }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "map")
+                                .font(.system(size: 16))
+                            Text("Set Location Manually")
+                                .font(.appSansSemiBold(size: 16, relativeTo: .body))
+                        }
+                        .foregroundStyle(Color.appPrimary)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .background(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.appPrimary.opacity(0.3), lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            } else {
+                // Manual city picker
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Select your city")
+                        .font(.appSansSemiBold(size: 14, relativeTo: .subheadline))
+                        .foregroundStyle(.secondary)
+
+                    LazyVGrid(columns: [
+                        GridItem(.flexible()),
+                        GridItem(.flexible()),
+                    ], spacing: 8) {
+                        ForEach(NZCity.allCases) { city in
+                            Button {
+                                selectedCity = city
+                            } label: {
+                                Text(city.name)
+                                    .font(.appSansMedium(size: 14, relativeTo: .subheadline))
+                                    .foregroundStyle(selectedCity == city ? .white : .primary)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 40)
+                                    .background(selectedCity == city ? Color.appPrimary : .white)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(selectedCity == city ? Color.clear : Color.gray.opacity(0.3), lineWidth: 1)
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+
+                    if let city = selectedCity {
+                        Button {
+                            locationManager.setManualLocation(lat: city.lat, lon: city.lon)
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 14, weight: .semibold))
+                                Text("Use \(city.name)")
+                                    .font(.appSansSemiBold(size: 16, relativeTo: .body))
+                            }
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 52)
+                            .background(Color.appPrimary)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
             }
-            .buttonStyle(.plain)
-            .disabled(locationManager.isLoading)
         }
         .padding(.vertical, 32)
         .padding(.horizontal, 24)
