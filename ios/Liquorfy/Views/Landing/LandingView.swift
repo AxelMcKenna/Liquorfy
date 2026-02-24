@@ -51,7 +51,7 @@ struct LandingView: View {
 
             Text("Find the best deals from major retailers near you")
                 .font(.appCallout)
-                .foregroundStyle(.white.opacity(0.8))
+                .foregroundStyle(.white.opacity(0.9))
                 .padding(.bottom, 8)
 
             SearchBarView(text: $searchQuery, onSubmit: handleSearch)
@@ -61,7 +61,7 @@ struct LandingView: View {
         .padding(.bottom, 48)
         .padding(.horizontal)
         .frame(maxWidth: .infinity)
-        .background(Color.appPrimary)
+        .background(Color.appPrimary.ignoresSafeArea(.container, edges: .top))
     }
 
     // MARK: - Deals
@@ -75,7 +75,7 @@ struct LandingView: View {
 
                     if !locationManager.isLocationSet {
                         Text("Enable location for personalized results")
-                            .font(.caption)
+                            .font(.appCaption)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -87,9 +87,9 @@ struct LandingView: View {
                 } label: {
                     HStack(spacing: 4) {
                         Text("View all")
-                            .font(.subheadline)
+                            .font(.appSansMedium(size: 14, relativeTo: .subheadline))
                         Image(systemName: "arrow.right")
-                            .font(.caption)
+                            .font(.system(size: 12))
                     }
                 }
             }
@@ -105,7 +105,7 @@ struct LandingView: View {
                     .padding(.vertical, 40)
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
-                    LazyHStack(spacing: 12) {
+                    HStack(alignment: .top, spacing: 12) {
                         ForEach(viewModel.deals) { product in
                             Button {
                                 quickViewProduct = product
@@ -115,8 +115,10 @@ struct LandingView: View {
                             .buttonStyle(.pressableCard)
                         }
                     }
-                    .padding(.horizontal, 1)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 12)
                 }
+                .scrollClipDisabled()
             }
         }
         .padding(.horizontal)

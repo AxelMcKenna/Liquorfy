@@ -19,11 +19,11 @@ struct LocationRequestView: View {
             // Title + description
             VStack(spacing: 8) {
                 Text("Enable Location")
-                    .font(.appSansSemiBold(size: 20, relativeTo: .title3))
+                    .font(.appSerif(size: 20, relativeTo: .title3))
 
                 Text("See deals from stores in your area")
                     .font(.appCardBody)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.primary.opacity(0.55))
                     .multilineTextAlignment(.center)
             }
 
@@ -70,8 +70,8 @@ struct LocationRequestView: View {
                 .buttonStyle(.plain)
                 .disabled(locationManager.isLoading)
 
-                // Show manual option when permission is denied
-                if locationManager.authorizationStatus == .denied || locationManager.authorizationStatus == .restricted {
+                // Show manual option when permission is denied or location failed
+                if locationManager.error != nil {
                     Button {
                         withAnimation { showManualPicker = true }
                     } label: {
