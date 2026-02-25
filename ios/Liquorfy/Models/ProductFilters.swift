@@ -5,6 +5,7 @@ struct ProductFilters: Sendable {
     var category: Category?
     var chains: Set<ChainType> = []
     var promoOnly: Bool = false
+    var sugarFree: Bool = false
     var uniqueProducts: Bool = false
     var priceMin: Double?
     var priceMax: Double?
@@ -33,6 +34,9 @@ struct ProductFilters: Sendable {
         }
         if promoOnly {
             items.append(URLQueryItem(name: "promo_only", value: "true"))
+        }
+        if sugarFree {
+            items.append(URLQueryItem(name: "sugar_free", value: "true"))
         }
         if uniqueProducts {
             items.append(URLQueryItem(name: "unique_products", value: "true"))

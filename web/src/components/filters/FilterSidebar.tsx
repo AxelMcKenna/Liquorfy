@@ -1,13 +1,11 @@
 import { useFilters } from '@/hooks/useFilters';
-import { SortDropdown } from './SortDropdown';
 import { CategoryFilter } from './CategoryFilter';
 import { ChainFilter } from './ChainFilter';
 import { PromoToggle } from './PromoToggle';
 import { PriceRangeFilter } from './PriceRangeFilter';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { X, Sparkles, ArrowUpDown, DollarSign, Store as StoreIcon, Grid3x3 } from 'lucide-react';
-import { SortOption } from '@/types';
+import { X, Sparkles, DollarSign, Store as StoreIcon, Grid3x3 } from 'lucide-react';
 
 interface FilterSidebarProps {
   isOpen: boolean;
@@ -83,20 +81,6 @@ export const FilterSidebar = ({ isOpen, onClose }: FilterSidebarProps) => {
               <CategoryFilter
                 value={filters.category}
                 onChange={(category) => updateFilters({ category })}
-              />
-            </div>
-
-            {/* Sort */}
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <ArrowUpDown className="h-4 w-4 text-primary" />
-                <label className="text-sm font-semibold text-primary-gray">
-                  Sort By
-                </label>
-              </div>
-              <SortDropdown
-                value={filters.sort || SortOption.BEST_VALUE}
-                onChange={(sort) => updateFilters({ sort })}
               />
             </div>
 

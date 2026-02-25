@@ -16,6 +16,7 @@ struct FilterSheetView: View {
                             HStack(spacing: 8) {
                                 Text("Filters")
                                     .font(.appSansSemiBold(size: 18, relativeTo: .title3))
+                                    .foregroundStyle(.black)
 
                                 if filterState.activeFilterCount > 0 {
                                     Text("\(filterState.activeFilterCount)")
@@ -36,7 +37,7 @@ struct FilterSheetView: View {
                                 } label: {
                                     Text("Clear all filters")
                                         .font(.appSans(size: 12, relativeTo: .caption))
-                                        .foregroundStyle(.primary)
+                                        .foregroundStyle(.black)
                                 }
                             }
                         }
@@ -51,11 +52,6 @@ struct FilterSheetView: View {
                         // Category
                         filterSection(icon: "square.grid.2x2", title: "Category") {
                             CategoryPickerView(selection: $filterState.category)
-                        }
-
-                        // Sort By
-                        filterSection(icon: "arrow.up.arrow.down", title: "Sort By") {
-                            SortPickerView(selection: $filterState.sort)
                         }
 
                         // Chains
@@ -79,6 +75,10 @@ struct FilterSheetView: View {
                                     isOn: $filterState.promoOnly
                                 )
                                 checkboxRow(
+                                    label: "Zero sugar",
+                                    isOn: $filterState.sugarFree
+                                )
+                                checkboxRow(
                                     label: "Unique products",
                                     isOn: $filterState.uniqueProducts
                                 )
@@ -98,7 +98,7 @@ struct FilterSheetView: View {
                     } label: {
                         Image(systemName: "xmark")
                             .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.appPrimary)
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
@@ -131,10 +131,10 @@ struct FilterSheetView: View {
             HStack(spacing: 8) {
                 Image(systemName: icon)
                     .font(.system(size: 13))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(Color.appPrimary)
                 Text(title)
                     .font(.appSansSemiBold(size: 13, relativeTo: .caption))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(.black)
                     .textCase(.uppercase)
             }
             content()
@@ -150,11 +150,11 @@ struct FilterSheetView: View {
             HStack(spacing: 10) {
                 Image(systemName: isOn.wrappedValue ? "checkmark.square.fill" : "square")
                     .font(.system(size: 16))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(Color.appPrimary)
 
                 Text(label)
                     .font(.appSansMedium(size: 14, relativeTo: .subheadline))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(.black)
 
                 Spacer()
             }

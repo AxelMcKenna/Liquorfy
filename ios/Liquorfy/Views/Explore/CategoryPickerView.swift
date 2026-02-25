@@ -40,11 +40,11 @@ struct CategoryPickerView: View {
             HStack {
                 Text(selection?.displayName ?? "All Categories")
                     .font(.appCardBody)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(.black)
                 Spacer()
                 Image(systemName: "chevron.down")
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(Color.appPrimary)
             }
             .padding(.horizontal, 12)
             .frame(height: 40)

@@ -21,23 +21,20 @@ struct SortPickerView: View {
             HStack {
                 Image(systemName: selection.iconName)
                     .font(.system(size: 12))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(.black)
                 Text(selection.displayName)
                     .font(.appCardBody)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(.black)
                 Spacer()
                 Image(systemName: "chevron.down")
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(.black)
             }
             .padding(.horizontal, 12)
             .frame(height: 40)
             .background(.white)
             .clipShape(RoundedRectangle(cornerRadius: 8))
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-            )
+            .shadow(color: .black.opacity(0.06), radius: 3, x: 0, y: 1)
         }
     }
 }

@@ -8,7 +8,9 @@ import { usePaginatedProducts } from '@/hooks/usePaginatedProducts';
 import { useFilters } from '@/hooks/useFilters';
 import { useLocationContext } from '@/contexts/LocationContext';
 import { useSearchParams } from 'react-router-dom';
-import { MapPin, Navigation } from 'lucide-react';
+import { MapPin, Navigation, ArrowUpDown } from 'lucide-react';
+import { SortDropdown } from '@/components/filters/SortDropdown';
+import { SortOption } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -209,7 +211,7 @@ export const Explore = () => {
                     </div>
                   )}
 
-                  {/* Results count */}
+                  {/* Results count + sort */}
                   {!loading && products.length > 0 && (
                     <div className="mb-4 flex items-center justify-between text-sm text-muted-foreground">
                       <span>
@@ -217,7 +219,13 @@ export const Explore = () => {
                           ? 'No products found'
                           : `${(currentPage - 1) * 24 + 1}-${Math.min(currentPage * 24, total)} of ${total}`}
                       </span>
-                      <span>Page {currentPage} of {totalPages}</span>
+                      <div className="flex items-center gap-2">
+                        <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
+                        <SortDropdown
+                          value={filters.sort || SortOption.BEST_VALUE}
+                          onChange={(sort) => updateFilters({ sort })}
+                        />
+                      </div>
                     </div>
                   )}
 

@@ -12,7 +12,7 @@ struct ChainFilterView: View {
                 } label: {
                     Text("Select All")
                         .font(.appSans(size: 12, relativeTo: .caption))
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(.black)
                 }
 
                 Button {
@@ -20,7 +20,7 @@ struct ChainFilterView: View {
                 } label: {
                     Text("Clear")
                         .font(.appSans(size: 12, relativeTo: .caption))
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(.black)
                 }
 
                 Spacer()
@@ -40,11 +40,11 @@ struct ChainFilterView: View {
                             HStack(spacing: 10) {
                                 Image(systemName: selectedChains.contains(chain) ? "checkmark.square.fill" : "square")
                                     .font(.system(size: 16))
-                                    .foregroundStyle(.primary)
+                                    .foregroundStyle(Color.appPrimary)
 
                                 Text(chain.displayName)
                                     .font(.appCardBody)
-                                    .foregroundStyle(.primary)
+                                    .foregroundStyle(.black)
 
                                 Spacer()
                             }
