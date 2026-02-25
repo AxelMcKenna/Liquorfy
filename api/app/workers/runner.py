@@ -160,6 +160,13 @@ async def main(chains_to_run: Optional[List[str]] = None) -> None:
     logger.info("🏁 Running initial scraper pass...")
     await scheduler.run_all_scrapers(force=True)
 
+    try:
+        from app.workers.discord_report import send_discord_report
+
+        await send_discord_report()
+    except Exception as e:
+        logger.warning(f"Discord report failed: {e}")
+
     # Then run on schedule
     while True:
         logger.info("💤 Worker sleeping for 1 hour...")
@@ -167,6 +174,13 @@ async def main(chains_to_run: Optional[List[str]] = None) -> None:
 
         logger.info("⏰ Checking for scheduled scraper runs...")
         await scheduler.run_all_scrapers()
+
+        try:
+            from app.workers.discord_report import send_discord_report
+
+            await send_discord_report()
+        except Exception as e:
+            logger.warning(f"Discord report failed: {e}")
 
         # Periodic promo expiry cleanup (lightweight, runs every cycle)
         try:
