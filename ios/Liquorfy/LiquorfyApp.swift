@@ -28,6 +28,7 @@ struct LiquorfyApp: App {
                 navigationPath.append(destination)
             })
             .tint(.appPrimary)
+            .preferredColorScheme(.light)
         }
     }
 }
