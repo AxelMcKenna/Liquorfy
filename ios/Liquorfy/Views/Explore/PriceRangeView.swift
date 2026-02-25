@@ -14,11 +14,11 @@ struct PriceRangeView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Min")
                         .font(.appSans(size: 12, relativeTo: .caption))
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(.black)
                     HStack(spacing: 4) {
                         Text("$")
                             .font(.appCardBody)
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(.black)
                         TextField("0", text: $minText)
                             .font(.appCardBody)
                             .keyboardType(.numberPad)
@@ -38,18 +38,18 @@ struct PriceRangeView: View {
 
                 Text("–")
                     .font(.appCardBody)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(.black)
                     .padding(.top, 20)
 
                 // Max field
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Max")
                         .font(.appSans(size: 12, relativeTo: .caption))
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(.black)
                     HStack(spacing: 4) {
                         Text("$")
                             .font(.appCardBody)
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(.black)
                         TextField("200+", text: $maxText)
                             .font(.appCardBody)
                             .keyboardType(.numberPad)

@@ -6,6 +6,7 @@ final class FilterState {
     var category: Category?
     var selectedChains: Set<ChainType> = []
     var promoOnly: Bool = false
+    var sugarFree: Bool = false
     var uniqueProducts: Bool = true
     var priceMin: Double?
     var priceMax: Double?
@@ -16,9 +17,9 @@ final class FilterState {
         category != nil
         || !selectedChains.isEmpty
         || promoOnly
+        || sugarFree
         || priceMin != nil
         || priceMax != nil
-        || sort != .discount
     }
 
     var activeFilterCount: Int {
@@ -26,8 +27,8 @@ final class FilterState {
         if category != nil { count += 1 }
         if !selectedChains.isEmpty { count += 1 }
         if promoOnly { count += 1 }
+        if sugarFree { count += 1 }
         if priceMin != nil || priceMax != nil { count += 1 }
-        if sort != .discount { count += 1 }
         return count
     }
 
@@ -37,6 +38,7 @@ final class FilterState {
             category: category,
             chains: selectedChains,
             promoOnly: promoOnly,
+            sugarFree: sugarFree,
             uniqueProducts: uniqueProducts,
             priceMin: priceMin,
             priceMax: priceMax,
@@ -53,9 +55,9 @@ final class FilterState {
         category = nil
         selectedChains = []
         promoOnly = false
+        sugarFree = false
         priceMin = nil
         priceMax = nil
-        sort = .discount
         currentPage = 1
     }
 }

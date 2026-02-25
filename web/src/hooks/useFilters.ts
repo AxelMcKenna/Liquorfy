@@ -83,8 +83,7 @@ export const useFilters = () => {
       filters.chains?.length ||
       filters.promo_only ||
       filters.price_min ||
-      filters.price_max ||
-      (filters.sort && filters.sort !== SortOption.BEST_VALUE)
+      filters.price_max
     );
   }, [filters]);
 
@@ -94,7 +93,6 @@ export const useFilters = () => {
     if (filters.chains?.length) count += filters.chains.length;
     if (filters.promo_only) count++;
     if (filters.price_min || filters.price_max) count++;
-    if (filters.sort && filters.sort !== SortOption.BEST_VALUE) count++;
     return count;
   }, [filters]);
 

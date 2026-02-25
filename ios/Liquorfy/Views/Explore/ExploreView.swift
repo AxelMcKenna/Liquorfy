@@ -58,6 +58,10 @@ struct ExploreView: View {
                 Task { await fetchProducts() }
             }
         }
+        .onChange(of: filterState.sort) {
+            filterState.currentPage = 1
+            Task { await fetchProducts() }
+        }
     }
 
     // MARK: - Location Gate
@@ -195,15 +199,14 @@ struct ExploreView: View {
             } else {
                 ScrollView {
                     VStack(spacing: 16) {
-                        // Results info
+                        // Results info + sort
                         HStack {
                             Text(viewModel.pageInfo)
                                 .font(.appCaption)
                                 .foregroundStyle(.secondary)
                             Spacer()
-                            Text("Page \(viewModel.currentPage) of \(viewModel.totalPages)")
-                                .font(.appCaption)
-                                .foregroundStyle(.secondary)
+                            SortPickerView(selection: $filterState.sort)
+                                .frame(width: 190)
                         }
                         .padding(.horizontal)
 
