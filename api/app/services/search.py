@@ -22,6 +22,9 @@ settings = get_settings()
 # Prices not seen in over 7 days are considered stale
 _STALE_THRESHOLD = timedelta(days=7)
 
+# NZ Sale and Supply of Alcohol Act 2012, s237
+_MAX_PROMO_DISPLAY_DISCOUNT = 0.25
+
 
 def _effective_price(price: Price) -> float:
     """Return the effective price, ignoring expired promos."""
@@ -176,6 +179,12 @@ async def fetch_products(
         filters.append(Price.promo_price_nzd.is_not(None))
         filters.append(Price.promo_price_nzd < Price.price_nzd)
         filters.append(or_(Price.promo_ends_at.is_(None), Price.promo_ends_at > now_ts))
+        # Exclude discounts >= 25% (NZ alcohol advertising law, s237)
+        filters.append(
+            (Price.price_nzd - Price.promo_price_nzd)
+            / func.nullif(Price.price_nzd, 0)
+            < _MAX_PROMO_DISPLAY_DISCOUNT
+        )
 
     discount_ratio = (
         (Price.price_nzd - effective_price)
@@ -285,6 +294,13 @@ async def fetch_products(
             effective_price_nzd=effective,
         )
         distance = round(distance_m_value / 1000, 2) if distance_m_value is not None else None
+
+        # Suppress promo display for discounts >= 25% (NZ alcohol advertising law, s237)
+        suppress_promo = False
+        if price.promo_price_nzd is not None and price.price_nzd > 0:
+            discount = (price.price_nzd - effective) / price.price_nzd
+            suppress_promo = discount >= _MAX_PROMO_DISPLAY_DISCOUNT
+
         items.append(
             ProductSchema(
                 id=product.id,
@@ -303,14 +319,14 @@ async def fetch_products(
                     store_id=store.id,
                     store_name=store.name,
                     chain=store.chain,
-                    price_nzd=price.price_nzd,
-                    promo_price_nzd=price.promo_price_nzd,
-                    promo_text=price.promo_text,
-                    promo_ends_at=price.promo_ends_at,
+                    price_nzd=effective if suppress_promo else price.price_nzd,
+                    promo_price_nzd=None if suppress_promo else price.promo_price_nzd,
+                    promo_text=None if suppress_promo else price.promo_text,
+                    promo_ends_at=None if suppress_promo else price.promo_ends_at,
                     price_per_100ml=metrics.price_per_100ml,
                     standard_drinks=metrics.standard_drinks,
                     price_per_standard_drink=metrics.price_per_standard_drink,
-                    is_member_only=price.is_member_only,
+                    is_member_only=False if suppress_promo else price.is_member_only,
                     is_stale=_is_stale(price),
                     distance_km=distance,
                 ),
@@ -339,6 +355,13 @@ async def fetch_product_detail(session: AsyncSession, product_id: UUID) -> Produ
         abv_percent=product.abv_percent,
         effective_price_nzd=effective,
     )
+
+    # Suppress promo display for discounts >= 25% (NZ alcohol advertising law, s237)
+    suppress_promo = False
+    if price.promo_price_nzd is not None and price.price_nzd > 0:
+        discount = (price.price_nzd - effective) / price.price_nzd
+        suppress_promo = discount >= _MAX_PROMO_DISPLAY_DISCOUNT
+
     return ProductDetailSchema(
         id=product.id,
         name=format_product_name(product.name, product.brand),
@@ -356,14 +379,14 @@ async def fetch_product_detail(session: AsyncSession, product_id: UUID) -> Produ
             store_id=store.id,
             store_name=store.name,
             chain=store.chain,
-            price_nzd=price.price_nzd,
-            promo_price_nzd=price.promo_price_nzd,
-            promo_text=price.promo_text,
-            promo_ends_at=price.promo_ends_at,
+            price_nzd=effective if suppress_promo else price.price_nzd,
+            promo_price_nzd=None if suppress_promo else price.promo_price_nzd,
+            promo_text=None if suppress_promo else price.promo_text,
+            promo_ends_at=None if suppress_promo else price.promo_ends_at,
             price_per_100ml=metrics.price_per_100ml,
             standard_drinks=metrics.standard_drinks,
             price_per_standard_drink=metrics.price_per_standard_drink,
-            is_member_only=price.is_member_only,
+            is_member_only=False if suppress_promo else price.is_member_only,
             is_stale=_is_stale(price),
             distance_km=None,
         ),
