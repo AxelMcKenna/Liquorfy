@@ -55,7 +55,9 @@ struct ProductSpecsView: View {
     }
 }
 
+#if DEBUG
 #Preview {
     ProductSpecsView(product: PreviewData.product)
         .padding()
 }
+#endif

@@ -97,7 +97,9 @@ struct ProductCardView: View {
     }
 }
 
+#if DEBUG
 #Preview {
     ProductCardView(product: PreviewData.product)
         .frame(width: 180)
 }
+#endif
