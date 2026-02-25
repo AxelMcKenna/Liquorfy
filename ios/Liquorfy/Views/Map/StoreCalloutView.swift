@@ -38,6 +38,8 @@ struct StoreCalloutView: View {
     }
 }
 
+#if DEBUG
 #Preview {
     StoreCalloutView(store: PreviewData.store)
 }
+#endif

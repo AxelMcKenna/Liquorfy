@@ -48,7 +48,9 @@ struct PriceMetricsView: View {
     }
 }
 
+#if DEBUG
 #Preview {
     PriceMetricsView(price: PreviewData.price)
         .padding()
 }
+#endif

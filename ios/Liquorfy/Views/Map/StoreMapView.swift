@@ -69,6 +69,7 @@ struct StoreMapView: View {
     }
 }
 
+#if DEBUG
 #Preview {
     StoreMapView(
         stores: PreviewData.stores,
@@ -77,3 +78,4 @@ struct StoreMapView: View {
     )
     .frame(height: 400)
 }
+#endif

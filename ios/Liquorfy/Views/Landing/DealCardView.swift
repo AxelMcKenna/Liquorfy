@@ -61,6 +61,7 @@ struct DealCardView: View {
     }
 }
 
+#if DEBUG
 #Preview {
     HStack {
         DealCardView(product: PreviewData.product)
@@ -68,3 +69,4 @@ struct DealCardView: View {
     }
     .padding()
 }
+#endif

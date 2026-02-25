@@ -151,6 +151,8 @@ struct QuickViewSheet: View {
     }
 }
 
+#if DEBUG
 #Preview {
     QuickViewSheet(product: PreviewData.product)
 }
+#endif

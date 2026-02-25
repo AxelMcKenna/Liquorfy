@@ -34,8 +34,10 @@ struct ProductGridView: View {
     @State private var appeared: Set<UUID> = []
 }
 
+#if DEBUG
 #Preview {
     ScrollView {
         ProductGridView(products: PreviewData.products)
     }
 }
+#endif
