@@ -14,10 +14,10 @@ Liquorfy operates 10 scrapers targeting New Zealand liquor retailers. This audit
 
 | Risk Area | Assessment |
 |-----------|-----------|
-| Explicit ToS violations | **HIGH** — Super Liquor explicitly prohibits scraping by name; PakNSave/New World broadly prohibit copying/reproducing content |
+| Explicit ToS violations | **VERY HIGH** — Super Liquor, Liquorland, and Liquor Centre explicitly prohibit scraping by name; PakNSave/New World broadly prohibit copying/reproducing content |
 | Anti-detection circumvention | **HIGH** — `undetected_playwright` stealth mode and `--disable-blink-features=AutomationControlled` actively evade bot detection |
-| robots.txt compliance | **MODERATE** — Claimed in comments but no actual robots.txt parser exists; Woolworths NZ returns 503 (likely blocking non-browser access) |
-| Copyright/IP risk | **MODERATE** — Product images are stored/referenced; price data IP claims are legally weaker but present |
+| robots.txt violations | **VERY HIGH** — The Bottle-O and Liquor Centre explicitly block `ClaudeBot`, `anthropic-ai` by name in robots.txt; Glengarry has 10s crawl-delay; no robots.txt parser exists in codebase |
+| Copyright/IP risk | **MODERATE** — Product images are stored/referenced; price data IP claims are legally weaker but present; every retailer claims IP over all content |
 | NZ Criminal law (s249/s252) | **LOW-MODERATE** — s252 likely doesn't apply to public websites; s249 (dishonest access for gain) is untested but theoretically applicable |
 | Privacy law risk | **LOW** — No personal data is collected from retailers |
 
@@ -122,21 +122,22 @@ Liquorfy operates 10 scrapers targeting New Zealand liquor retailers. This audit
 | **Scraper** | `liquorland.py` — Playwright headless browser |
 | **User-Agent** | **Transparent:** `Liquorfy/1.0 (Price Comparison Bot; +https://liquorfy.co.nz)` |
 | **Rate Limiting** | 1.0s between pages, 2.5s between categories — well-documented in code |
-| **ToS** | Terms page exists at `liquorland.co.nz/terms-and-conditions` but full content could not be retrieved |
+| **ToS Key Clauses** | **EXPLICIT anti-scraping:** Prohibits use of "any robot, spider, site search and retrieval application or other mechanism to retrieve or index any portion of the Site." Also prohibits: "reproduce, reformat, scrape, copy or resell any portion of the website and its contents." Downloaded materials may not be used for "commercial use." |
+| **robots.txt** | `User-agent: *`, `Allow: /`. Blocks admin, checkout, account, search params, comparison features. No crawl-delay. Generally permissive for content pages. |
 | **Additional Integration** | Also queries SaleFinder API (`salefinder.co.nz`) for promotional data |
 | **Code Claim** | Docstring states "robots.txt compliance" |
 
-**Risk Assessment: MODERATE**
-- Transparent User-Agent is a positive signal
-- Respectful rate limiting is documented and implemented
-- The code claims robots.txt compliance but there is **no actual robots.txt parser** in the codebase — compliance is asserted, not verified
-- Uses browser automation with resource blocking (images, fonts, stylesheets)
+**Risk Assessment: VERY HIGH**
+- **Liquorland explicitly prohibits robots, spiders, scraping, reformatting, and reselling in their ToS**
+- Commercial use is explicitly prohibited
+- The code claims robots.txt compliance but there is **no actual robots.txt parser** in the codebase
+- Transparent User-Agent is a positive signal but does not overcome the explicit ToS prohibition
 - SaleFinder API integration appears to use a public API endpoint
 
 **Recommendations:**
+- Seek written permission from Liquorland before continuing to scrape
 - Implement actual robots.txt parsing rather than claiming compliance
-- Attempt to fetch and honor the actual robots.txt directives
-- The transparent UA + reasonable rate limits make this one of the better-behaved scrapers
+- The transparent UA + reasonable rate limits are good faith signals but insufficient given explicit ToS prohibition
 
 ---
 
@@ -186,49 +187,51 @@ Liquorfy operates 10 scrapers targeting New Zealand liquor retailers. This audit
 
 ---
 
-### 8. Liquor Centre (CityHive/Myfoodlink Platform)
+### 8. Liquor Centre (Myfoodlink Platform)
 
 | Aspect | Detail |
 |--------|--------|
 | **Scraper** | `liquor_centre.py` — Playwright headless browser |
 | **Mechanism** | Per-store browser scraping across ~90 store subdomains |
 | **User-Agent** | Spoofed Chrome: `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36` |
-| **ToS** | Standard e-commerce terms (age verification, pricing disclaimers, accuracy disclaimers). No explicit anti-scraping clauses found |
-| **robots.txt** | Could not be fetched |
+| **ToS Key Clauses** | **EXPLICIT anti-scraping:** Prohibits "use any robot, spider, site search and retrieval application or other mechanism to retrieve or index any portion of the Site." Also prohibits: "modify, adapt, translate or reverse engineer any portion of the Site." Cannot "take any action that imposes...an unreasonable or disproportionately large load on our infrastructure." Copyright owned by or licensed to them. |
+| **robots.txt** | **HIGHLY RESTRICTIVE** — Explicitly blocks AI crawlers by name: `anthropic-ai`, `ClaudeBot`, `Amazonbot`, `SemrushBot`, `AhrefsBot` and many others with `Disallow: /` |
 
-**Risk Assessment: MODERATE**
+**Risk Assessment: VERY HIGH**
+- **Liquor Centre explicitly names "robot, spider" in anti-scraping ToS**
+- **robots.txt explicitly blocks `ClaudeBot` and `anthropic-ai` by name** — a strong signal of hostility to AI/automated data collection
 - Per-store scraping across 90 stores creates significant aggregate load
 - Spoofed User-Agent rather than transparent identification
-- No explicit anti-scraping ToS found, but standard IP/copyright clauses likely apply
 - Uses `undetected_playwright` stealth if available
 
 **Recommendations:**
-- Switch to transparent User-Agent
-- Consider reducing scrape frequency given 90-store footprint
-- The aggregate load across 90 subdomains is a concern even with per-request delays
+- This is one of the highest-risk scrapers — explicit ToS + explicit robots.txt bot blocking
+- Seek written permission before continuing
+- At minimum, honor the robots.txt (which currently blocks all automated access)
 
 ---
 
-### 9. The Bottle-O (CityHive Platform)
+### 9. The Bottle-O (Myfoodlink Platform)
 
 | Aspect | Detail |
 |--------|--------|
 | **Scraper** | `bottle_o.py` — Hybrid: per-store Playwright browser + franchise GTM dataLayer extraction |
-| **Mechanism** | Per-store CityHive scraping + fallback franchise catalog extraction via Google Tag Manager `dataLayer` |
+| **Mechanism** | Per-store scraping + fallback franchise catalog extraction via Google Tag Manager `dataLayer` |
 | **User-Agent** | Spoofed Chrome: `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36` |
-| **ToS** | Standard CityHive e-commerce terms — standard pricing, accuracy, and consumer law clauses. No explicit anti-scraping terms found |
-| **robots.txt** | Could not be fetched |
+| **ToS Key Clauses** | "You agree not to use any device, software or routine to interfere or attempt to interfere with the proper working of this website." Reproduction, modification, distribution, republication of content is "strictly prohibited." Material only permitted for "personal non-commercial use or for good faith commercial dealings with Bottle-O." |
+| **robots.txt** | **MOST RESTRICTIVE OF ALL RETAILERS** — Explicitly blocks by name: `anthropic-ai`, `ClaudeBot`, `Claude-SearchBot`, `Amazonbot`, `meta-externalagent`, `meta-webindexer`, plus many SEO bots (`SemrushBot`, `AhrefsBot`, `MJ12bot`, `DotBot`, etc.) and niche bots (`wine-searcherbot`, `GeedoProductSearch`) |
 | **Rate Limiting** | 2.5s between categories, 1.5s between requests |
 
-**Risk Assessment: MODERATE**
-- GTM `dataLayer` extraction is a grey area — this data is pushed to the browser for analytics but extracting it for commercial use is questionable
-- Per-store scraping footprint is smaller than Liquor Centre
-- Spoofed User-Agent is a concern
-- No explicit anti-scraping ToS
+**Risk Assessment: VERY HIGH**
+- **The Bottle-O has the most aggressive robots.txt of all retailers**, explicitly naming and blocking ClaudeBot, anthropic-ai, and Claude-SearchBot
+- ToS prohibits interference with website and all reproduction/distribution beyond personal use
+- GTM `dataLayer` extraction is a grey area — data intended for analytics, not third-party consumption
+- Spoofed User-Agent actively conceals automated nature
 
 **Recommendations:**
-- Switch to transparent User-Agent
-- GTM dataLayer extraction should be evaluated for appropriateness — this data is intended for analytics, not third-party consumption
+- The robots.txt is unambiguous — The Bottle-O does not want automated AI/bot access
+- Seek explicit written permission before continuing
+- GTM dataLayer extraction should be discontinued
 
 ---
 
@@ -239,18 +242,19 @@ Liquorfy operates 10 scrapers targeting New Zealand liquor retailers. This audit
 | **Scraper** | `glengarry.py` — Extends `BrowserScraper` base class |
 | **Mechanism** | Playwright headless browser |
 | **User-Agent** | Spoofed Chrome (from `BrowserScraper` base): `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)...` |
-| **ToS** | Terms page at `glengarrywines.co.nz/termsconditions` — no anti-scraping clauses found in indexed content; full terms may be behind a dynamic link |
-| **robots.txt** | Could not be fetched |
+| **ToS Key Clauses** | "You may not display or distribute the content of any part of the website or its content in public, including any reproduction in any form on the Internet, without our express permission." Personal use only. No explicit bot/scraping prohibition but broad reproduction ban. |
+| **robots.txt** | `User-agent: *` with **Crawl-delay: 10** (10 seconds between requests). Blocks login, registration, and service paths. Otherwise relatively open. |
 
 **Risk Assessment: MODERATE**
-- Standard browser-based scraping with stealth capabilities
-- No explicit anti-scraping ToS found (but full terms couldn't be verified)
+- No explicit anti-scraping ToS language, but reproduction/distribution on the Internet is prohibited without permission
+- **robots.txt specifies 10-second crawl-delay** — the scraper's 1.0s delay between pages violates this directive
 - Single chain (no per-store amplification)
 - Uses `BrowserScraper` base class with anti-detection features
 
 **Recommendations:**
+- Increase delay to honor the 10-second crawl-delay in robots.txt
 - Switch to transparent User-Agent
-- Verify full terms page content manually
+- Seek permission for Internet reproduction of content
 
 ---
 
@@ -270,12 +274,16 @@ The codebase includes several active anti-detection measures that undermine comp
 
 **Analysis:** If a retailer has implemented bot detection, actively circumventing it undermines any good-faith argument. The combination of stealth mode + spoofed User-Agent + anti-detection browser args creates the appearance of intentionally deceptive access. This conflicts with the transparent `Liquorfy/1.0` User-Agent used by the HTTP-based scrapers (Super Liquor, Liquorland).
 
-### 2. robots.txt Compliance (MODERATE CONCERN)
+### 2. robots.txt Compliance (VERY HIGH CONCERN)
 
 - The `liquorland.py` docstring claims "robots.txt compliance" (line 3)
 - **No robots.txt parser exists anywhere in the codebase**
 - Rate limiting delays are hardcoded, not derived from `Crawl-delay` directives
-- Most retailer robots.txt files could not be fetched (503 or unreachable), suggesting many actively block automated access at the infrastructure level
+- **The Bottle-O and Liquor Centre explicitly block `ClaudeBot`, `anthropic-ai`, and `Claude-SearchBot` by name** in their robots.txt
+- **Glengarry specifies a 10-second crawl-delay** that the scraper violates (uses 1.0s)
+- **Thirsty Liquor blocks `Nutch` entirely** and has crawl-delays for specific bots
+- **Black Bull blocks `Amazonbot`** and has crawl-delays for `msnbot` and `Slurp`
+- Woolworths NZ returns 503 on robots.txt (infrastructure-level blocking)
 
 ### 3. Inconsistent User-Agent Strategy (MODERATE CONCERN)
 
@@ -331,16 +339,16 @@ All scrapers capture and store product image URLs. While the images aren't downl
 
 | Retailer | Risk Level | Key Issue |
 |----------|-----------|-----------|
-| **Super Liquor** | **VERY HIGH** | ToS explicitly prohibits "automated means such as scraping" |
+| **Super Liquor** | **VERY HIGH** | ToS explicitly prohibits "automated means such as scraping" including "pricing information" |
+| **Liquorland** | **VERY HIGH** | ToS explicitly prohibits "robot, spider...scrape, copy or resell"; commercial use banned |
+| **Liquor Centre** | **VERY HIGH** | ToS names "robot, spider"; robots.txt blocks `ClaudeBot`/`anthropic-ai` by name |
+| **The Bottle-O** | **VERY HIGH** | Most aggressive robots.txt — blocks `ClaudeBot`, `anthropic-ai`, `Claude-SearchBot` by name |
+| **Woolworths NZ** | **HIGH** | Infrastructure blocks all non-browser access (503); likely mirrors AU anti-scraping terms |
 | **New World** | **HIGH** | Auth token capture + stealth mode + broad IP/copying prohibitions |
 | **PakNSave** | **HIGH** | Auth token capture + stealth mode + explicit "any portion" copying prohibition |
-| **Woolworths NZ** | **MODERATE-HIGH** | Active bot blocking infrastructure + spoofed UA + internal API access |
-| **Liquorland** | **MODERATE** | Transparent UA, but stealth browser + unverified robots.txt claim |
-| **Liquor Centre** | **MODERATE** | 90-store footprint + spoofed UA + stealth browser |
-| **The Bottle-O** | **MODERATE** | GTM dataLayer extraction + spoofed UA |
-| **Glengarry** | **MODERATE** | Standard browser scraping + spoofed UA |
-| **Thirsty Liquor** | **MODERATE** | Shopify platform ToS prohibits automated access |
-| **Black Bull** | **LOW-MODERATE** | Small scale Shopify scraping, no explicit anti-scraping terms |
+| **Black Bull** | **MODERATE-HIGH** | Broad "unauthorized means" clause; robots.txt blocks Amazonbot |
+| **Glengarry** | **MODERATE** | 10s crawl-delay violated; reproduction/Internet distribution prohibited |
+| **Thirsty Liquor** | **MODERATE** | Shopify platform ToS prohibits automated access; Nutch blocked in robots.txt |
 
 ---
 
@@ -348,10 +356,11 @@ All scrapers capture and store product image URLs. While the images aren't downl
 
 ### Immediate Actions (High Priority)
 
-1. **Cease scraping Super Liquor** until written permission is obtained — their ToS unambiguously prohibits this activity by name
+1. **Cease scraping Super Liquor, Liquorland, Liquor Centre, and The Bottle-O** until written permission is obtained — all four have explicit anti-scraping ToS and/or robots.txt that specifically blocks AI/bot crawlers by name
 2. **Remove anti-detection/stealth measures** (`undetected_playwright`, `--disable-blink-features=AutomationControlled`) — these undermine any good-faith compliance argument
 3. **Standardize on transparent User-Agent** (`Liquorfy/1.0 (Price Comparison Bot; +https://liquorfy.co.nz)`) across ALL scrapers
 4. **Review the auth token capture pattern** for Foodstuffs scrapers — this is the highest technical risk in the codebase
+5. **Honor Glengarry's 10-second crawl-delay** — current 1.0s delay directly violates their robots.txt
 
 ### Medium-Term Actions
 
