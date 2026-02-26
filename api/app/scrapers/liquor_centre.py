@@ -172,7 +172,10 @@ class LiquorCentreScraper(Scraper):
                 logger.info(f"Using fallback Liquor Centre store list ({len(self.stores)} stores)")
 
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
+            browser = await p.chromium.launch(
+                headless=True,
+                args=["--no-sandbox", "--disable-dev-shm-usage"],
+            )
             context = await browser.new_context(
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
             )

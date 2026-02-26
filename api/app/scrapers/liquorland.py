@@ -190,7 +190,10 @@ class LiquorlandScraper(Scraper):
             yield specials_payload
 
         self.playwright = await async_playwright().start()
-        self.browser = await self.playwright.chromium.launch(headless=True)
+        self.browser = await self.playwright.chromium.launch(
+            headless=True,
+            args=["--no-sandbox", "--disable-dev-shm-usage"],
+        )
         self.context = await self.browser.new_context(
             user_agent="Liquorfy/1.0 (Price Comparison Bot; +https://liquorfy.co.nz)",
             viewport={"width": 1920, "height": 1080},

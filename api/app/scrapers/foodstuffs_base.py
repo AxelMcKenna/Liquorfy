@@ -403,12 +403,15 @@ class FoodstuffsAPIScraper(Scraper, APIAuthBase):
                 except Exception as e:
                     logger.warning(f"Per-store promo sweep failed for chain={self.chain}: {e}")
 
+            # Mark as failed if auth produced zero items (likely auth failure)
+            status = "failed" if total_items == 0 else "completed"
+
             async with async_transaction() as session:
                 result = await session.execute(
                     select(IngestionRun).where(IngestionRun.id == run.id)
                 )
                 run = result.scalar_one()
-                run.status = "completed"
+                run.status = status
                 run.finished_at = datetime.utcnow()
                 run.items_total = total_items
                 run.items_changed = changed_items
