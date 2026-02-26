@@ -76,10 +76,11 @@ class BrowserScraper(Scraper):
 
         # Launch with anti-detection args
         launch_args = [
+            "--no-sandbox",
             "--disable-blink-features=AutomationControlled",
             "--disable-dev-shm-usage",
             "--disable-web-security",
-            "--disable-features=IsolateOrigins,site-per-process"
+            "--disable-features=IsolateOrigins,site-per-process",
         ]
 
         self.browser = await self.playwright.chromium.launch(

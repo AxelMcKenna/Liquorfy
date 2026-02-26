@@ -133,6 +133,7 @@ class APIAuthBase:
 
         async with async_playwright() as p:
             launch_args = [
+                "--no-sandbox",
                 "--disable-blink-features=AutomationControlled",
                 "--disable-dev-shm-usage",
             ]
