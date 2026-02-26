@@ -230,6 +230,11 @@ class FoodstuffsAPIScraper(Scraper, APIAuthBase):
 
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(self.api_url, headers=headers, json=payload)
+            if response.status_code >= 400:
+                logger.error(
+                    f"{self.chain}: API {response.status_code} for store={self.store_id} "
+                    f"category={level1}: {response.text[:500]}"
+                )
             response.raise_for_status()
             return response.json()
 
