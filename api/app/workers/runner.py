@@ -24,6 +24,13 @@ CHAIN_TIMEOUT_MINUTES = {
 }
 
 
+def _env_bool(name: str, default: bool = False) -> bool:
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
 class WorkerScheduler:
     """Manages scraper scheduling and execution with proper error handling."""
 
@@ -132,6 +139,7 @@ async def main(chains_to_run: Optional[List[str]] = None) -> None:
     logger.info("=" * 60)
     logger.info("🔧 Starting Liquorfy Worker")
     logger.info("=" * 60)
+    run_once = _env_bool("LIQUORFY_RUN_ONCE", default=False)
 
     if chains_to_run:
         # Validate chains
@@ -147,6 +155,7 @@ async def main(chains_to_run: Optional[List[str]] = None) -> None:
 
     logger.info(f"Interval: {SCRAPER_INTERVAL_HOURS}h")
     logger.info(f"Timeout: {SCRAPER_TIMEOUT_MINUTES}m")
+    logger.info(f"Run once: {'yes' if run_once else 'no'}")
     if CHAIN_TIMEOUT_MINUTES:
         overrides = ", ".join(
             f"{chain}={minutes}m" for chain, minutes in CHAIN_TIMEOUT_MINUTES.items()
@@ -166,6 +175,10 @@ async def main(chains_to_run: Optional[List[str]] = None) -> None:
         await send_discord_report()
     except Exception as e:
         logger.warning(f"Discord report failed: {e}")
+
+    if run_once:
+        logger.info("🛑 LIQUORFY_RUN_ONCE enabled — exiting after initial pass")
+        return
 
     # Then run on schedule
     while True:
