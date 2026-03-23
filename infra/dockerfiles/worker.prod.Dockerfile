@@ -51,4 +51,4 @@ RUN useradd -m -u 1000 appuser && \
 
 USER appuser
 
-CMD ["poetry", "run", "python", "-m", "app.workers.runner"]
+CMD ["python", "-m", "app.workers.runner"]
