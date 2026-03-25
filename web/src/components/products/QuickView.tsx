@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { FavouriteButton } from "./FavouriteButton";
+import { ShareButton } from "./ShareButton";
+import { PriceAlertButton } from "@/components/alerts/PriceAlertButton";
 import {
   formatPromoEndDate,
   formatDistanceAway,
@@ -16,12 +19,16 @@ interface QuickViewProps {
   product: Product | null;
   isOpen: boolean;
   onClose: () => void;
+  isFavourite?: boolean;
+  onToggleFavourite?: () => void;
 }
 
 export const QuickView = ({
   product,
   isOpen,
   onClose,
+  isFavourite = false,
+  onToggleFavourite,
 }: QuickViewProps) => {
   if (!product) return null;
 
@@ -31,10 +38,12 @@ export const QuickView = ({
   const promoEndText = formatPromoEndDate(product.price.promo_ends_at);
   const distanceText = formatDistanceAway(product.price.distance_km);
   const distanceColorClass = getDistanceColorClass(product.price.distance_km);
+  const isNewPromo = hasPromo && product.last_updated &&
+    (Date.now() - new Date(product.last_updated).getTime()) < 24 * 60 * 60 * 1000;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[700px] p-0 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl p-0 max-h-[90vh] overflow-y-auto">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-0">
           {/* Image Section */}
           <div className="md:col-span-2 bg-white p-6 flex items-center justify-center relative">
@@ -65,11 +74,27 @@ export const QuickView = ({
 
           {/* Content Section */}
           <div className="md:col-span-3 p-6 flex flex-col">
-            {/* Header */}
+            {/* Header + actions */}
             <div className="mb-4">
-              <h2 className="text-2xl font-bold text-primary-gray mb-2 line-clamp-2">
-                {product.name}
-              </h2>
+              <div className="flex items-start justify-between gap-2">
+                <h2 className="text-2xl font-bold text-primary-gray mb-2 line-clamp-2">
+                  {product.name}
+                </h2>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  {onToggleFavourite && (
+                    <FavouriteButton
+                      isFavourite={isFavourite}
+                      onToggle={onToggleFavourite}
+                    />
+                  )}
+                  <ShareButton productName={product.name} productId={product.id} />
+                  <PriceAlertButton
+                    productId={product.id}
+                    productName={product.name}
+                    currentPrice={currentPrice}
+                  />
+                </div>
+              </div>
               {product.brand && (
                 <p className="text-base text-secondary-gray">{product.brand}</p>
               )}
@@ -112,6 +137,11 @@ export const QuickView = ({
                   <Badge variant="outline" className="gap-1 text-primary border-primary/30">
                     <Clock className="h-3 w-3" />
                     {promoEndText}
+                  </Badge>
+                )}
+                {isNewPromo && (
+                  <Badge className="bg-amber-500 text-white gap-1">
+                    New Promo
                   </Badge>
                 )}
               </div>
