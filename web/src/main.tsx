@@ -19,6 +19,7 @@ const AuthCallback = lazy(() => import("@/pages/AuthCallback"));
 const Login = lazy(() => import("@/pages/Login"));
 const Register = lazy(() => import("@/pages/Register"));
 const Settings = lazy(() => import("@/pages/Settings"));
+const Watchlist = lazy(() => import("@/pages/Watchlist"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 // Loading fallback component
@@ -49,6 +50,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/settings" element={<Settings />} />
+                <Route path="/watchlist" element={<Watchlist />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>

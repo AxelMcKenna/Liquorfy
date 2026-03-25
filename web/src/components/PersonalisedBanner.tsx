@@ -23,7 +23,8 @@ export const PersonalisedBanner = () => {
     if (alerts === undefined) return;
 
     const rawName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0]?.split('.')[0] || 'there';
-    const name = rawName.split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+    const firstName = rawName.split(' ')[0];
+    const name = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
     const alertCount = alerts.length;
     const parts: string[] = [];
     if (alertCount > 0) parts.push(`${alertCount} alert${alertCount !== 1 ? 's' : ''}`);
