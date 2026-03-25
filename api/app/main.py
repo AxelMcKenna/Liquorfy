@@ -17,7 +17,7 @@ from app.middleware import (
     _rate_limit_exceeded_handler,
     get_limiter,
 )
-from app.routes import auth, health, ingest, products, stores, worker
+from app.routes import alerts, auth, health, ingest, products, stores, user, worker
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -31,10 +31,12 @@ limiter = get_limiter()
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+app.include_router(alerts.router)
 app.include_router(auth.router)
 app.include_router(health.router)
 app.include_router(products.router)
 app.include_router(stores.router)
+app.include_router(user.router)
 app.include_router(ingest.router)
 app.include_router(worker.router)
 

@@ -7,7 +7,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from contextlib import suppress
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 from abc import ABC, abstractmethod
 
@@ -344,7 +344,7 @@ class BrowserScraper(Scraper):
 
     async def run(self) -> IngestionRun:
         """Run the scraper and persist data to database."""
-        self._run_started_at = datetime.utcnow()
+        self._run_started_at = datetime.now(timezone.utc)
 
         # Create ingestion run record
         run = IngestionRun(
@@ -375,23 +375,22 @@ class BrowserScraper(Scraper):
                     logger.warning(f"No stores found for chain {self.chain}")
                     stores = []
 
-                for page in pages:
-                    try:
-                        products = await self.parse_products(page)
-                        total_items += len(products)
+            # Persist each page in its own transaction so partial progress
+            # survives crashes (mirrors base.Scraper.run() behaviour).
+            for page in pages:
+                try:
+                    products = await self.parse_products(page)
+                    total_items += len(products)
 
-                        # Batch process products for better performance
+                    async with async_transaction() as session:
                         changed_count = await self._upsert_products_batch(
                             session, products, stores
                         )
-                        changed_items += changed_count
-                        # changed_count is DB row-level (product/store upserts),
-                        # while total_items is product-level; do not derive failures
-                        # from changed_count or it can go negative.
+                    changed_items += changed_count
 
-                    except Exception as e:
-                        logger.error(f"Failed to parse page: {e}")
-                        failed_items += 1
+                except Exception as e:
+                    logger.error(f"Failed to parse page: {e}")
+                    failed_items += 1
 
             # Update ingestion run with results
             async with async_transaction() as session:
@@ -400,7 +399,7 @@ class BrowserScraper(Scraper):
                 )
                 run = result.scalar_one()
                 run.status = "completed"
-                run.finished_at = datetime.utcnow()
+                run.finished_at = datetime.now(timezone.utc)
                 run.items_total = total_items
                 run.items_changed = changed_items
                 run.items_failed = failed_items
@@ -421,6 +420,18 @@ class BrowserScraper(Scraper):
             )
             return run
 
+        except asyncio.CancelledError:
+            logger.error(f"Scraper cancelled: {self.chain}")
+            async with async_transaction() as session:
+                result = await session.execute(
+                    select(IngestionRun).where(IngestionRun.id == run.id)
+                )
+                run = result.scalar_one()
+                run.status = "failed"
+                run.finished_at = datetime.now(timezone.utc)
+                run.error_message = "Cancelled (timeout)"
+            raise
+
         except Exception as e:
             logger.error(f"Scraper failed: {e}")
             # Update run status to failed
@@ -430,7 +441,8 @@ class BrowserScraper(Scraper):
                 )
                 run = result.scalar_one()
                 run.status = "failed"
-                run.finished_at = datetime.utcnow()
+                run.finished_at = datetime.now(timezone.utc)
+                run.error_message = f"{type(e).__name__}: {e}"[:1000]
             raise
         finally:
             # Always close the browser
@@ -443,7 +455,7 @@ class BrowserScraper(Scraper):
         Upsert product and its prices.
         Returns True if any changes were made, False otherwise.
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         changed = False
 
         # Upsert product

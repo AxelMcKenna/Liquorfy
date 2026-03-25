@@ -91,7 +91,12 @@ def _build_embed(chain_runs: Dict[str, IngestionRun]) -> dict:
             total_changed += run.items_changed
             total_failed_items += run.items_failed
         else:
-            line = f"**{chain}**: status={run.status} ({_format_duration(run)})"
+            error_info = ""
+            if run.error_message:
+                # Truncate long errors for Discord embed limits
+                msg = run.error_message[:200]
+                error_info = f"\n  > {msg}"
+            line = f"**{chain}**: status={run.status} ({_format_duration(run)}){error_info}"
             failed.append(line)
 
     # Pick colour

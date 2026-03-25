@@ -1,8 +1,12 @@
-import { Search, MapPin } from "lucide-react";
+import { useState } from "react";
+import { Search, MapPin, LogIn } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useLocationContext } from "@/contexts/LocationContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { LoginDialog } from "@/components/auth/LoginDialog";
+import { UserMenu } from "@/components/auth/UserMenu";
 
 interface HeaderProps {
   query: string;
@@ -18,6 +22,8 @@ export const Header = ({
   variant = 'compact',
 }: HeaderProps) => {
   const { radiusKm, isLocationSet, openLocationModal } = useLocationContext();
+  const { user } = useAuth();
+  const [loginOpen, setLoginOpen] = useState(false);
 
   if (variant === 'landing') {
     return (
@@ -69,18 +75,34 @@ export const Header = ({
             </div>
           </div>
 
-          {/* Location button - hugs right edge */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={openLocationModal}
-            className="flex-shrink-0 text-white hover:bg-white/10 gap-2"
-          >
-            <MapPin className="h-4 w-4" />
-            <span className="hidden sm:inline">
-              {isLocationSet ? `${radiusKm} km` : 'Location'}
-            </span>
-          </Button>
+          {/* Right side - location + auth */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={openLocationModal}
+              className="text-white hover:bg-white/10 gap-2"
+            >
+              <MapPin className="h-4 w-4" />
+              <span className="hidden sm:inline">
+                {isLocationSet ? `${radiusKm} km` : 'Location'}
+              </span>
+            </Button>
+            {user ? (
+              <UserMenu />
+            ) : (
+              <LoginDialog
+                open={loginOpen}
+                onOpenChange={setLoginOpen}
+                trigger={
+                  <Button variant="ghost" size="sm" className="text-white hover:bg-white/10 gap-2">
+                    <LogIn className="h-4 w-4" />
+                    <span className="hidden sm:inline">Sign In</span>
+                  </Button>
+                }
+              />
+            )}
+          </div>
         </div>
       </div>
     </header>
