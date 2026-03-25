@@ -69,10 +69,13 @@ const LoginPage = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <header className="border-b">
-        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-4">
-          <Link to="/" className="text-muted-foreground hover:text-foreground">
+      <header className="bg-primary">
+        <div className="px-4 py-3 flex items-center gap-3">
+          <button onClick={() => navigate(-1)} className="text-white/70 hover:text-white">
             <ArrowLeft className="h-5 w-5" />
+          </button>
+          <Link to="/" className="text-lg font-semibold text-white">
+            LIQUORFY
           </Link>
         </div>
       </header>

@@ -32,9 +32,9 @@ export const Header = ({
               <UserMenu />
             ) : (
               <Link to="/login">
-                <Button variant="ghost" size="sm" className="text-white hover:bg-white/10 gap-2">
+                <Button size="sm" className="bg-white/15 text-white border border-white/30 hover:bg-white/25 font-semibold gap-2">
                   <User className="h-4 w-4" />
-                  <span>Sign In</span>
+                  Account
                 </Button>
               </Link>
             )}
@@ -65,14 +65,16 @@ export const Header = ({
   return (
     <header className="bg-primary border-b border-primary">
       <div className="px-4 py-3">
-        <div className="flex items-center justify-between gap-6">
-          {/* Logo - hugs left edge */}
-          <Link to="/" className="flex-shrink-0">
-            <span className="text-lg font-semibold text-white">LIQUORFY</span>
-          </Link>
+        <div className="grid grid-cols-3 items-center gap-4">
+          {/* Logo - left */}
+          <div className="flex items-center">
+            <Link to="/" className="flex-shrink-0">
+              <span className="text-lg font-semibold text-white">LIQUORFY</span>
+            </Link>
+          </div>
 
           {/* Search - centered */}
-          <div className="flex-1 flex justify-center">
+          <div className="flex justify-center">
             <div className="relative w-full max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -85,8 +87,8 @@ export const Header = ({
             </div>
           </div>
 
-          {/* Right side - location + auth */}
-          <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Right side - location + account */}
+          <div className="flex items-center justify-end gap-2">
             <Button
               variant="ghost"
               size="sm"
@@ -102,9 +104,9 @@ export const Header = ({
               <UserMenu />
             ) : (
               <Link to="/login">
-                <Button variant="ghost" size="sm" className="text-white hover:bg-white/10 gap-2">
+                <Button size="sm" className="bg-white/15 text-white border border-white/30 hover:bg-white/25 font-semibold gap-2">
                   <User className="h-4 w-4" />
-                  <span className="hidden sm:inline">Sign In</span>
+                  <span className="hidden sm:inline">Account</span>
                 </Button>
               </Link>
             )}
