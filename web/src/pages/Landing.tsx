@@ -16,7 +16,6 @@ import { Search, ArrowRight, MapPin, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { RecentlyViewed } from '@/components/products/RecentlyViewed';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
-import { PersonalisedBanner } from '@/components/PersonalisedBanner';
 import { SortOption } from '@/types';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 
@@ -184,8 +183,6 @@ export const Landing = () => {
           </div>
         </div>
       </section>
-
-      <PersonalisedBanner />
 
       {/* ===== DEALS — Left-aligned heading, full grid ===== */}
       <section className="py-14 md:py-20">
