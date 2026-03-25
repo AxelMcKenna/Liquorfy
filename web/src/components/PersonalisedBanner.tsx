@@ -22,7 +22,8 @@ export const PersonalisedBanner = () => {
     // Show toast once alerts have loaded
     if (alerts === undefined) return;
 
-    const name = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0]?.split('.')[0] || 'there';
+    const rawName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0]?.split('.')[0] || 'there';
+    const name = rawName.split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
     const alertCount = alerts.length;
     const parts: string[] = [];
     if (alertCount > 0) parts.push(`${alertCount} alert${alertCount !== 1 ? 's' : ''}`);

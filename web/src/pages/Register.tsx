@@ -11,11 +11,13 @@ import { toast } from 'sonner';
 const RegisterPage = () => {
   const { user, signUp, signInWithGoogle, signInWithApple } = useAuth();
   const navigate = useNavigate();
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{
+    name?: string;
     email?: string;
     password?: string;
     confirmPassword?: string;
@@ -29,6 +31,9 @@ const RegisterPage = () => {
 
   const validate = (): boolean => {
     const next: typeof errors = {};
+    if (!name.trim()) {
+      next.name = 'Name is required.';
+    }
     if (!email.trim()) {
       next.email = 'Email is required.';
     }
@@ -56,7 +61,7 @@ const RegisterPage = () => {
     setLoading(true);
     setErrors({});
     try {
-      await signUp(email.trim(), password);
+      await signUp(email.trim(), password, name.trim());
       toast.success('Check your email to confirm your account.');
       navigate('/login', { replace: true });
     } catch (err: any) {
@@ -123,6 +128,20 @@ const RegisterPage = () => {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="Your name"
+                value={name}
+                onChange={(e) => { setName(e.target.value); clearField('name'); }}
+                className={fieldClass('name')}
+                required
+                disabled={loading}
+              />
+              {errors.name && <p className="text-xs text-red-600">{errors.name}</p>}
+            </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input

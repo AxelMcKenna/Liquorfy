@@ -18,7 +18,8 @@ export const UserMenu = () => {
 
   if (!user) return null;
 
-  const displayName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Account';
+  const rawName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Account';
+  const displayName = rawName.split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
   const avatar = user.user_metadata?.avatar_url || user.user_metadata?.picture;
 
   const handleDelete = async () => {
