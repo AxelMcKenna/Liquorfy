@@ -1,11 +1,9 @@
-import { useState } from "react";
-import { Search, MapPin, LogIn } from "lucide-react";
+import { Search, MapPin, User } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useLocationContext } from "@/contexts/LocationContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { LoginDialog } from "@/components/auth/LoginDialog";
 import { UserMenu } from "@/components/auth/UserMenu";
 
 interface HeaderProps {
@@ -23,12 +21,24 @@ export const Header = ({
 }: HeaderProps) => {
   const { radiusKm, isLocationSet, openLocationModal } = useLocationContext();
   const { user } = useAuth();
-  const [loginOpen, setLoginOpen] = useState(false);
 
   if (variant === 'landing') {
     return (
       <header className="bg-primary border-b border-primary">
         <div className="max-w-6xl mx-auto px-4 py-8">
+          {/* Top bar with account */}
+          <div className="flex justify-end mb-6">
+            {user ? (
+              <UserMenu />
+            ) : (
+              <Link to="/login">
+                <Button variant="ghost" size="sm" className="text-white hover:bg-white/10 gap-2">
+                  <User className="h-4 w-4" />
+                  <span>Sign In</span>
+                </Button>
+              </Link>
+            )}
+          </div>
           <div className="text-center">
             <h1 className="text-3xl md:text-4xl font-semibold text-white mb-2 tracking-tight">
               LIQUORFY
@@ -70,7 +80,7 @@ export const Header = ({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && onSearch()}
-                className="pl-10 h-9 bg-white text-sm"
+                className="pl-10 h-10 bg-white text-sm"
               />
             </div>
           </div>
@@ -91,16 +101,12 @@ export const Header = ({
             {user ? (
               <UserMenu />
             ) : (
-              <LoginDialog
-                open={loginOpen}
-                onOpenChange={setLoginOpen}
-                trigger={
-                  <Button variant="ghost" size="sm" className="text-white hover:bg-white/10 gap-2">
-                    <LogIn className="h-4 w-4" />
-                    <span className="hidden sm:inline">Sign In</span>
-                  </Button>
-                }
-              />
+              <Link to="/login">
+                <Button variant="ghost" size="sm" className="text-white hover:bg-white/10 gap-2">
+                  <User className="h-4 w-4" />
+                  <span className="hidden sm:inline">Sign In</span>
+                </Button>
+              </Link>
             )}
           </div>
         </div>

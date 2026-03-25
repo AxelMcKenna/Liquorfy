@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,7 +13,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/contexts/AuthContext';
-import { LoginDialog } from '@/components/auth/LoginDialog';
 import { useAlerts } from '@/hooks/useAlerts';
 import { toast } from 'sonner';
 
@@ -28,16 +28,16 @@ export const PriceAlertButton = ({
   currentPrice,
 }: PriceAlertButtonProps) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { createAlert } = useAlerts();
   const [open, setOpen] = useState(false);
-  const [loginOpen, setLoginOpen] = useState(false);
   const [thresholdPrice, setThresholdPrice] = useState('');
   const [alertOnPromo, setAlertOnPromo] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const handleClick = () => {
     if (!user) {
-      setLoginOpen(true);
+      navigate('/login');
       return;
     }
     setThresholdPrice((currentPrice * 0.9).toFixed(2));
@@ -73,8 +73,6 @@ export const PriceAlertButton = ({
       >
         <Bell className="h-4 w-4" />
       </Button>
-
-      <LoginDialog open={loginOpen} onOpenChange={setLoginOpen} />
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">
