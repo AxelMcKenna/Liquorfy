@@ -115,6 +115,7 @@ class IngestionRun(Base):
     items_changed: Mapped[int] = mapped_column(default=0)
     items_failed: Mapped[int] = mapped_column(default=0)
     log_url: Mapped[Optional[str]] = mapped_column(String(255))
+    error_message: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     __table_args__ = (
         Index("ix_ingestion_run_chain_status", "chain", "status"),  # For status queries

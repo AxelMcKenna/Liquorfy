@@ -1,8 +1,6 @@
 import { useState, useCallback } from 'react';
-import axios from 'axios';
+import api from '@/lib/api';
 import { Store, StoreListResponse, Location } from '@/types';
-
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
 interface UseStoresReturn {
   stores: Store[];
@@ -27,8 +25,8 @@ export const useStores = (): UseStoresReturn => {
         radius_km: radiusKm.toString(),
       });
 
-      const { data } = await axios.get<StoreListResponse>(
-        `${API_BASE}/stores?${params.toString()}`
+      const { data } = await api.get<StoreListResponse>(
+        `/stores?${params.toString()}`
       );
 
       setStores(data.items);

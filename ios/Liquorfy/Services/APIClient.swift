@@ -86,7 +86,17 @@ actor APIClient {
 
     private func request<T: Decodable>(_ url: URL) async throws -> T {
         do {
-            let (data, response) = try await session.data(from: url)
+            var urlRequest = URLRequest(url: url)
+
+            // Attach Supabase auth token if available
+            if let authSession = try? await supabase.auth.session {
+                urlRequest.setValue(
+                    "Bearer \(authSession.accessToken)",
+                    forHTTPHeaderField: "Authorization"
+                )
+            }
+
+            let (data, response) = try await session.data(for: urlRequest)
 
             if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
                 throw APIError.httpError(http.statusCode)

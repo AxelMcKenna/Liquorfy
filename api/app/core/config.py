@@ -32,6 +32,16 @@ class Settings(BaseSettings):
     admin_username: str = Field("admin", env="ADMIN_USERNAME")
     admin_password: str = Field("admin", env="ADMIN_PASSWORD")
 
+    # Supabase Auth
+    supabase_url: str = Field("", env="SUPABASE_URL")
+    supabase_anon_key: str = Field("", env="SUPABASE_ANON_KEY")
+    supabase_jwt_secret: str = Field("", env="SUPABASE_JWT_SECRET")
+    supabase_service_role_key: str = Field("", env="SUPABASE_SERVICE_ROLE_KEY")
+
+    # Email (Resend)
+    resend_api_key: str = Field("", env="RESEND_API_KEY")
+    resend_from_email: str = Field("alerts@liquorfy.co.nz", env="RESEND_FROM_EMAIL")
+
     class Config:
         env_file = ".env"
         case_sensitive = False

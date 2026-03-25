@@ -19,7 +19,7 @@ from playwright.async_api import (
     async_playwright,
 )
 
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import select
 
 from app.scrapers.base import Scraper
@@ -559,7 +559,7 @@ class LiquorCentreScraper(Scraper):
         if not products_data:
             return 0
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         changed_count = 0
 
         # Group products by store_identifier
@@ -735,7 +735,7 @@ class LiquorCentreScraper(Scraper):
         Liquor Centre has different prices at different stores, so we only
         create/update the price for the specific store that was scraped.
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         changed = False
 
         # Find the specific store for this product

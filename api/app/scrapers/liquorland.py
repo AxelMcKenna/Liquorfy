@@ -10,7 +10,7 @@ import logging
 import math
 import re
 from contextlib import suppress
-from datetime import datetime
+from datetime import datetime, timezone
 from html import unescape
 from typing import Any, AsyncIterator, List
 
@@ -38,6 +38,10 @@ logger = logging.getLogger(__name__)
 # Rate limiting configuration (respectful scraping per robots.txt)
 DELAY_BETWEEN_REQUESTS = 1.0  # seconds between page requests
 DELAY_BETWEEN_CATEGORIES = 2.5  # seconds between different categories
+PAGE_REFRESH_INTERVAL = 50  # Close and reopen browser page every N pages to avoid session staleness
+ZERO_PRODUCT_RETRY_DELAY = 5.0  # Extra wait before retrying a page that returned 0 products
+MAX_ZERO_PRODUCT_RETRIES = 2  # Number of retries for pages returning 0 products
+MAX_CONSECUTIVE_ZERO_PAGES = 10  # Skip remaining pages in category after this many consecutive 0-product pages
 
 SALEFINDER_API_BASE = "https://webservice.salefinder.co.nz/index.php/api"
 SALEFINDER_RETAILER_ID = 73
@@ -247,17 +251,40 @@ class LiquorlandScraper(Scraper):
 
                         if total_pages > 1:
                             logger.info(f"  Found {total_pages} pages, fetching remaining...")
+                            consecutive_zero = 0
+                            pages_on_current_tab = 1  # Already fetched page 1
                             for page_num in range(2, total_pages + 1):
                                 await asyncio.sleep(DELAY_BETWEEN_REQUESTS)
+
+                                # Periodically close and reopen the page to avoid session staleness
+                                pages_on_current_tab += 1
+                                if pages_on_current_tab >= PAGE_REFRESH_INTERVAL:
+                                    await page.close()
+                                    page = await self.context.new_page()
+                                    pages_on_current_tab = 0
+                                    logger.info(f"  Refreshed browser page at page {page_num}")
+
                                 page_url = self._get_page_url(base_url, page_num)
                                 try:
-                                    await page.goto(
-                                        page_url, wait_until="domcontentloaded", timeout=60000
-                                    )
-                                    await self._wait_for_content(page)
-                                    fetched_catalog_pages += 1
-                                    yield await page.content()
+                                    html = await self._fetch_page_with_retry(page, page_url)
+                                    if html:
+                                        fetched_catalog_pages += 1
+                                        # Check if page has products before yielding
+                                        if '.s-product' not in html and 's-product' not in html:
+                                            consecutive_zero += 1
+                                            logger.warning(f"  Page {page_num}/{total_pages} has no product markers ({consecutive_zero} consecutive)")
+                                        else:
+                                            consecutive_zero = 0
+                                        yield html
+                                    else:
+                                        consecutive_zero += 1
+                                        logger.warning(f"  Page {page_num}/{total_pages} returned no content ({consecutive_zero} consecutive)")
+
                                     logger.info(f"  Fetched page {page_num}/{total_pages}")
+
+                                    if consecutive_zero >= MAX_CONSECUTIVE_ZERO_PAGES:
+                                        logger.warning(f"  Skipping remaining pages after {MAX_CONSECUTIVE_ZERO_PAGES} consecutive empty pages")
+                                        break
                                 except Exception as e:
                                     logger.error(f"  Failed to fetch page {page_num}: {e}")
                                     continue
@@ -443,6 +470,36 @@ class LiquorlandScraper(Scraper):
     @staticmethod
     def _is_specials_payload(payload: str) -> bool:
         return payload.startswith(SPECIALS_PAYLOAD_PREFIX)
+
+    async def _fetch_page_with_retry(self, page: Page, url: str) -> str | None:
+        """Fetch a page, retrying with a fresh page if 0 products are found."""
+        for attempt in range(1 + MAX_ZERO_PRODUCT_RETRIES):
+            try:
+                await page.goto(url, wait_until="domcontentloaded", timeout=60000)
+                await self._wait_for_content(page)
+                html = await page.content()
+
+                # Check if products are present
+                if 's-product' in html:
+                    return html
+
+                # No products found — retry with backoff
+                if attempt < MAX_ZERO_PRODUCT_RETRIES:
+                    delay = ZERO_PRODUCT_RETRY_DELAY * (attempt + 1)
+                    logger.info(f"  No products found, retrying in {delay}s (attempt {attempt + 1}/{MAX_ZERO_PRODUCT_RETRIES})")
+                    await asyncio.sleep(delay)
+                    # Fresh page for retry
+                    await page.close()
+                    page = await self.context.new_page()
+                else:
+                    return html
+            except Exception as e:
+                if attempt < MAX_ZERO_PRODUCT_RETRIES:
+                    logger.warning(f"  Page fetch failed, retrying: {e}")
+                    await asyncio.sleep(ZERO_PRODUCT_RETRY_DELAY)
+                else:
+                    raise
+        return None
 
     async def _wait_for_content(self, page: Page) -> None:
         """Wait for Liquorland products to load."""

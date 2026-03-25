@@ -13,7 +13,7 @@ import json
 import logging
 import re
 from contextlib import suppress
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 
 from playwright.async_api import (
@@ -801,7 +801,7 @@ class BottleOScraper(Scraper):
         store_identifier: str,
     ) -> int:
         """Upsert products and prices for a single store."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         changed_count = 0
 
         # Find matching store

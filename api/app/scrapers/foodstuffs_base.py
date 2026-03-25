@@ -7,7 +7,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
 
@@ -19,8 +19,11 @@ from app.db.session import async_transaction, get_async_session
 from app.scrapers.base import Scraper
 from app.scrapers.api_auth_base import APIAuthBase
 from app.services.parser_utils import infer_brand
+from app.workers.retry import retry_with_backoff
 
 logger = logging.getLogger(__name__)
+
+PERSIST_BATCH_SIZE = 200
 
 
 class FoodstuffsAPIScraper(Scraper, APIAuthBase):
@@ -343,9 +346,9 @@ class FoodstuffsAPIScraper(Scraper, APIAuthBase):
     async def run(self) -> IngestionRun:
         """
         Run the scraper and persist data to database.
-        Overrides base class to use API-based scraping instead of HTML parsing.
+        Overrides base class to use API-based scraping with batched persistence.
         """
-        self._run_started_at = datetime.utcnow()
+        self._run_started_at = datetime.now(timezone.utc)
 
         run = IngestionRun(
             chain=self.chain,
@@ -363,39 +366,61 @@ class FoodstuffsAPIScraper(Scraper, APIAuthBase):
             changed_items = 0
             failed_items = 0
 
-            # Track store UUIDs we actually wrote to, for per-store sweep
+            # Group products by store_id for batched persistence
+            products_by_store: dict[str, list[dict]] = {}
+            no_store_count = 0
+            for p in products:
+                sid = p.get("store_id")
+                if sid:
+                    products_by_store.setdefault(sid, []).append(p)
+                else:
+                    no_store_count += 1
+
+            if no_store_count:
+                logger.warning(f"{no_store_count} products have no store_id, skipping")
+                failed_items += no_store_count
+
+            # Resolve store API IDs to DB Store objects once
+            all_api_ids = list(products_by_store.keys())
+            store_map: dict[str, Store] = {}
+            if all_api_ids:
+                async with async_transaction() as session:
+                    result = await session.execute(
+                        select(Store).where(
+                            Store.chain == self.chain,
+                            Store.api_id.in_(all_api_ids),
+                        )
+                    )
+                    for store in result.scalars().all():
+                        store_map[store.api_id] = store
+
+            # Batched upsert per store
             seen_store_ids: set = set()
 
-            # Process each product in its own transaction to avoid cascade failures
-            for product_data in products:
-                try:
-                    async with async_transaction() as session:
-                        store_api_id = product_data.get('store_id')
-                        if store_api_id:
-                            result = await session.execute(
-                                select(Store).where(
-                                    Store.chain == self.chain,
-                                    Store.api_id == store_api_id
-                                )
-                            )
-                            store = result.scalar_one_or_none()
+            for store_api_id, store_products in products_by_store.items():
+                store = store_map.get(store_api_id)
+                if not store:
+                    logger.debug(f"Store not found in DB for api_id={store_api_id}, skipping {len(store_products)} products")
+                    failed_items += len(store_products)
+                    continue
 
-                            if store:
-                                seen_store_ids.add(store.id)
-                                changed = await self._upsert_product_and_prices(
-                                    session, product_data, [store]
-                                )
-                                if changed:
-                                    changed_items += 1
-                            else:
-                                logger.debug(f"Store not found in DB for api_id={store_api_id}, skipping price")
-                                failed_items += 1
-                        else:
-                            logger.warning(f"Product {product_data.get('name')} has no store_id")
-                            failed_items += 1
-                except Exception as e:
-                    logger.error(f"Failed to persist product {product_data.get('name')}: {e}")
-                    failed_items += 1
+                seen_store_ids.add(store.id)
+
+                # Process in batches
+                for batch_start in range(0, len(store_products), PERSIST_BATCH_SIZE):
+                    batch = store_products[batch_start:batch_start + PERSIST_BATCH_SIZE]
+                    try:
+                        async with async_transaction() as session:
+                            batch_changed = await self._upsert_products_batch(
+                                session, batch, [store]
+                            )
+                        changed_items += batch_changed
+                    except Exception as e:
+                        logger.error(
+                            f"Failed batch for store {store.name} "
+                            f"(batch {batch_start // PERSIST_BATCH_SIZE + 1}): {e}"
+                        )
+                        failed_items += len(batch)
 
             # Sweep stale promos for each store we scraped
             if self._run_started_at and seen_store_ids:
@@ -410,6 +435,7 @@ class FoodstuffsAPIScraper(Scraper, APIAuthBase):
 
             # Mark as failed if auth produced zero items (likely auth failure)
             status = "failed" if total_items == 0 else "completed"
+            error_msg = "No products scraped (likely auth failure)" if total_items == 0 else None
 
             async with async_transaction() as session:
                 result = await session.execute(
@@ -417,16 +443,29 @@ class FoodstuffsAPIScraper(Scraper, APIAuthBase):
                 )
                 run = result.scalar_one()
                 run.status = status
-                run.finished_at = datetime.utcnow()
+                run.finished_at = datetime.now(timezone.utc)
                 run.items_total = total_items
                 run.items_changed = changed_items
                 run.items_failed = failed_items
+                run.error_message = error_msg
 
             logger.info(
                 f"Scraper completed: {total_items} items, "
                 f"{changed_items} changed, {failed_items} failed"
             )
             return run
+
+        except asyncio.CancelledError:
+            logger.error(f"Scraper cancelled: {self.chain}")
+            async with async_transaction() as session:
+                result = await session.execute(
+                    select(IngestionRun).where(IngestionRun.id == run.id)
+                )
+                run = result.scalar_one()
+                run.status = "failed"
+                run.finished_at = datetime.now(timezone.utc)
+                run.error_message = "Cancelled (timeout)"
+            raise
 
         except Exception as e:
             logger.error(f"Scraper failed: {e}")
@@ -436,7 +475,8 @@ class FoodstuffsAPIScraper(Scraper, APIAuthBase):
                 )
                 run = result.scalar_one()
                 run.status = "failed"
-                run.finished_at = datetime.utcnow()
+                run.finished_at = datetime.now(timezone.utc)
+                run.error_message = f"{type(e).__name__}: {e}"[:1000]
             raise
 
     async def _validate_auth(self) -> bool:
@@ -509,7 +549,12 @@ class FoodstuffsAPIScraper(Scraper, APIAuthBase):
                 logger.info(f"  Category: {level0} > {level1}")
 
                 try:
-                    response = await self._fetch_category(level0, level1, page=0)
+                    response = await retry_with_backoff(
+                        lambda _l0=level0, _l1=level1: self._fetch_category(_l0, _l1, page=0),
+                        max_retries=3,
+                        base_delay=5.0,
+                        label=f"{self.chain} {level1} p0 store={store_id}",
+                    )
                     products_data = response.get("products", [])
                     total_products = response.get("totalProducts", len(products_data))
 
@@ -532,7 +577,17 @@ class FoodstuffsAPIScraper(Scraper, APIAuthBase):
                     for page_num in range(1, total_pages):
                         logger.info(f"  Fetching page {page_num + 1}/{total_pages} for {level1}")
 
-                        response = await self._fetch_category(level0, level1, page=page_num)
+                        try:
+                            response = await retry_with_backoff(
+                                lambda _l0=level0, _l1=level1, _p=page_num: self._fetch_category(_l0, _l1, page=_p),
+                                max_retries=3,
+                                base_delay=5.0,
+                                label=f"{self.chain} {level1} p{page_num} store={store_id}",
+                            )
+                        except Exception as e:
+                            logger.error(f"  Failed to fetch page {page_num + 1} for {level1} after retries: {e}")
+                            break
+
                         products_data = response.get("products", [])
 
                         for product_data in products_data:

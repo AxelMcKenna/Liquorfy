@@ -3,11 +3,14 @@ import SwiftUI
 enum AppDestination: Hashable {
     case explore(query: String? = nil, promoOnly: Bool = false)
     case productDetail(id: UUID)
+    case account
+    case login
 }
 
 @main
 struct LiquorfyApp: App {
     @State private var locationManager = LocationManager()
+    @State private var authManager = AuthManager()
     @State private var navigationPath = NavigationPath()
 
     var body: some Scene {
@@ -20,15 +23,23 @@ struct LiquorfyApp: App {
                             ExploreView(initialQuery: query, initialPromoOnly: promoOnly)
                         case .productDetail(let id):
                             ProductDetailView(productId: id)
+                        case .account:
+                            AccountView()
+                        case .login:
+                            LoginView()
                         }
                     }
             }
             .environment(locationManager)
+            .environment(authManager)
             .environment(\.navigate, NavigateAction { destination in
                 navigationPath.append(destination)
             })
             .tint(.appPrimary)
             .preferredColorScheme(.light)
+            .onOpenURL { url in
+                Task { try? await supabase.auth.session(from: url) }
+            }
         }
     }
 }

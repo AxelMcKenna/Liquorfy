@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List
 from urllib.parse import quote
 
@@ -186,7 +186,7 @@ class CountdownAPIScraper(Scraper):
 
     async def run(self) -> IngestionRun:
         """Run the scraper and persist data to database."""
-        self._run_started_at = datetime.utcnow()
+        self._run_started_at = datetime.now(timezone.utc)
 
         run = IngestionRun(
             chain=self.chain,
@@ -216,14 +216,21 @@ class CountdownAPIScraper(Scraper):
                     logger.warning(f"No stores found for chain {self.chain}")
                     stores = []
 
-                # Batch upsert all products (broadcasts to all stores)
+            # Batched upsert — each batch in its own transaction so
+            # partial progress survives crashes.
+            BATCH = 200
+            for batch_start in range(0, len(products), BATCH):
+                batch = products[batch_start:batch_start + BATCH]
                 try:
-                    changed_items = await self._upsert_products_batch(
-                        session, products, stores
-                    )
+                    async with async_transaction() as session:
+                        batch_changed = await self._upsert_products_batch(
+                            session, batch, stores
+                        )
+                    changed_items += batch_changed
                 except Exception as e:
-                    logger.error(f"Failed to persist products: {e}")
-                    failed_items = total_items
+                    batch_num = batch_start // BATCH + 1
+                    logger.error(f"Failed to persist batch {batch_num}: {e}")
+                    failed_items += len(batch)
 
             # Update ingestion run with results
             async with async_transaction() as session:
@@ -232,7 +239,7 @@ class CountdownAPIScraper(Scraper):
                 )
                 run = result.scalar_one()
                 run.status = "completed"
-                run.finished_at = datetime.utcnow()
+                run.finished_at = datetime.now(timezone.utc)
                 run.items_total = total_items
                 run.items_changed = changed_items
                 run.items_failed = failed_items
@@ -253,16 +260,28 @@ class CountdownAPIScraper(Scraper):
             )
             return run
 
-        except Exception as e:
-            logger.error(f"Scraper failed: {e}")
-            # Update run status to failed
+        except asyncio.CancelledError:
+            logger.error(f"Scraper cancelled: {self.chain}")
             async with async_transaction() as session:
                 result = await session.execute(
                     select(IngestionRun).where(IngestionRun.id == run.id)
                 )
                 run = result.scalar_one()
                 run.status = "failed"
-                run.finished_at = datetime.utcnow()
+                run.finished_at = datetime.now(timezone.utc)
+                run.error_message = "Cancelled (timeout)"
+            raise
+
+        except Exception as e:
+            logger.error(f"Scraper failed: {e}")
+            async with async_transaction() as session:
+                result = await session.execute(
+                    select(IngestionRun).where(IngestionRun.id == run.id)
+                )
+                run = result.scalar_one()
+                run.status = "failed"
+                run.finished_at = datetime.now(timezone.utc)
+                run.error_message = f"{type(e).__name__}: {e}"[:1000]
             raise
 
     async def scrape(self) -> List[dict]:

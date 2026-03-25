@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import AsyncIterator, List, Optional
 
 from httpx import AsyncClient
@@ -32,7 +32,7 @@ class Scraper(abc.ABC):
 
     async def run(self) -> IngestionRun:
         """Run the scraper and persist data to database."""
-        self._run_started_at = datetime.utcnow()
+        self._run_started_at = datetime.now(timezone.utc)
 
         # Create ingestion run record
         run = IngestionRun(
@@ -88,7 +88,7 @@ class Scraper(abc.ABC):
                 )
                 run = result.scalar_one()
                 run.status = "completed"
-                run.finished_at = datetime.utcnow()
+                run.finished_at = datetime.now(timezone.utc)
                 run.items_total = total_items
                 run.items_changed = changed_items
                 run.items_failed = failed_items
@@ -118,7 +118,8 @@ class Scraper(abc.ABC):
                 )
                 run = result.scalar_one()
                 run.status = "failed"
-                run.finished_at = datetime.utcnow()
+                run.finished_at = datetime.now(timezone.utc)
+                run.error_message = "Cancelled (timeout)"
             raise
 
         except Exception as e:
@@ -130,7 +131,8 @@ class Scraper(abc.ABC):
                 )
                 run = result.scalar_one()
                 run.status = "failed"
-                run.finished_at = datetime.utcnow()
+                run.finished_at = datetime.now(timezone.utc)
+                run.error_message = f"{type(e).__name__}: {e}"[:1000]
             raise
 
     def build_product_dict(
@@ -211,7 +213,7 @@ class Scraper(abc.ABC):
         if not products_data:
             return 0
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         changed_count = 0
 
         # Step 1: Bulk upsert all products
@@ -345,7 +347,7 @@ class Scraper(abc.ABC):
         Upsert product and its prices.
         Returns True if any changes were made, False otherwise.
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         changed = False
 
         # Upsert product

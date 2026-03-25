@@ -36,6 +36,7 @@ class ScraperStatus(BaseModel):
     items_failed: Optional[int]
     success_rate: Optional[float]  # Percentage
     hours_since_last_run: Optional[float]
+    error_message: Optional[str]
 
 
 class WorkerHealthResponse(BaseModel):
@@ -61,6 +62,7 @@ class IngestionRunResponse(BaseModel):
     items_total: int
     items_changed: int
     items_failed: int
+    error_message: Optional[str]
 
     class Config:
         from_attributes = True
@@ -128,6 +130,7 @@ async def worker_health():
                     items_failed=None,
                     success_rate=None,
                     hours_since_last_run=None,
+                    error_message=None,
                 ))
                 continue
 
@@ -165,6 +168,7 @@ async def worker_health():
                 items_failed=last_run.items_failed,
                 success_rate=success_rate,
                 hours_since_last_run=hours_since,
+                error_message=last_run.error_message,
             ))
 
         # Overall health: healthy if at least 50% of scrapers have run successfully recently
@@ -228,6 +232,7 @@ async def list_ingestion_runs(
                 items_total=run.items_total,
                 items_changed=run.items_changed,
                 items_failed=run.items_failed,
+                error_message=run.error_message,
             )
             for run in runs
         ]
@@ -266,6 +271,7 @@ async def get_ingestion_run(run_id: str):
             items_total=run.items_total,
             items_changed=run.items_changed,
             items_failed=run.items_failed,
+            error_message=run.error_message,
         )
 
 
