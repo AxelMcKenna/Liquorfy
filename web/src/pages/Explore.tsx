@@ -7,7 +7,7 @@ import { usePaginatedProducts } from '@/hooks/usePaginatedProducts';
 import { useFilters } from '@/hooks/useFilters';
 import { useLocationContext } from '@/contexts/LocationContext';
 import { useSearchParams } from 'react-router-dom';
-import { MapPin, Navigation, SlidersHorizontal } from 'lucide-react';
+import { MapPin, Navigation, SlidersHorizontal, Search } from 'lucide-react';
 import { SignInNudge } from '@/components/auth/SignInNudge';
 import { SortOption } from '@/types';
 import { useSavedFilters } from '@/hooks/useSavedFilters';
@@ -27,7 +27,7 @@ export const Explore = () => {
   const FETCH_DEBOUNCE_MS = 220;
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 1024);
   const { location, radiusKm, isLocationSet, openLocationModal, requestAutoLocation, loading: locationLoading, error: locationError } = useLocationContext();
   const { filters, updateFilters } = useFilters();
   const { products, total, loading, error, currentPage, totalPages, fetchProducts, goToPage, clearProducts } = usePaginatedProducts();
@@ -102,6 +102,7 @@ export const Explore = () => {
     newParams.set('page', newPage.toString());
     setSearchParams(newParams);
     goToPage(newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const getPageNumbers = () => {
@@ -282,10 +283,10 @@ export const Explore = () => {
                   )}
 
                   {!loading && products.length === 0 && (
-                    <div className="text-center py-12">
-                      <p className="text-muted-foreground">
-                        No products found. Try adjusting your filters.
-                      </p>
+                    <div className="text-center py-16">
+                      <Search className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+                      <p className="text-muted-foreground font-medium">No products found</p>
+                      <p className="text-sm text-muted-foreground/70 mt-1">Try adjusting your filters or search terms</p>
                     </div>
                   )}
                 </>

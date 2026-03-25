@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Footer } from '@/components/layout/Footer';
 
 const NotFoundPage = () => {
   return (
@@ -22,6 +23,7 @@ const NotFoundPage = () => {
           </Button>
         </div>
       </main>
+      <Footer />
     </div>
   );
 };

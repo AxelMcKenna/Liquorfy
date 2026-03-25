@@ -1,4 +1,5 @@
 import { Category } from '@/types';
+import { Beer, Wine, Martini, CupSoda, type LucideIcon } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -48,6 +49,13 @@ const categories: { value: Category; label: string; group: string }[] = [
   { value: 'non_alcoholic', label: 'Non-Alcoholic', group: 'Other' },
 ];
 
+const groupIcons: Record<string, LucideIcon> = {
+  Beer,
+  Wine,
+  Spirits: Martini,
+  Other: CupSoda,
+};
+
 const groupedCategories = categories.reduce((acc, cat) => {
   if (!acc[cat.group]) {
     acc[cat.group] = [];
@@ -67,18 +75,22 @@ export const CategoryFilter = ({ value, onChange }: CategoryFilterProps) => {
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="all">All Categories</SelectItem>
-        {Object.entries(groupedCategories).map(([group, items]) => (
-          <div key={group}>
-            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-              {group}
+        {Object.entries(groupedCategories).map(([group, items]) => {
+          const Icon = groupIcons[group];
+          return (
+            <div key={group}>
+              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                {Icon && <Icon className="h-3.5 w-3.5" />}
+                {group}
+              </div>
+              {items.map((cat) => (
+                <SelectItem key={cat.value} value={cat.value}>
+                  {cat.label}
+                </SelectItem>
+              ))}
             </div>
-            {items.map((cat) => (
-              <SelectItem key={cat.value} value={cat.value}>
-                {cat.label}
-              </SelectItem>
-            ))}
-          </div>
-        ))}
+          );
+        })}
       </SelectContent>
     </Select>
   );

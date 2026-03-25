@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
+import { Footer } from '@/components/layout/Footer';
 
 const LoginPage = () => {
   const { user, signInWithPassword, signInWithGoogle, signInWithApple } = useAuth();
@@ -170,6 +171,7 @@ const LoginPage = () => {
           </p>
         </div>
       </main>
+      <Footer />
     </div>
   );
 };

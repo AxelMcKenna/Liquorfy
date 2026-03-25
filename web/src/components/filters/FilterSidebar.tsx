@@ -5,7 +5,7 @@ import { PromoToggle } from './PromoToggle';
 import { PriceRangeFilter } from './PriceRangeFilter';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { X, Sparkles, DollarSign, Store as StoreIcon, Grid3x3, Save } from 'lucide-react';
+import { X, Tag, CircleDollarSign, MapPin, Wine, Save } from 'lucide-react';
 import { useSavedFilters } from '@/hooks/useSavedFilters';
 import { toast } from 'sonner';
 
@@ -91,7 +91,7 @@ export const FilterSidebar = ({ isOpen, onClose }: FilterSidebarProps) => {
             {/* Category */}
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <Grid3x3 className="h-4 w-4 text-primary" />
+                <Wine className="h-4 w-4 text-primary" />
                 <label className="text-sm font-semibold text-primary-gray">
                   Category
                 </label>
@@ -105,7 +105,7 @@ export const FilterSidebar = ({ isOpen, onClose }: FilterSidebarProps) => {
             {/* Promo Only */}
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <Sparkles className="h-4 w-4 text-primary" />
+                <Tag className="h-4 w-4 text-primary" />
                 <label className="text-sm font-semibold text-primary-gray">
                   Deals & Promos
                 </label>
@@ -119,7 +119,7 @@ export const FilterSidebar = ({ isOpen, onClose }: FilterSidebarProps) => {
             {/* Price Range */}
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <DollarSign className="h-4 w-4 text-primary" />
+                <CircleDollarSign className="h-4 w-4 text-primary" />
                 <label className="text-sm font-semibold text-primary-gray">
                   Price Range
                 </label>
@@ -134,7 +134,7 @@ export const FilterSidebar = ({ isOpen, onClose }: FilterSidebarProps) => {
             {/* Chain Filter */}
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <StoreIcon className="h-4 w-4 text-primary" />
+                <MapPin className="h-4 w-4 text-primary" />
                 <label className="text-sm font-semibold text-primary-gray">
                   Stores
                 </label>

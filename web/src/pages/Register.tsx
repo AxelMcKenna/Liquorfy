@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
+import { Footer } from '@/components/layout/Footer';
 import { toast } from 'sonner';
 
 const RegisterPage = () => {
@@ -93,8 +94,8 @@ const RegisterPage = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <header className="bg-primary">
-        <div className="px-4 py-3 flex items-center gap-3">
+      <header className="bg-primary border-b border-primary">
+        <div className="px-4 py-3 flex items-center gap-3 min-h-[40px]">
           <button onClick={() => navigate(-1)} className="text-white/70 hover:text-white">
             <ArrowLeft className="h-5 w-5" />
           </button>
@@ -208,6 +209,7 @@ const RegisterPage = () => {
           </p>
         </div>
       </main>
+      <Footer />
     </div>
   );
 };

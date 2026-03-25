@@ -49,8 +49,13 @@ const ProductCardComponent = ({
   return (
     <>
       <Card
-        className="h-full flex flex-col overflow-hidden border bg-white hover:shadow-sm transition-shadow cursor-pointer group [backface-visibility:hidden]"
+        className="h-full flex flex-col overflow-hidden border bg-white hover:shadow-sm transition-shadow cursor-pointer group [backface-visibility:hidden] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 animate-card-enter"
+        style={{ animationDelay: `${Math.min(index * 50, 500)}ms` }}
         onClick={handleCardClick}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleCardClick(); } }}
+        tabIndex={0}
+        role="button"
+        aria-label={`View ${product.name}, $${(product.price.promo_price_nzd ?? product.price.price_nzd).toFixed(2)} at ${product.price.store_name}`}
       >
         {/* Product Image */}
         <div className="w-full aspect-square relative overflow-hidden border-b">
