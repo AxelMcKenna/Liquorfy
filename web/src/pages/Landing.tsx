@@ -11,6 +11,9 @@ import { useLocationContext } from '@/contexts/LocationContext';
 import { useStores } from '@/hooks/useStores';
 import { Search, ArrowRight, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { RecentlyViewed } from '@/components/products/RecentlyViewed';
+import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
+import { PersonalisedBanner } from '@/components/PersonalisedBanner';
 import { SortOption } from '@/types';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 
@@ -18,6 +21,7 @@ export const Landing = () => {
   const [query, setQuery] = useState('');
   const navigate = useNavigate();
   const { products, loading, fetchProducts } = useProducts();
+  const { recentlyViewed } = useRecentlyViewed();
   const { location, radiusKm, setRadiusKm, requestAutoLocation: requestLocation, loading: locationLoading, error: locationError } = useLocationContext();
   const { stores, loading: storesLoading, fetchNearbyStores } = useStores();
   const [tempRadius, setTempRadius] = useState(radiusKm);
@@ -129,6 +133,8 @@ export const Landing = () => {
         </div>
       </section>
 
+      <PersonalisedBanner />
+
       <main className="max-w-6xl mx-auto px-4">
         {/* Featured Products */}
         <section className="py-12">
@@ -165,6 +171,9 @@ export const Landing = () => {
             </div>
           )}
         </section>
+
+        {/* Recently Viewed */}
+        <RecentlyViewed products={recentlyViewed} />
 
         {/* Store Map */}
         <section className="py-12 border-t">

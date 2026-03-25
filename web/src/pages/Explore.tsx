@@ -10,7 +10,9 @@ import { useLocationContext } from '@/contexts/LocationContext';
 import { useSearchParams } from 'react-router-dom';
 import { MapPin, Navigation, ArrowUpDown } from 'lucide-react';
 import { SortDropdown } from '@/components/filters/SortDropdown';
+import { SignInNudge } from '@/components/auth/SignInNudge';
 import { SortOption } from '@/types';
+import { useSavedFilters } from '@/hooks/useSavedFilters';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -31,8 +33,23 @@ export const Explore = () => {
   const { location, radiusKm, isLocationSet, openLocationModal, requestAutoLocation, loading: locationLoading, error: locationError } = useLocationContext();
   const { filters, updateFilters } = useFilters();
   const { products, total, loading, error, currentPage, totalPages, fetchProducts, goToPage, clearProducts } = usePaginatedProducts();
+  const { getSavedFilters } = useSavedFilters();
   const page = parseInt(searchParams.get('page') || '1', 10);
   const previousFetchInputsRef = useRef<{ page: number; nonPageKey: string } | null>(null);
+  const appliedSavedFiltersRef = useRef(false);
+
+  // Auto-apply saved filter defaults when landing on /explore with no params
+  useEffect(() => {
+    if (appliedSavedFiltersRef.current) return;
+    appliedSavedFiltersRef.current = true;
+
+    if (searchParams.toString() === '') {
+      const saved = getSavedFilters();
+      if (saved) {
+        updateFilters(saved);
+      }
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     setSearchQuery(filters.query || '');
@@ -205,6 +222,8 @@ export const Explore = () => {
               {/* Content when location is set */}
               {isLocationSet && (
                 <>
+                  <SignInNudge />
+
                   {error && (
                     <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 mb-4">
                       <p className="text-sm text-destructive">{error}</p>
