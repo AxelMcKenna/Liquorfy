@@ -26,7 +26,7 @@ export const PersonalisedBanner = () => {
       <div className="max-w-6xl mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <p className="text-sm text-foreground">
-            Welcome back, <strong>{user.email?.split('@')[0]}</strong>
+            Welcome back, <strong>{user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0]?.split('.')[0] || 'there'}</strong>
           </p>
           <div className="flex items-center gap-4 text-sm">
             {alertCount > 0 && (

@@ -32,7 +32,7 @@ export const Header = ({
               <UserMenu />
             ) : (
               <Link to="/login">
-                <Button size="sm" className="bg-white/15 text-white border border-white/30 hover:bg-white/25 font-semibold gap-2">
+                <Button size="sm" className="text-white hover:bg-white/10 font-semibold gap-2">
                   <User className="h-4 w-4" />
                   Account
                 </Button>
@@ -93,7 +93,7 @@ export const Header = ({
               variant="ghost"
               size="sm"
               onClick={openLocationModal}
-              className="text-white hover:bg-white/10 gap-2"
+              className="text-white hover:bg-white/10 gap-2 focus-visible:ring-0 focus-visible:ring-offset-0"
             >
               <MapPin className="h-4 w-4" />
               <span className="hidden sm:inline">
@@ -104,7 +104,7 @@ export const Header = ({
               <UserMenu />
             ) : (
               <Link to="/login">
-                <Button size="sm" className="bg-white/15 text-white border border-white/30 hover:bg-white/25 font-semibold gap-2">
+                <Button size="sm" className="text-white hover:bg-white/10 font-semibold gap-2">
                   <User className="h-4 w-4" />
                   <span className="hidden sm:inline">Account</span>
                 </Button>

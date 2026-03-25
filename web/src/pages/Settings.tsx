@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { AlertsList } from '@/components/alerts/AlertsList';
 import { Button } from '@/components/ui/button';
+import { Footer } from '@/components/layout/Footer';
 import { useFavourites } from '@/hooks/useFavourites';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 import { ProductGrid } from '@/components/products/ProductGrid';
@@ -161,6 +162,8 @@ const SettingsPage = () => {
             </div>
           </section>
         </main>
+
+        <Footer />
 
         <Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
           <DialogContent className="sm:max-w-md">

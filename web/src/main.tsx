@@ -23,10 +23,10 @@ const NotFound = lazy(() => import("@/pages/NotFound"));
 
 // Loading fallback component
 const PageLoader = () => (
-  <div className="min-h-screen flex items-center justify-center bg-white">
+  <div className="min-h-screen flex items-center justify-center bg-background">
     <div className="text-center">
-      <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-      <p className="text-gray-600">Loading...</p>
+      <p className="text-2xl font-display font-semibold text-primary tracking-tight mb-4">LIQUORFY</p>
+      <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
     </div>
   </div>
 );
