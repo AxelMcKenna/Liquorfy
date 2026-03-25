@@ -119,7 +119,7 @@ export const LocationModal = () => {
   return (
     <Dialog open={isLocationModalOpen} onOpenChange={canClose ? closeLocationModal : undefined}>
       <DialogContent
-        className={`sm:max-w-[600px] ${!canClose ? '[&>button]:hidden' : ''}`}
+        className={`sm:max-w-2xl ${!canClose ? '[&>button]:hidden' : ''}`}
         onPointerDownOutside={(e) => !canClose && e.preventDefault()}
         onEscapeKeyDown={(e) => !canClose && e.preventDefault()}
       >
@@ -143,7 +143,7 @@ export const LocationModal = () => {
               <Button
                 onClick={handleAutoLocation}
                 disabled={loading}
-                className="w-full h-14 text-lg"
+                className="w-full"
                 size="lg"
               >
                 {loading ? (
@@ -162,7 +162,7 @@ export const LocationModal = () => {
               <Button
                 onClick={handleManualMode}
                 variant="outline"
-                className="w-full h-14 text-lg"
+                className="w-full"
                 size="lg"
                 disabled={loading}
               >
