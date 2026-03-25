@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LogOut, User, Bell, Trash2 } from 'lucide-react';
+import { LogOut, User, Eye, Settings, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -19,7 +19,8 @@ export const UserMenu = () => {
   if (!user) return null;
 
   const rawName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Account';
-  const displayName = rawName.split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+  const firstName = rawName.split(' ')[0];
+  const displayName = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
   const avatar = user.user_metadata?.avatar_url || user.user_metadata?.picture;
 
   const handleDelete = async () => {
@@ -57,12 +58,20 @@ export const UserMenu = () => {
           />
           <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-lg shadow-lg border z-50 py-1">
             <a
+              href="/watchlist"
+              className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-gray-50"
+              onClick={() => setMenuOpen(false)}
+            >
+              <Eye className="w-4 h-4" />
+              Watchlist
+            </a>
+            <a
               href="/settings"
               className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-gray-50"
               onClick={() => setMenuOpen(false)}
             >
-              <Bell className="w-4 h-4" />
-              My Alerts
+              <Settings className="w-4 h-4" />
+              Settings
             </a>
             <button
               onClick={async () => {
