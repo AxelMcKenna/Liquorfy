@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { Header } from '@/components/layout/Header';
-import { FilterBar } from '@/components/filters/FilterBar';
 import { FilterSidebar } from '@/components/filters/FilterSidebar';
 import { ProductGrid } from '@/components/products/ProductGrid';
 import { LocationGate } from '@/components/location/LocationGate';
@@ -8,8 +7,7 @@ import { usePaginatedProducts } from '@/hooks/usePaginatedProducts';
 import { useFilters } from '@/hooks/useFilters';
 import { useLocationContext } from '@/contexts/LocationContext';
 import { useSearchParams } from 'react-router-dom';
-import { MapPin, Navigation, ArrowUpDown } from 'lucide-react';
-import { SortDropdown } from '@/components/filters/SortDropdown';
+import { MapPin, Navigation, SlidersHorizontal } from 'lucide-react';
 import { SignInNudge } from '@/components/auth/SignInNudge';
 import { SortOption } from '@/types';
 import { useSavedFilters } from '@/hooks/useSavedFilters';
@@ -162,7 +160,6 @@ export const Explore = () => {
             onSearch={handleSearch}
             variant="compact"
           />
-          <FilterBar onOpenFilters={() => setIsSidebarOpen(true)} />
         </div>
 
         <div className="flex">
@@ -230,21 +227,12 @@ export const Explore = () => {
                     </div>
                   )}
 
-                  {/* Results count + sort */}
+                  {/* Results count */}
                   {!loading && products.length > 0 && (
-                    <div className="mb-4 flex items-center justify-between text-sm text-muted-foreground">
-                      <span>
-                        {total === 0
-                          ? 'No products found'
-                          : `${(currentPage - 1) * 24 + 1}-${Math.min(currentPage * 24, total)} of ${total}`}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
-                        <SortDropdown
-                          value={filters.sort || SortOption.BEST_VALUE}
-                          onChange={(sort) => updateFilters({ sort })}
-                        />
-                      </div>
+                    <div className="mb-4 text-sm text-muted-foreground">
+                      {total === 0
+                        ? 'No products found'
+                        : `${(currentPage - 1) * 24 + 1}–${Math.min(currentPage * 24, total)} of ${total} products`}
                     </div>
                   )}
 
@@ -306,6 +294,13 @@ export const Explore = () => {
           </main>
         </div>
 
+        {/* Mobile filter FAB */}
+        <button
+          onClick={() => setIsSidebarOpen(true)}
+          className="fixed bottom-6 right-6 z-30 lg:hidden bg-primary text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors"
+        >
+          <SlidersHorizontal className="h-5 w-5" />
+        </button>
       </div>
     </LocationGate>
   );
