@@ -18,7 +18,8 @@ export const UserMenu = () => {
 
   if (!user) return null;
 
-  const displayName = user.email || 'Account';
+  const displayName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Account';
+  const avatar = user.user_metadata?.avatar_url || user.user_metadata?.picture;
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -33,12 +34,16 @@ export const UserMenu = () => {
     <div className="relative">
       <button
         onClick={() => setMenuOpen(!menuOpen)}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+        className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors"
       >
-        <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
-          <User className="w-4 h-4 text-primary" />
-        </div>
-        <span className="text-sm font-medium hidden sm:block max-w-[120px] truncate">
+        {avatar ? (
+          <img src={avatar} alt="" className="w-7 h-7 rounded-full" referrerPolicy="no-referrer" />
+        ) : (
+          <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center">
+            <User className="w-4 h-4 text-white" />
+          </div>
+        )}
+        <span className="text-sm font-medium text-white hidden sm:block max-w-[140px] truncate">
           {displayName}
         </span>
       </button>

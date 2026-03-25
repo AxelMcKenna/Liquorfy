@@ -1,55 +1,40 @@
-import { useEffect, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
-import { Bell, Heart, TrendingDown } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFavourites } from '@/hooks/useFavourites';
-import { useAlerts, Alert } from '@/hooks/useAlerts';
+import { useAlerts } from '@/hooks/useAlerts';
+import { toast } from 'sonner';
 
 export const PersonalisedBanner = () => {
   const { user } = useAuth();
   const { favouriteCount } = useFavourites();
   const { alerts, fetchAlerts } = useAlerts();
-  const [loaded, setLoaded] = useState(false);
+  const shown = useRef(false);
 
   useEffect(() => {
-    if (user && !loaded) {
-      fetchAlerts().then(() => setLoaded(true));
+    if (user && !shown.current) {
+      fetchAlerts();
+      shown.current = true;
     }
-  }, [user, loaded, fetchAlerts]);
+  }, [user, fetchAlerts]);
 
-  if (!user) return null;
+  useEffect(() => {
+    if (!user || !shown.current) return;
+    // Show toast once alerts have loaded
+    if (alerts === undefined) return;
 
-  const alertCount = alerts.length;
+    const name = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0]?.split('.')[0] || 'there';
+    const alertCount = alerts.length;
+    const parts: string[] = [];
+    if (alertCount > 0) parts.push(`${alertCount} alert${alertCount !== 1 ? 's' : ''}`);
+    if (favouriteCount > 0) parts.push(`${favouriteCount} saved`);
 
-  return (
-    <section className="bg-primary/5 border-b">
-      <div className="max-w-6xl mx-auto px-4 py-4">
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-foreground">
-            Welcome back, <strong>{user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0]?.split('.')[0] || 'there'}</strong>
-          </p>
-          <div className="flex items-center gap-4 text-sm">
-            {alertCount > 0 && (
-              <Link to="/settings" className="flex items-center gap-1.5 text-primary hover:underline">
-                <Bell className="h-4 w-4" />
-                {alertCount} alert{alertCount !== 1 ? 's' : ''}
-              </Link>
-            )}
-            {favouriteCount > 0 && (
-              <Link to="/settings" className="flex items-center gap-1.5 text-red-500 hover:underline">
-                <Heart className="h-4 w-4" />
-                {favouriteCount} saved
-              </Link>
-            )}
-            {alertCount === 0 && favouriteCount === 0 && (
-              <Link to="/explore" className="flex items-center gap-1.5 text-primary hover:underline">
-                <TrendingDown className="h-4 w-4" />
-                Find deals
-              </Link>
-            )}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
+    const description = parts.length > 0 ? parts.join(' · ') : undefined;
+
+    toast(`Welcome back, ${name}`, {
+      description,
+      duration: 4000,
+    });
+  }, [user, alerts, favouriteCount]);
+
+  return null;
 };
