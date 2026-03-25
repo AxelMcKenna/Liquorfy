@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,6 +16,7 @@ const RegisterPage = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
   const [errors, setErrors] = useState<{
     name?: string;
     email?: string;
@@ -62,8 +63,7 @@ const RegisterPage = () => {
     setErrors({});
     try {
       await signUp(email.trim(), password, name.trim());
-      toast.success('Check your email to confirm your account.');
-      navigate('/login', { replace: true });
+      setEmailSent(true);
     } catch (err: any) {
       const msg = err?.message?.toLowerCase() ?? '';
       if (msg.includes('already registered') || msg.includes('already been registered')) {
@@ -96,6 +96,40 @@ const RegisterPage = () => {
 
   const fieldClass = (field: keyof typeof errors) =>
     errors[field] ? 'border-red-400 focus-visible:ring-red-400' : '';
+
+  if (emailSent) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <header className="bg-primary border-b border-primary">
+          <div className="px-4 py-3 flex items-center gap-3 min-h-[40px]">
+            <Link to="/" className="text-lg font-semibold text-white">
+              LIQUORFY
+            </Link>
+          </div>
+        </header>
+        <main className="flex-1 flex items-center justify-center px-4">
+          <div className="w-full max-w-sm bg-white rounded-lg border shadow-md p-8 space-y-6 text-center">
+            <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+              <Mail className="h-6 w-6 text-primary" />
+            </div>
+            <h2 className="text-2xl font-serif font-semibold tracking-tight">
+              Check your email
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              We've sent a confirmation link to <span className="font-medium text-foreground">{email}</span>. Please check your inbox and click the link to activate your account.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Didn't receive it? Check your spam folder or try again in a few minutes.
+            </p>
+            <Button variant="outline" className="w-full" onClick={() => navigate('/login')}>
+              Go to Sign In
+            </Button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
