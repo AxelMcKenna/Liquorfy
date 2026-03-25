@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { QuickView } from "./QuickView";
+import { FavouriteButton } from "./FavouriteButton";
 import {
   formatPromoEndDate,
   formatDistance,
@@ -16,30 +17,39 @@ import {
 interface ProductCardProps {
   product: Product;
   index: number;
+  isFavourite?: boolean;
+  onToggleFavourite?: () => void;
+  onView?: () => void;
 }
 
 const ProductCardComponent = ({
   product,
   index,
+  isFavourite = false,
+  onToggleFavourite,
+  onView,
 }: ProductCardProps) => {
   const [imageError, setImageError] = useState(false);
   const [showQuickView, setShowQuickView] = useState(false);
   const hasPromo = product.price.promo_price_nzd &&
     product.price.promo_price_nzd < product.price.price_nzd;
 
+  const isNewPromo = hasPromo && product.last_updated &&
+    (Date.now() - new Date(product.last_updated).getTime()) < 24 * 60 * 60 * 1000;
   const promoEndText = formatPromoEndDate(product.price.promo_ends_at);
   const savingsPercent = calculateSavingsPercent(product.price.price_nzd, product.price.promo_price_nzd);
   const distanceText = formatDistance(product.price.distance_km);
   const distanceColorClass = getDistanceColorClass(product.price.distance_km);
 
   const handleCardClick = () => {
+    onView?.();
     setShowQuickView(true);
   };
 
   return (
     <>
       <Card
-        className="h-full flex flex-col overflow-hidden border bg-white hover:shadow-sm transition-shadow cursor-pointer group"
+        className="h-full flex flex-col overflow-hidden border bg-white hover:shadow-sm transition-shadow cursor-pointer group [backface-visibility:hidden]"
         onClick={handleCardClick}
       >
         {/* Product Image */}
@@ -61,9 +71,27 @@ const ProductCardComponent = ({
 
           {/* Sale badge */}
           {hasPromo && savingsPercent > 0 && (
-            <Badge className="absolute top-2 left-2 bg-primary text-white text-xs">
-              {savingsPercent}% off
-            </Badge>
+            <div className="absolute top-2 left-2 flex gap-1">
+              <Badge className="bg-primary text-white text-xs">
+                {savingsPercent}% off
+              </Badge>
+              {isNewPromo && (
+                <Badge className="bg-amber-500 text-white text-xs">
+                  New
+                </Badge>
+              )}
+            </div>
+          )}
+
+          {/* Favourite button */}
+          {onToggleFavourite && (
+            <div className="absolute top-2 right-2 z-10">
+              <FavouriteButton
+                isFavourite={isFavourite}
+                onToggle={onToggleFavourite}
+                className="bg-white/80 backdrop-blur-sm hover:bg-white shadow-sm"
+              />
+            </div>
           )}
 
           {/* Quick View button */}
@@ -73,6 +101,7 @@ const ProductCardComponent = ({
               variant="secondary"
               onClick={(e) => {
                 e.stopPropagation();
+                onView?.();
                 setShowQuickView(true);
               }}
             >
@@ -86,6 +115,7 @@ const ProductCardComponent = ({
             className="absolute bottom-2 right-2 sm:hidden"
             onClick={(e) => {
               e.stopPropagation();
+              onView?.();
               setShowQuickView(true);
             }}
           >
@@ -162,6 +192,8 @@ const ProductCardComponent = ({
         product={product}
         isOpen={showQuickView}
         onClose={() => setShowQuickView(false)}
+        isFavourite={isFavourite}
+        onToggleFavourite={onToggleFavourite}
       />
     </>
   );
@@ -170,6 +202,7 @@ const ProductCardComponent = ({
 export const ProductCard = memo(ProductCardComponent, (prevProps, nextProps) => {
   return (
     prevProps.product.id === nextProps.product.id &&
-    prevProps.index === nextProps.index
+    prevProps.index === nextProps.index &&
+    prevProps.isFavourite === nextProps.isFavourite
   );
 });
