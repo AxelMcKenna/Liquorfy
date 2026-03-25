@@ -5,7 +5,9 @@ import { PromoToggle } from './PromoToggle';
 import { PriceRangeFilter } from './PriceRangeFilter';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { X, Sparkles, DollarSign, Store as StoreIcon, Grid3x3 } from 'lucide-react';
+import { X, Sparkles, DollarSign, Store as StoreIcon, Grid3x3, Save } from 'lucide-react';
+import { useSavedFilters } from '@/hooks/useSavedFilters';
+import { toast } from 'sonner';
 
 interface FilterSidebarProps {
   isOpen: boolean;
@@ -14,6 +16,22 @@ interface FilterSidebarProps {
 
 export const FilterSidebar = ({ isOpen, onClose }: FilterSidebarProps) => {
   const { filters, updateFilters, clearFilters, activeFilterCount } = useFilters();
+  const { saveFilters, clearSavedFilters, getSavedFilters } = useSavedFilters();
+  const hasSavedFilters = Boolean(getSavedFilters());
+
+  const handleSaveDefaults = () => {
+    saveFilters({
+      chains: filters.chains,
+      category: filters.category,
+      promo_only: filters.promo_only,
+    });
+    toast.success('Filters saved as default');
+  };
+
+  const handleClearDefaults = () => {
+    clearSavedFilters();
+    toast.success('Default filters cleared');
+  };
 
   return (
     <>
@@ -126,6 +144,30 @@ export const FilterSidebar = ({ isOpen, onClose }: FilterSidebarProps) => {
                 onChange={(chains) => updateFilters({ chains })}
               />
             </div>
+          </div>
+
+          {/* Footer — save defaults */}
+          <div className="px-6 py-4 border-t border-border/40">
+            {activeFilterCount > 0 ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSaveDefaults}
+                className="w-full justify-center text-primary hover:bg-primary/5"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Save as default
+              </Button>
+            ) : hasSavedFilters ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearDefaults}
+                className="w-full justify-center text-muted-foreground hover:text-foreground"
+              >
+                Clear saved defaults
+              </Button>
+            ) : null}
           </div>
         </div>
       </aside>
