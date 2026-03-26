@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ProductGrid } from '@/components/products/ProductGrid';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { SearchAutocomplete } from '@/components/search/SearchAutocomplete';
 import { Slider } from '@/components/ui/slider';
 import { LazyStoreMap } from '@/components/stores/LazyStoreMap';
 import { StoreMapSkeleton } from '@/components/stores/StoreMapSkeleton';
@@ -163,18 +163,17 @@ export const Landing = () => {
                 </span>
               </div>
               <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input
+                <SearchAutocomplete
+                  query={query}
+                  setQuery={setQuery}
+                  onSearch={handleSearch}
                   placeholder="Search for beer, wine, spirits..."
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                  className="pl-12 pr-24 h-14 text-base rounded-lg border-0 bg-white text-foreground shadow-lg"
+                  inputClassName="pl-12 pr-24 h-14 text-base rounded-lg border-0 bg-white text-foreground shadow-lg"
                 />
                 <Button
                   onClick={handleSearch}
                   size="sm"
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 h-11"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 h-11 z-10"
                 >
                   Search
                 </Button>

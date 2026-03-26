@@ -1,10 +1,10 @@
-import { Search, MapPin, User } from "lucide-react";
+import { MapPin, User } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useLocationContext } from "@/contexts/LocationContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { UserMenu } from "@/components/auth/UserMenu";
+import { SearchAutocomplete } from "@/components/search/SearchAutocomplete";
 
 interface HeaderProps {
   query: string;
@@ -46,16 +46,14 @@ export const Header = ({
             <p className="text-sm text-white/80 mb-6">
               Compare liquor prices across NZ
             </p>
-            <div className="max-w-xl mx-auto relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-              <Input
-                placeholder="Search for beer, wine, spirits..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && onSearch()}
-                className="pl-12 h-12 bg-white text-base"
-              />
-            </div>
+            <SearchAutocomplete
+              query={query}
+              setQuery={setQuery}
+              onSearch={onSearch}
+              placeholder="Search for beer, wine, spirits..."
+              className="max-w-xl mx-auto"
+              inputClassName="h-12 bg-white text-base"
+            />
           </div>
         </div>
       </header>
@@ -75,16 +73,13 @@ export const Header = ({
 
           {/* Search - centered */}
           <div className="flex justify-center">
-            <div className="relative w-full max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search products..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && onSearch()}
-                className="pl-10 h-10 bg-white text-sm"
-              />
-            </div>
+            <SearchAutocomplete
+              query={query}
+              setQuery={setQuery}
+              onSearch={onSearch}
+              className="w-full max-w-md"
+              inputClassName="h-10 bg-white text-sm"
+            />
           </div>
 
           {/* Right side - location + account */}
