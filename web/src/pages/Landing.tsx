@@ -167,7 +167,7 @@ export const Landing = () => {
           {/* Hero content — asymmetric grid: 7/5 split on desktop */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-12 items-end">
             {/* Left: headline — heavy weight, left-aligned */}
-            <div className="md:col-span-7 animate-slide-left text-center md:text-left">
+            <div className="md:col-span-7 animate-slide-left">
               <p className="text-xs sm:text-sm text-white/60 font-medium uppercase tracking-widest mb-2 sm:mb-3">
                 NZ Liquor Price Comparison
               </p>
@@ -175,8 +175,8 @@ export const Landing = () => {
                 Find the best<br />
                 deals <em className="font-display italic font-normal text-white/80">near you</em>
               </h1>
-              <hr className="accent-rule mt-3 mx-auto md:mx-0" />
-              <p className="text-sm md:text-lg text-white/70 max-w-md mt-3 md:mt-4 mx-auto md:mx-0">
+              <hr className="accent-rule mt-3" />
+              <p className="text-sm md:text-lg text-white/70 max-w-md mt-3 md:mt-4">
                 Compare prices from 10+ major retailers, updated daily.
               </p>
             </div>
