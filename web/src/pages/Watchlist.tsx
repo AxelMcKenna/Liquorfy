@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Heart, Eye, Loader2, Settings } from 'lucide-react';
+import { Heart, Eye, Settings } from 'lucide-react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { AlertsList } from '@/components/alerts/AlertsList';
 import { Footer } from '@/components/layout/Footer';
@@ -8,6 +8,7 @@ import { useFavourites } from '@/hooks/useFavourites';
 import { useFavouriteProducts } from '@/hooks/useFavouriteProducts';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 import { ProductGrid } from '@/components/products/ProductGrid';
+import { ProductSkeleton } from '@/components/products/ProductSkeleton';
 
 const WatchlistPage = () => {
   const { favouriteIds } = useFavourites();
@@ -42,9 +43,10 @@ const WatchlistPage = () => {
               )}
             </div>
             {favouritesLoading ? (
-              <div className="bg-white rounded-lg border p-6 flex items-center justify-center gap-2 text-muted-foreground">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                <span className="text-sm">Loading favourites...</span>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {Array.from({ length: Math.min(favouriteIds.size, 10) || 4 }).map((_, i) => (
+                  <ProductSkeleton key={i} />
+                ))}
               </div>
             ) : favouriteProducts.length > 0 ? (
               <ProductGrid products={favouriteProducts} loading={false} />

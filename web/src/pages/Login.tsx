@@ -117,6 +117,11 @@ const LoginPage = () => {
                 disabled={loading}
               />
               {errors.password && <p className="text-xs text-red-600">{errors.password}</p>}
+              <div className="text-right">
+                <Link to="/forgot-password" className="text-xs text-primary hover:underline">
+                  Forgot password?
+                </Link>
+              </div>
             </div>
             <Button
               type="submit"

@@ -1,10 +1,13 @@
 import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Bell, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useAlerts } from '@/hooks/useAlerts';
 import { toast } from 'sonner';
 
 export const AlertsList = () => {
+  const navigate = useNavigate();
   const { alerts, loading, error, fetchAlerts, deleteAlert } = useAlerts();
 
   useEffect(() => {
@@ -22,8 +25,16 @@ export const AlertsList = () => {
 
   if (loading) {
     return (
-      <div className="py-8 text-center text-muted-foreground">
-        Loading alerts...
+      <div className="space-y-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="flex items-center justify-between gap-4 p-4 bg-white rounded-lg border">
+            <div className="min-w-0 flex-1 space-y-2">
+              <Skeleton className="h-5 w-3/4" />
+              <Skeleton className="h-4 w-1/3" />
+            </div>
+            <Skeleton className="h-8 w-8 rounded" />
+          </div>
+        ))}
       </div>
     );
   }
@@ -53,7 +64,11 @@ export const AlertsList = () => {
       {alerts.map((alert) => (
         <div
           key={alert.id}
-          className="flex items-center justify-between gap-4 p-4 bg-white rounded-lg border"
+          role="button"
+          tabIndex={0}
+          onClick={() => navigate(`/product/${alert.product_id}`)}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(`/product/${alert.product_id}`); }}
+          className="flex items-center justify-between gap-4 p-4 bg-white rounded-lg border cursor-pointer hover:border-primary/30 hover:bg-primary/5 transition-colors"
         >
           <div className="min-w-0">
             <p className="font-medium truncate">
@@ -74,7 +89,7 @@ export const AlertsList = () => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => handleDelete(alert.id)}
+            onClick={(e) => { e.stopPropagation(); handleDelete(alert.id); }}
             className="text-muted-foreground hover:text-destructive flex-shrink-0"
           >
             <Trash2 className="h-4 w-4" />

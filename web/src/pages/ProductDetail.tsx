@@ -26,8 +26,13 @@ import {
   Sparkles,
   Search,
   ArrowRight,
+  ChevronRight,
+  Home,
 } from 'lucide-react';
 import { Price, CrossChainPrice } from '@/types';
+import { Link } from 'react-router-dom';
+import { RecentlyViewed } from '@/components/products/RecentlyViewed';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const PriceRow = ({ price, isBest }: { price: Price; isBest?: boolean }) => {
   const effective = price.promo_price_nzd ?? price.price_nzd;
@@ -120,7 +125,7 @@ export const ProductDetailPage = () => {
   const navigate = useNavigate();
   const { product, loading, error, fetchProduct } = useProductDetail();
   const { isFavourite, toggleFavourite } = useFavourites();
-  const { addProduct } = useRecentlyViewed();
+  const { addProduct, recentlyViewed } = useRecentlyViewed();
   const { location, radiusKm } = useLocationContext();
 
   useEffect(() => {
@@ -135,11 +140,48 @@ export const ProductDetailPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-sm font-medium text-primary uppercase tracking-widest mb-4">LIQUORFY</p>
-          <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-        </div>
+      <div className="min-h-screen bg-background flex flex-col">
+        <PageHeader sticky />
+        <main className="max-w-4xl mx-auto px-4 py-6 md:py-10 flex-1 w-full">
+          {/* Breadcrumb skeleton */}
+          <div className="flex items-center gap-2 mb-6">
+            <Skeleton className="h-4 w-12" />
+            <Skeleton className="h-4 w-4" />
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-4 w-4" />
+            <Skeleton className="h-4 w-32" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
+            {/* Image skeleton */}
+            <Skeleton className="aspect-square rounded-xl" />
+            {/* Details skeleton */}
+            <div className="flex flex-col gap-5">
+              <div className="space-y-2">
+                <Skeleton className="h-8 w-3/4" />
+                <Skeleton className="h-4 w-1/3" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-10 w-32" />
+                <Skeleton className="h-4 w-48" />
+              </div>
+              <div className="flex gap-2">
+                <Skeleton className="h-6 w-20 rounded-full" />
+                <Skeleton className="h-6 w-24 rounded-full" />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <Skeleton className="h-11 flex-1" />
+                <Skeleton className="h-11 w-11" />
+              </div>
+            </div>
+          </div>
+          {/* Price rows skeleton */}
+          <div className="mt-10 space-y-3">
+            <Skeleton className="h-6 w-40" />
+            <Skeleton className="h-16 w-full rounded-lg" />
+            <Skeleton className="h-16 w-full rounded-lg" />
+            <Skeleton className="h-16 w-full rounded-lg" />
+          </div>
+        </main>
       </div>
     );
   }
@@ -191,6 +233,27 @@ export const ProductDetailPage = () => {
       />
 
       <main className="max-w-4xl mx-auto px-4 py-6 md:py-10 flex-1">
+        {/* Breadcrumbs */}
+        <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm text-muted-foreground mb-6 overflow-x-auto no-scrollbar">
+          <Link to="/" className="flex items-center gap-1 hover:text-foreground transition-colors flex-shrink-0">
+            <Home className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Home</span>
+          </Link>
+          {product.category && (
+            <>
+              <ChevronRight className="h-3.5 w-3.5 flex-shrink-0" />
+              <Link
+                to={`/explore?category=${product.category}`}
+                className="hover:text-foreground transition-colors capitalize flex-shrink-0"
+              >
+                {product.category.replace(/_/g, ' ')}
+              </Link>
+            </>
+          )}
+          <ChevronRight className="h-3.5 w-3.5 flex-shrink-0" />
+          <span className="text-foreground font-medium truncate">{product.name}</span>
+        </nav>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
 
           {/* Left: Image */}
@@ -347,6 +410,9 @@ export const ProductDetailPage = () => {
             </div>
           </section>
         )}
+
+        {/* Recently Viewed (excluding current product) */}
+        <RecentlyViewed products={recentlyViewed.filter(p => p.id !== product.id)} />
       </main>
 
       <Footer />
