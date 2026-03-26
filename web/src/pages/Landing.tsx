@@ -112,13 +112,12 @@ export const Landing = () => {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_30%,rgba(255,255,255,0.06),transparent_60%)]" />
 
         <div className="relative max-w-7xl mx-auto px-4 pt-6 pb-40 md:pb-44">
-          {/* Top nav — consistent header */}
+          {/* Top nav — logo left, account right */}
           <div className="flex items-center justify-between mb-12 md:mb-16">
-            <div className="min-w-[60px]" />
-            <Link to="/" className="text-sm font-medium text-white uppercase tracking-widest">
+            <Link to="/" className="text-xl font-semibold text-white tracking-tight font-display">
               LIQUORFY
             </Link>
-            <div className="flex items-center gap-1 min-w-[60px] justify-end">
+            <div className="flex items-center gap-1">
               {user ? (
                 <>
                   <Link to="/watchlist" className="flex items-center justify-center h-8 w-8 rounded-md text-white/70 hover:text-white hover:bg-white/10 transition-colors">
