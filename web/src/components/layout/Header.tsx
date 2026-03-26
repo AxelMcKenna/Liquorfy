@@ -63,7 +63,43 @@ export const Header = ({
   return (
     <header className="bg-primary border-b border-primary">
       <div className="px-4 py-3">
-        <div className="grid grid-cols-3 items-center gap-4">
+        {/* Mobile: logo row + search row */}
+        <div className="flex items-center justify-between gap-2 sm:hidden">
+          <Link to="/" className="flex-shrink-0">
+            <span className="text-lg font-semibold text-white tracking-tight font-display">LIQUORFY</span>
+          </Link>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={openLocationModal}
+              className="text-white hover:bg-white/10 h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0"
+            >
+              <MapPin className="h-4 w-4" />
+            </Button>
+            {user ? (
+              <UserMenu />
+            ) : (
+              <Link to="/login">
+                <Button size="icon" className="text-white hover:bg-white/10 h-8 w-8">
+                  <User className="h-4 w-4" />
+                </Button>
+              </Link>
+            )}
+          </div>
+        </div>
+        <div className="mt-2 sm:hidden">
+          <SearchAutocomplete
+            query={query}
+            setQuery={setQuery}
+            onSearch={onSearch}
+            className="w-full"
+            inputClassName="h-10 bg-white text-sm"
+          />
+        </div>
+
+        {/* Desktop: 3-column grid */}
+        <div className="hidden sm:grid grid-cols-3 items-center gap-4">
           {/* Logo - left */}
           <div className="flex items-center">
             <Link to="/" className="flex-shrink-0">
@@ -91,7 +127,7 @@ export const Header = ({
               className="text-white hover:bg-white/10 gap-2 focus-visible:ring-0 focus-visible:ring-offset-0"
             >
               <MapPin className="h-4 w-4" />
-              <span className="hidden sm:inline">
+              <span>
                 {isLocationSet ? `${radiusKm} km` : 'Location'}
               </span>
             </Button>
@@ -101,7 +137,7 @@ export const Header = ({
               <Link to="/login">
                 <Button size="sm" className="text-white hover:bg-white/10 font-semibold gap-2">
                   <User className="h-4 w-4" />
-                  <span className="hidden sm:inline">Account</span>
+                  <span>Account</span>
                 </Button>
               </Link>
             )}

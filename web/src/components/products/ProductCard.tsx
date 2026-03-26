@@ -110,13 +110,13 @@ const ProductCardComponent = ({
         </div>
 
         {/* Store info */}
-        <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
-          <span className="flex items-center gap-1">
-            <Store className="h-3 w-3" />
-            {product.price.store_name}
+        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2 min-w-0">
+          <span className="flex items-center gap-1 min-w-0 truncate">
+            <Store className="h-3 w-3 flex-shrink-0" />
+            <span className="truncate">{product.price.store_name}</span>
           </span>
           {distanceText && (
-            <span className={cn("flex items-center gap-1", distanceColorClass)}>
+            <span className={cn("flex items-center gap-1 flex-shrink-0", distanceColorClass)}>
               <MapPin className="h-3 w-3" />
               {distanceText}
             </span>

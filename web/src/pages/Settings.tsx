@@ -54,8 +54,8 @@ const SettingsPage = () => {
           {/* Account info */}
           <section>
             <h2 className="text-lg font-serif font-semibold mb-3">Account</h2>
-            <div className="bg-white rounded-lg border p-4 flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
+            <div className="bg-white rounded-lg border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <p className="text-sm text-muted-foreground break-all">
                 Signed in as{' '}
                 <strong>{user?.email || 'Unknown'}</strong>
               </p>
@@ -63,7 +63,7 @@ const SettingsPage = () => {
                 variant="ghost"
                 size="sm"
                 onClick={handleSignOut}
-                className="text-muted-foreground hover:text-foreground gap-2"
+                className="text-muted-foreground hover:text-foreground gap-2 flex-shrink-0 self-start sm:self-auto"
               >
                 <LogOut className="h-4 w-4" />
                 Sign Out
@@ -104,7 +104,7 @@ const SettingsPage = () => {
           {/* Danger zone */}
           <section>
             <h2 className="text-lg font-serif font-semibold mb-3 text-destructive">Danger Zone</h2>
-            <div className="bg-white rounded-lg border border-red-200 p-4 flex items-center justify-between">
+            <div className="bg-white rounded-lg border border-red-200 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-medium">Delete Account</p>
                 <p className="text-xs text-muted-foreground">Permanently delete your account and all data.</p>
@@ -113,6 +113,7 @@ const SettingsPage = () => {
                 variant="destructive"
                 size="sm"
                 onClick={() => setConfirmDelete(true)}
+                className="flex-shrink-0 self-start sm:self-auto"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 Delete

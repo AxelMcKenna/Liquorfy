@@ -257,7 +257,7 @@
 
 /* Hero diagonal clip for asymmetric split */
 .hero-clip {
-  clip-path: polygon(0 0, 100% 0, 100% 85%, 0 100%);
+  clip-path: polygon(0 0, 100% 0, 100% 93%, 0 100%);
 }
 
 @media (min-width: 768px) {
