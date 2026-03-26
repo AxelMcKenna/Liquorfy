@@ -49,19 +49,19 @@ export const QuickView = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-2xl p-0 max-h-[90vh] overflow-hidden rounded-xl border-0 shadow-2xl">
-        <div className="grid grid-cols-1 md:grid-cols-5 max-h-[90vh]">
+      <DialogContent className="sm:max-w-md p-0 max-h-[90vh] overflow-y-auto rounded-xl border-0 shadow-2xl">
+        <div className="flex flex-col">
 
           {/* ── Image Section ── */}
-          <div className="md:col-span-2 relative bg-white flex items-center justify-center p-8 md:p-6 min-h-[240px] md:min-h-0">
+          <div className="relative bg-white flex items-center justify-center p-6">
             {/* Subtle decorative ring behind image */}
-            <div className="absolute inset-8 md:inset-6 rounded-full border border-[hsl(var(--border))] opacity-40" />
+            <div className="absolute inset-6 rounded-full border border-[hsl(var(--border))] opacity-40" />
 
             {product.image_url ? (
               <img
                 src={product.image_url}
                 alt={product.name}
-                className="relative z-10 w-full h-56 md:h-full object-contain drop-shadow-sm"
+                className="relative z-10 w-full h-56 object-contain drop-shadow-sm"
               />
             ) : (
               <Wine className="relative z-10 h-24 w-24 text-[hsl(var(--foreground-tertiary))]/30" />
@@ -98,8 +98,8 @@ export const QuickView = ({
           </div>
 
           {/* ── Content Section ── */}
-          <div className="md:col-span-3 overflow-y-auto bg-[hsl(var(--background))]" style={{ maxHeight: 'calc(90vh - 1px)' }}>
-            <div className="p-5 md:p-6 flex flex-col gap-5">
+          <div className="bg-[hsl(var(--background))]">
+            <div className="p-5 flex flex-col gap-5">
 
               {/* Header */}
               <div>
