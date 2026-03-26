@@ -40,7 +40,7 @@ export const Header = ({
             )}
           </div>
           <div className="text-center">
-            <h1 className="text-3xl md:text-4xl font-semibold text-white mb-2 tracking-tight">
+            <h1 className="text-3xl md:text-4xl font-semibold text-white mb-2 tracking-tight font-display">
               LIQUORFY
             </h1>
             <p className="text-sm text-white/80 mb-6">
