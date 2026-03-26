@@ -11,7 +11,8 @@ import { useProducts } from '@/hooks/useProducts';
 import { useLocationContext } from '@/contexts/LocationContext';
 import { useStores } from '@/hooks/useStores';
 import { useAuth } from '@/contexts/AuthContext';
-import { Search, ArrowRight, MapPin, User, Heart, Settings } from 'lucide-react';
+import { UserMenu } from '@/components/auth/UserMenu';
+import { Search, ArrowRight, MapPin, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { RecentlyViewed } from '@/components/products/RecentlyViewed';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
@@ -117,25 +118,16 @@ export const Landing = () => {
             <Link to="/" className="text-xl font-semibold text-white tracking-tight font-display">
               LIQUORFY
             </Link>
-            <div className="flex items-center gap-1">
-              {user ? (
-                <>
-                  <Link to="/watchlist" className="flex items-center justify-center h-8 w-8 rounded-md text-white/70 hover:text-white hover:bg-white/10 transition-colors">
-                    <Heart className="h-4 w-4" />
-                  </Link>
-                  <Link to="/settings" className="flex items-center justify-center h-8 w-8 rounded-md text-white/70 hover:text-white hover:bg-white/10 transition-colors">
-                    <Settings className="h-4 w-4" />
-                  </Link>
-                </>
-              ) : (
-                <Link to="/login">
-                  <Button variant="ghost" size="sm" className="text-white hover:bg-white/10 font-semibold gap-2 border-0">
-                    <User className="h-4 w-4" />
-                    Account
-                  </Button>
-                </Link>
-              )}
-            </div>
+            {user ? (
+              <UserMenu />
+            ) : (
+              <Link to="/login">
+                <Button variant="ghost" size="sm" className="text-white hover:bg-white/10 font-semibold gap-2 border-0">
+                  <User className="h-4 w-4" />
+                  Account
+                </Button>
+              </Link>
+            )}
           </div>
 
           {/* Hero content — asymmetric grid: 7/5 split on desktop */}
