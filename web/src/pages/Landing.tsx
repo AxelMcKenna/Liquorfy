@@ -173,7 +173,7 @@ export const Landing = () => {
               </p>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight leading-[1.1]">
                 Find the best<br />
-                deals <em className="font-sans italic font-normal text-white/80">near you</em>
+                deals <em className="font-display italic font-normal text-white/80">near you</em>
               </h1>
               <hr className="accent-rule mt-6" />
               <p className="text-base md:text-lg text-white/70 max-w-md absolute left-0 top-full mt-4">
