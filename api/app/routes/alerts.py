@@ -52,7 +52,7 @@ async def create_alert(
     body: CreateAlertRequest,
     user_id: UUID = Depends(get_current_user),
 ):
-    """Create a price alert. Phase 1: max 1 active alert per user."""
+    """Create a price alert. Max 10 active alerts per user."""
     # Validate product exists
     async with get_async_session() as session:
         result = await session.execute(
@@ -67,16 +67,16 @@ async def create_alert(
             )
 
     async with async_transaction() as session:
-        # Check Phase 1 limit (1 active alert per user)
+        # Limit: max 10 active alerts per user
         count_result = await session.execute(
             text("SELECT count(*) AS cnt FROM price_alerts WHERE user_id = :uid AND active = true"),
             {"uid": user_id},
         )
         count = count_result.scalar_one()
-        if count >= 1:
+        if count >= 10:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="Phase 1 limit: only 1 active alert allowed. Deactivate your existing alert first.",
+                detail="You can have up to 10 active alerts. Deactivate or delete an existing alert first.",
             )
 
         result = await session.execute(
