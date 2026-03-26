@@ -178,16 +178,21 @@ class Scraper(abc.ABC):
             parse_volume, extract_abv, infer_brand, infer_category,
             detect_sugar_free,
         )
+        from app.services.canonical import compute_canonical_id
 
         # Parse volume from name
         volume = parse_volume(name)
+        resolved_brand = brand or infer_brand(name)
+        resolved_category = category or infer_category(name)
+        abv = extract_abv(name)
+        sugar_free = detect_sugar_free(name)
 
         return {
             "chain": self.chain,
             "source_id": source_id,
             "name": name,
-            "brand": brand or infer_brand(name),
-            "category": category or infer_category(name),
+            "brand": resolved_brand,
+            "category": resolved_category,
             "price_nzd": price_nzd,
             "promo_price_nzd": promo_price_nzd,
             "promo_text": promo_text[:255] if promo_text else None,
@@ -196,8 +201,16 @@ class Scraper(abc.ABC):
             "pack_count": volume.pack_count,
             "unit_volume_ml": volume.unit_volume_ml,
             "total_volume_ml": volume.total_volume_ml,
-            "abv_percent": extract_abv(name),
-            "is_sugar_free": detect_sugar_free(name),
+            "abv_percent": abv,
+            "is_sugar_free": sugar_free,
+            "canonical_product_id": compute_canonical_id(
+                brand=resolved_brand,
+                total_volume_ml=volume.total_volume_ml,
+                pack_count=volume.pack_count,
+                abv_percent=abv,
+                category=resolved_category,
+                is_sugar_free=sugar_free,
+            ),
             "url": url,
             "image_url": image_url,
             **kwargs  # Additional fields
@@ -232,6 +245,7 @@ class Scraper(abc.ABC):
                 "image_url": product_data.get("image_url"),
                 "product_url": product_data.get("url"),
                 "is_sugar_free": product_data.get("is_sugar_free", False),
+                "canonical_product_id": product_data.get("canonical_product_id"),
             })
 
         stmt = insert(Product).values(product_values)
@@ -248,6 +262,7 @@ class Scraper(abc.ABC):
                 "image_url": stmt.excluded.image_url,
                 "product_url": stmt.excluded.product_url,
                 "is_sugar_free": stmt.excluded.is_sugar_free,
+                "canonical_product_id": stmt.excluded.canonical_product_id,
                 "updated_at": now,
             },
         )
@@ -364,6 +379,7 @@ class Scraper(abc.ABC):
             image_url=product_data.get("image_url"),
             product_url=product_data.get("url"),
             is_sugar_free=product_data.get("is_sugar_free", False),
+            canonical_product_id=product_data.get("canonical_product_id"),
         )
         stmt = stmt.on_conflict_do_update(
             index_elements=["chain", "source_product_id"],
@@ -378,6 +394,7 @@ class Scraper(abc.ABC):
                 "image_url": stmt.excluded.image_url,
                 "product_url": stmt.excluded.product_url,
                 "is_sugar_free": stmt.excluded.is_sugar_free,
+                "canonical_product_id": stmt.excluded.canonical_product_id,
                 "updated_at": now,
             },
         )

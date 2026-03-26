@@ -40,9 +40,31 @@ class ProductSchema(BaseModel):
     last_updated: datetime
 
 
+class CrossChainPrice(BaseModel):
+    product_id: UUID
+    product_name: str
+    product_url: Optional[str] = None
+    image_url: Optional[str] = None
+    chain: str
+    store_id: UUID
+    store_name: str
+    price_nzd: float
+    promo_price_nzd: Optional[float] = None
+    promo_text: Optional[str] = None
+    promo_ends_at: Optional[datetime] = None
+    price_per_100ml: Optional[float] = None
+    price_per_standard_drink: Optional[float] = None
+    is_member_only: bool = False
+    is_stale: bool = False
+    distance_km: Optional[float] = None
+
+
 class ProductDetailSchema(ProductSchema):
     description: Optional[str] = Field(None, description="Placeholder for future enrichment")
     other_prices: list[PriceSchema] = Field(default_factory=list, description="Same product at other stores")
+    cross_chain_prices: list[CrossChainPrice] = Field(
+        default_factory=list, description="Same product at other chains"
+    )
 
 
 class ProductListResponse(BaseModel):
@@ -70,6 +92,7 @@ class StoreListResponse(BaseModel):
 __all__ = [
     "PriceSchema",
     "ProductSchema",
+    "CrossChainPrice",
     "ProductDetailSchema",
     "ProductListResponse",
     "StoreSchema",

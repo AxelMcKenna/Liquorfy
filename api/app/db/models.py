@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Boolean, Computed, DateTime, Float, ForeignKey, Index, String, UniqueConstraint
+from sqlalchemy import Boolean, Computed, DateTime, Float, ForeignKey, Index, String, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from geoalchemy2 import Geography
@@ -65,12 +65,18 @@ class Product(Base):
     image_url: Mapped[Optional[str]] = mapped_column(String(512))
     product_url: Mapped[Optional[str]] = mapped_column(String(512))
     is_sugar_free: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="0")
+    canonical_product_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID_TYPE, nullable=True)
 
     prices: Mapped[list["Price"]] = relationship(back_populates="product")
 
     __table_args__ = (
         UniqueConstraint("chain", "source_product_id", name="uq_product_source"),
         Index("ix_product_chain", "chain"),  # For chain filtering queries
+        Index(
+            "ix_product_canonical",
+            "canonical_product_id",
+            postgresql_where=text("canonical_product_id IS NOT NULL"),
+        ),
     )
 
 

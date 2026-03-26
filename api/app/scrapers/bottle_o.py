@@ -968,6 +968,7 @@ class BottleOScraper(Scraper):
             "total_volume_ml": p.get("total_volume_ml"),
             "image_url": p.get("image_url"),
             "product_url": p.get("url"),
+            "canonical_product_id": p.get("canonical_product_id"),
         }
 
     @staticmethod
@@ -982,6 +983,7 @@ class BottleOScraper(Scraper):
             "total_volume_ml": stmt.excluded.total_volume_ml,
             "image_url": stmt.excluded.image_url,
             "product_url": stmt.excluded.product_url,
+            "canonical_product_id": stmt.excluded.canonical_product_id,
             "updated_at": now,
         }
 

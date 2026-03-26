@@ -622,6 +622,7 @@ class LiquorCentreScraper(Scraper):
                     "total_volume_ml": product_data.get("total_volume_ml"),
                     "image_url": product_data.get("image_url"),
                     "product_url": product_data.get("url"),
+                    "canonical_product_id": product_data.get("canonical_product_id"),
                 })
 
             stmt = insert(Product).values(product_values)
@@ -637,6 +638,7 @@ class LiquorCentreScraper(Scraper):
                     "total_volume_ml": stmt.excluded.total_volume_ml,
                     "image_url": stmt.excluded.image_url,
                     "product_url": stmt.excluded.product_url,
+                    "canonical_product_id": stmt.excluded.canonical_product_id,
                     "updated_at": now,
                 },
             )
@@ -799,6 +801,7 @@ class LiquorCentreScraper(Scraper):
             total_volume_ml=product_data.get("total_volume_ml"),
             image_url=product_data.get("image_url"),
             product_url=product_data.get("url"),
+            canonical_product_id=product_data.get("canonical_product_id"),
         )
         stmt = stmt.on_conflict_do_update(
             index_elements=["chain", "source_product_id"],
@@ -812,6 +815,7 @@ class LiquorCentreScraper(Scraper):
                 "total_volume_ml": stmt.excluded.total_volume_ml,
                 "image_url": stmt.excluded.image_url,
                 "product_url": stmt.excluded.product_url,
+                "canonical_product_id": stmt.excluded.canonical_product_id,
                 "updated_at": now,
             },
         )
