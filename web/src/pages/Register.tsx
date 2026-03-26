@@ -1,10 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 import { Footer } from '@/components/layout/Footer';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { toast } from 'sonner';
@@ -114,6 +115,33 @@ const RegisterPage = () => {
   const fieldClass = (field: keyof typeof errors) =>
     errors[field] ? 'border-red-400 focus-visible:ring-red-400' : '';
 
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resending, setResending] = useState(false);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = window.setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+    return () => window.clearTimeout(timer);
+  }, [resendCooldown]);
+
+  const handleResend = useCallback(async () => {
+    setResending(true);
+    try {
+      const { error: resendError } = await supabase.auth.resend({
+        type: 'signup',
+        email: email.trim(),
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      });
+      if (resendError) throw resendError;
+      toast.success('Confirmation email resent');
+      setResendCooldown(60);
+    } catch {
+      toast.error('Could not resend email. Please try again later.');
+    } finally {
+      setResending(false);
+    }
+  }, [email]);
+
   if (emailSent) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
@@ -129,9 +157,24 @@ const RegisterPage = () => {
             <p className="text-sm text-muted-foreground">
               We've sent a confirmation link to <span className="font-medium text-foreground">{email}</span>. Please check your inbox and click the link to activate your account.
             </p>
-            <p className="text-xs text-muted-foreground">
-              Didn't receive it? Check your spam folder or try again in a few minutes.
-            </p>
+            <div className="space-y-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-primary"
+                onClick={handleResend}
+                disabled={resending || resendCooldown > 0}
+              >
+                {resending
+                  ? 'Sending...'
+                  : resendCooldown > 0
+                    ? `Resend email (${resendCooldown}s)`
+                    : 'Resend confirmation email'}
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Also check your spam folder if you don't see it.
+              </p>
+            </div>
             <Button variant="outline" className="w-full" onClick={() => navigate('/login')}>
               Go to Sign In
             </Button>
