@@ -175,6 +175,7 @@ export const Landing = () => {
                 Find the best<br />
                 deals <em className="font-sans italic font-normal text-white/80">near you</em>
               </h1>
+              <hr className="accent-rule mt-6" />
               <p className="text-base md:text-lg text-white/70 max-w-md absolute left-0 top-full mt-4">
                 Compare prices from 10+ major retailers, updated daily.
               </p>
