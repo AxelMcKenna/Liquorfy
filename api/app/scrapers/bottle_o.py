@@ -48,8 +48,8 @@ STORE_SLUG_PATTERN = re.compile(
 )
 
 # Rate limiting
-DELAY_BETWEEN_CATEGORIES = 2.5
-DELAY_BETWEEN_REQUESTS = 1.5
+DELAY_BETWEEN_CATEGORIES = 1.5
+DELAY_BETWEEN_REQUESTS = 1.0
 
 # Categories available on CityHive store sites
 CATEGORIES = ["beer", "wine", "spirits", "cider", "rtds", "specials"]
