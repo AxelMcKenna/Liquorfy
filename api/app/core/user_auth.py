@@ -1,6 +1,7 @@
 """Supabase user authentication dependencies."""
 from __future__ import annotations
 
+import base64
 from uuid import UUID
 
 import jwt
@@ -11,6 +12,7 @@ from app.core.config import get_settings
 
 settings = get_settings()
 _security = HTTPBearer(auto_error=False)
+_jwt_secret = base64.b64decode(settings.supabase_jwt_secret) if settings.supabase_jwt_secret else b""
 
 
 async def get_current_user(
@@ -26,7 +28,7 @@ async def get_current_user(
     try:
         payload = jwt.decode(
             token,
-            settings.supabase_jwt_secret,
+            _jwt_secret,
             algorithms=["HS256"],
             audience="authenticated",
         )
