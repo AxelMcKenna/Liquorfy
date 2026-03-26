@@ -53,7 +53,7 @@ export const QuickView = ({
         <div className="flex flex-col">
 
           {/* ── Image Section ── */}
-          <div className="relative flex items-center justify-center p-6">
+          <div className="relative flex items-center justify-center p-6 bg-white border-b border-[hsl(var(--border))]">
 {product.image_url ? (
               <img
                 src={product.image_url}
@@ -81,16 +81,20 @@ export const QuickView = ({
               </div>
             )}
 
-            {/* Action buttons pinned top-right, below close X */}
-            <div className="absolute top-10 right-3 flex items-center gap-1 z-20">
+            {/* Action buttons aligned with close X */}
+            <div className="absolute top-[14px] right-10 flex items-center z-20">
               {onToggleFavourite && (
                 <FavouriteButton
                   isFavourite={isFavourite}
                   onToggle={onToggleFavourite}
-                  className="bg-white/80 backdrop-blur-sm hover:bg-white shadow-sm"
+                  className="h-8 w-8 rounded-sm opacity-70 hover:opacity-100 transition-opacity bg-transparent hover:bg-transparent shadow-none"
                 />
               )}
-              <ShareButton productName={product.name} productId={product.id} />
+              <ShareButton
+                productName={product.name}
+                productId={product.id}
+                className="h-8 w-8 rounded-sm opacity-70 hover:opacity-100 transition-opacity bg-transparent hover:bg-transparent shadow-none"
+              />
             </div>
           </div>
 
