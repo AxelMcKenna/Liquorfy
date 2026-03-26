@@ -11,8 +11,7 @@ import { useProducts } from '@/hooks/useProducts';
 import { useLocationContext } from '@/contexts/LocationContext';
 import { useStores } from '@/hooks/useStores';
 import { useAuth } from '@/contexts/AuthContext';
-import { UserMenu } from '@/components/auth/UserMenu';
-import { Search, ArrowRight, MapPin, User } from 'lucide-react';
+import { Search, ArrowRight, MapPin, User, Heart, Settings } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { RecentlyViewed } from '@/components/products/RecentlyViewed';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
@@ -113,21 +112,31 @@ export const Landing = () => {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_30%,rgba(255,255,255,0.06),transparent_60%)]" />
 
         <div className="relative max-w-6xl mx-auto px-4 pt-6 pb-40 md:pb-44">
-          {/* Top nav — logo left, account right */}
+          {/* Top nav — consistent header */}
           <div className="flex items-center justify-between mb-12 md:mb-16">
-            <Link to="/" className="text-xl font-semibold text-white tracking-tight font-display">
+            <div className="min-w-[60px]" />
+            <Link to="/" className="text-lg font-display font-semibold text-white tracking-tight">
               LIQUORFY
             </Link>
-            {user ? (
-              <UserMenu />
-            ) : (
-              <Link to="/login">
-                <Button variant="ghost" size="sm" className="text-white hover:bg-white/10 font-semibold gap-2 border-0">
-                  <User className="h-4 w-4" />
-                  Account
-                </Button>
-              </Link>
-            )}
+            <div className="flex items-center gap-1 min-w-[60px] justify-end">
+              {user ? (
+                <>
+                  <Link to="/watchlist" className="flex items-center justify-center h-8 w-8 rounded-md text-white/70 hover:text-white hover:bg-white/10 transition-colors">
+                    <Heart className="h-4 w-4" />
+                  </Link>
+                  <Link to="/settings" className="flex items-center justify-center h-8 w-8 rounded-md text-white/70 hover:text-white hover:bg-white/10 transition-colors">
+                    <Settings className="h-4 w-4" />
+                  </Link>
+                </>
+              ) : (
+                <Link to="/login">
+                  <Button variant="ghost" size="sm" className="text-white hover:bg-white/10 font-semibold gap-2 border-0">
+                    <User className="h-4 w-4" />
+                    Account
+                  </Button>
+                </Link>
+              )}
+            </div>
           </div>
 
           {/* Hero content — asymmetric grid: 7/5 split on desktop */}

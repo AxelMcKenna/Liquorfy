@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useProductDetail } from '@/hooks/useProductDetail';
 import { useFavourites } from '@/hooks/useFavourites';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
@@ -10,6 +10,7 @@ import { PriceAlertButton } from '@/components/alerts/PriceAlertButton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Footer } from '@/components/layout/Footer';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { cn } from '@/lib/utils';
 import {
   formatPromoEndDate,
@@ -48,7 +49,10 @@ const PriceRow = ({ price, isBest }: { price: Price; isBest?: boolean }) => {
           <p className="text-sm font-medium text-[hsl(var(--foreground))] truncate">
             {price.store_name}
           </p>
-          <p className="text-xs text-[hsl(var(--foreground-secondary))] capitalize">{price.chain.replace('_', ' ')}</p>
+          <p className="text-xs text-[hsl(var(--foreground-secondary))] capitalize">
+            {price.chain.replace('_', ' ')}
+            {price.distance_km != null && ` · ${price.distance_km} km`}
+          </p>
         </div>
       </div>
       <div className="text-right flex-shrink-0">
@@ -176,25 +180,15 @@ export const ProductDetailPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Top bar — green, consistent with Header */}
-      <header className="sticky top-0 z-50 bg-primary border-b border-primary">
-        <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-1.5 text-sm text-white/70 hover:text-white transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </button>
-          <Link to="/" className="text-lg font-display font-semibold text-white tracking-tight">
-            LIQUORFY
-          </Link>
-          <div className="flex items-center gap-1">
+      <PageHeader
+        sticky
+        rightContent={
+          <>
             <ShareButton productName={product.name} productId={product.id} className="text-white/70 hover:text-white hover:bg-white/10" />
             <FavouriteButton isFavourite={favourite} onToggle={() => toggleFavourite(product.id)} className="text-white/70 hover:text-white hover:bg-white/10" />
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <main className="max-w-4xl mx-auto px-4 py-6 md:py-10">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">

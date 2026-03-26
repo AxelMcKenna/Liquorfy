@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Header } from '@/components/layout/Header';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { SearchAutocomplete } from '@/components/search/SearchAutocomplete';
 import { FilterSidebar } from '@/components/filters/FilterSidebar';
 import { FilterChips } from '@/components/filters/FilterChips';
 import { ProductGrid } from '@/components/products/ProductGrid';
@@ -166,12 +167,40 @@ export const Explore = () => {
   return (
     <div className="min-h-screen bg-secondary">
       <div className="sticky top-0 z-50 bg-secondary">
-        <Header
-          query={searchQuery}
-          setQuery={setSearchQuery}
-          onSearch={handleSearch}
-          variant="compact"
+        <PageHeader
+          backTo="/"
+          rightContent={
+            <div className="flex items-center gap-1">
+              <button
+                onClick={openLocationModal}
+                className="flex items-center gap-1.5 text-sm text-white/70 hover:text-white hover:bg-white/10 px-2 py-1.5 rounded-md transition-colors"
+              >
+                <MapPin className="h-4 w-4" />
+                <span className="hidden sm:inline">
+                  {isLocationSet ? `${radiusKm} km` : 'Location'}
+                </span>
+              </button>
+              {user ? (
+                <Link to="/watchlist" className="flex items-center justify-center h-8 w-8 rounded-md text-white/70 hover:text-white hover:bg-white/10 transition-colors">
+                  <Bell className="h-4 w-4" />
+                </Link>
+              ) : (
+                <Link to="/login" className="flex items-center justify-center h-8 w-8 rounded-md text-white/70 hover:text-white hover:bg-white/10 transition-colors">
+                  <Bell className="h-4 w-4" />
+                </Link>
+              )}
+            </div>
+          }
         />
+        <div className="bg-primary px-4 pb-3">
+          <SearchAutocomplete
+            query={searchQuery}
+            setQuery={setSearchQuery}
+            onSearch={handleSearch}
+            className="max-w-2xl mx-auto"
+            inputClassName="h-10 bg-white text-sm"
+          />
+        </div>
       </div>
 
       <div className="flex">

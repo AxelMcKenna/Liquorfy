@@ -1,11 +1,12 @@
 import { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Mail } from 'lucide-react';
+import { Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { Footer } from '@/components/layout/Footer';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { toast } from 'sonner';
 
 const RegisterPage = () => {
@@ -116,13 +117,7 @@ const RegisterPage = () => {
   if (emailSent) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
-        <header className="bg-primary border-b border-primary">
-          <div className="px-4 py-3 flex items-center gap-3 min-h-[40px]">
-            <Link to="/" className="text-xl font-semibold text-white tracking-tight font-display">
-              LIQUORFY
-            </Link>
-          </div>
-        </header>
+        <PageHeader backTo="/" />
         <main className="flex-1 flex items-center justify-center px-4">
           <div className="w-full max-w-sm bg-white rounded-lg border shadow-md p-8 space-y-6 text-center">
             <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
@@ -149,16 +144,7 @@ const RegisterPage = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <header className="bg-primary border-b border-primary">
-        <div className="px-4 py-3 flex items-center gap-3 min-h-[40px]">
-          <button onClick={() => navigate(-1)} className="text-white/70 hover:text-white">
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <Link to="/" className="text-xl font-semibold text-white tracking-tight font-display">
-            LIQUORFY
-          </Link>
-        </div>
-      </header>
+      <PageHeader />
 
       <main className="flex-1 flex items-center justify-center px-4">
         <div className="w-full max-w-sm bg-white rounded-lg border shadow-md p-6 space-y-4">

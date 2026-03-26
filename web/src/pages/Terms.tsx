@@ -1,16 +1,10 @@
-import { Link } from "react-router-dom";
 import { Footer } from "@/components/layout/Footer";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 export const Terms = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <header className="bg-primary py-6">
-        <div className="px-4">
-          <Link to="/" className="text-xl font-semibold text-white tracking-tight font-display">
-            LIQUORFY
-          </Link>
-        </div>
-      </header>
+      <PageHeader backTo="/" />
 
       <main className="max-w-3xl mx-auto px-4 py-12 flex-1">
         <h1 className="text-3xl font-semibold text-foreground mb-2">Terms of Service</h1>

@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { Footer } from '@/components/layout/Footer';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 const LoginPage = () => {
   const { user, signInWithPassword, signInWithGoogle, signInWithApple } = useAuth();
@@ -70,16 +70,7 @@ const LoginPage = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <header className="bg-primary">
-        <div className="px-4 py-3 flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="text-white/70 hover:text-white">
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <Link to="/" className="text-xl font-semibold text-white tracking-tight font-display">
-            LIQUORFY
-          </Link>
-        </div>
-      </header>
+      <PageHeader />
 
       <main className="flex-1 flex items-center justify-center px-4">
         <div className="w-full max-w-sm bg-white rounded-lg border shadow-md p-8 space-y-6">
