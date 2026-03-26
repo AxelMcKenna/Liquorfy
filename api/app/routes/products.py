@@ -4,15 +4,16 @@ import json
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Response
 from pydantic import BaseModel, Field, ValidationError
 
 from app.core.config import get_settings
-from app.db.session import get_async_session
+from app.db.session import async_transaction, get_async_session
 from app.schemas.products import ProductDetailSchema, ProductListResponse, ProductSchema
 from app.schemas.queries import ProductQueryParams
 from app.services.cache import cached_json
-from app.services.search import fetch_product_detail, fetch_products, fetch_products_by_ids
+from app.services.search import fetch_autocomplete, fetch_popular, fetch_product_detail, fetch_products, fetch_products_by_ids
+from app.services.views import record_product_view
 
 router = APIRouter(prefix="/products", tags=["products"])
 settings = get_settings()
@@ -52,6 +53,11 @@ async def _params(
     lon: Optional[float] = Query(None),
     radius_km: Optional[float] = Query(None),
 ) -> ProductQueryParams:
+    # Default to relevance sorting when a text search query is present
+    effective_sort = sort
+    if q and sort == "price_per_100ml":
+        effective_sort = "relevance"
+
     try:
         return ProductQueryParams(
             q=q,
@@ -68,7 +74,7 @@ async def _params(
             price_max=price_max,
             promo_only=promo_only,
             unique_products=unique_products,
-            sort=sort,
+            sort=effective_sort,
             page=page,
             page_size=page_size,
             lat=lat,
@@ -122,6 +128,65 @@ async def list_products(params: ProductQueryParams = Depends(_params)) -> Produc
 
         payload = await cached_json(cache_key, settings.api_cache_ttl_seconds, producer)
         return ProductListResponse.parse_obj(payload)
+
+
+class AutocompleteItem(BaseModel):
+    id: str
+    name: str
+    brand: Optional[str] = None
+    category: Optional[str] = None
+    image_url: Optional[str] = None
+    chain: str
+    score: float
+
+
+@router.get("/autocomplete", response_model=list[AutocompleteItem])
+async def autocomplete(
+    q: str = Query(..., min_length=2, max_length=100),
+    limit: int = Query(8, ge=1, le=20),
+) -> list[AutocompleteItem]:
+    """Fast fuzzy autocomplete — no store/price joins, trigram-ranked."""
+    cache_key = f"autocomplete:{q.lower().strip()}:{limit}"
+
+    async def producer() -> list[dict]:
+        async with get_async_session() as session:
+            return await fetch_autocomplete(session, q, limit=limit)
+
+    results = await cached_json(cache_key, settings.api_cache_ttl_seconds, producer)
+    return [AutocompleteItem(**item) for item in results]
+
+
+class PopularItem(BaseModel):
+    id: str
+    name: str
+    brand: Optional[str] = None
+    category: Optional[str] = None
+    image_url: Optional[str] = None
+    chain: str
+    view_count: int
+
+
+@router.get("/popular", response_model=list[PopularItem])
+async def popular_products(
+    limit: int = Query(10, ge=1, le=50),
+) -> list[PopularItem]:
+    """Most-viewed products over the last 7 days."""
+    cache_key = f"popular:{limit}"
+
+    async def producer() -> list[dict]:
+        async with get_async_session() as session:
+            return await fetch_popular(session, limit=limit)
+
+    results = await cached_json(cache_key, 300, producer)  # 5 min cache
+    return [PopularItem(**item) for item in results]
+
+
+@router.post("/{product_id}/view", status_code=204, response_class=Response)
+async def track_view(product_id: UUID) -> Response:
+    """Fire-and-forget view counter increment."""
+    async with async_transaction() as session:
+        await record_product_view(session, product_id)
+    return Response(status_code=204)
 
 
 @router.get("/{product_id}", response_model=ProductDetailSchema)

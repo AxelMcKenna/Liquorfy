@@ -13,6 +13,7 @@ VALID_SORTS = {
     "price_nzd",
     "newest",
     "distance",
+    "relevance",
 }
 
 

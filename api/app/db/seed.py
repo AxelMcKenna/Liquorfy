@@ -86,6 +86,7 @@ async def seed() -> None:
                 is_member_only=False,
             )
             session.add(price)
+            await session.flush()
 
             # Generate 30 days of price history with realistic fluctuations
             base_price = price_value

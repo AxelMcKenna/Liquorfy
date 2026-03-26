@@ -6,6 +6,7 @@ import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 import { useLocationContext } from '@/contexts/LocationContext';
 import { FavouriteButton } from '@/components/products/FavouriteButton';
 import { ShareButton } from '@/components/products/ShareButton';
+import api from '@/lib/api';
 import { PriceAlertButton } from '@/components/alerts/PriceAlertButton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -138,6 +139,11 @@ export const ProductDetailPage = () => {
   useEffect(() => {
     if (product) addProduct(product);
   }, [product]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fire-and-forget view tracking
+  useEffect(() => {
+    if (id) api.post(`/products/${id}/view`).catch(() => {});
+  }, [id]);
 
   if (loading) {
     return (
