@@ -1,6 +1,7 @@
-import { ExternalLink, Store, Clock, Crown, Wine, MapPin, Sparkles } from "lucide-react";
+import { ExternalLink, Store, Clock, Crown, Wine, MapPin, Sparkles, X, ArrowRight } from "lucide-react";
 import { Product } from "@/types";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useNavigate } from "react-router-dom";
+import { Dialog, DialogContent, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,7 @@ export const QuickView = ({
   isFavourite = false,
   onToggleFavourite,
 }: QuickViewProps) => {
+  const navigate = useNavigate();
   if (!product) return null;
 
   const hasPromo = product.price.promo_price_nzd && product.price.promo_price_nzd < product.price.price_nzd;
@@ -49,7 +51,7 @@ export const QuickView = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[26rem] p-0 max-h-[90vh] overflow-y-auto rounded-xl border-0 shadow-2xl bg-[hsl(var(--background))]">
+      <DialogContent className="sm:max-w-[26rem] p-0 max-h-[90vh] overflow-y-auto rounded-xl border-0 shadow-2xl bg-[hsl(var(--background))] [&>button:last-child]:hidden">
         <div className="flex flex-col">
 
           {/* ── Image Section ── */}
@@ -81,20 +83,23 @@ export const QuickView = ({
               </div>
             )}
 
-            {/* Action buttons aligned with close X */}
-            <div className="absolute top-[14px] right-10 flex items-center z-20">
+            {/* Action buttons row */}
+            <div className="absolute top-3 right-3 flex items-center gap-0.5 z-20">
               {onToggleFavourite && (
                 <FavouriteButton
                   isFavourite={isFavourite}
                   onToggle={onToggleFavourite}
-                  className="h-8 w-8 rounded-sm opacity-70 hover:opacity-100 transition-opacity bg-transparent hover:bg-transparent shadow-none"
+                  className="h-7 w-7 rounded-sm opacity-70 hover:opacity-100 transition-opacity bg-transparent hover:bg-transparent shadow-none"
                 />
               )}
               <ShareButton
                 productName={product.name}
                 productId={product.id}
-                className="h-8 w-8 rounded-sm opacity-70 hover:opacity-100 transition-opacity bg-transparent hover:bg-transparent shadow-none"
+                className="h-7 w-7 rounded-sm opacity-70 hover:opacity-100 transition-opacity bg-transparent hover:bg-transparent shadow-none"
               />
+              <DialogClose className="h-7 w-7 flex items-center justify-center rounded-sm opacity-70 hover:opacity-100 transition-opacity">
+                <X className="h-4 w-4" />
+              </DialogClose>
             </div>
           </div>
 
@@ -206,6 +211,15 @@ export const QuickView = ({
                   currentPrice={currentPrice}
                 />
               </div>
+
+              {/* Full detail page link */}
+              <button
+                onClick={() => { onClose(); navigate(`/product/${product.id}`); }}
+                className="flex items-center justify-center gap-1.5 text-sm text-primary hover:text-primary/80 font-medium transition-colors pt-1"
+              >
+                Full details & compare prices
+                <ArrowRight className="h-3.5 w-3.5" />
+              </button>
             </div>
           </div>
         </div>

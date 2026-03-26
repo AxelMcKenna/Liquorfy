@@ -343,24 +343,43 @@ async def fetch_product_detail(session: AsyncSession, product_id: UUID) -> Produ
         .join(Price, Price.product_id == Product.id)
         .join(Store, Store.id == Price.store_id)
         .where(Product.id == product_id)
+        .order_by(Price.price_nzd.asc())
     )
     result = await session.execute(query)
-    row = result.first()
-    if not row:
+    rows = result.all()
+    if not rows:
         raise ValueError("Product not found")
-    product, price, store = row
-    effective = _effective_price(price)
-    metrics = compute_pricing_metrics(
-        total_volume_ml=product.total_volume_ml,
-        abv_percent=product.abv_percent,
-        effective_price_nzd=effective,
-    )
 
-    # Suppress promo display for discounts >= 25% (NZ alcohol advertising law, s237)
-    suppress_promo = False
-    if price.promo_price_nzd is not None and price.price_nzd > 0:
-        discount = (price.price_nzd - effective) / price.price_nzd
-        suppress_promo = discount >= _MAX_PROMO_DISPLAY_DISCOUNT
+    def _build_price_schema(price: "Price", store: "Store") -> PriceSchema:
+        effective = _effective_price(price)
+        metrics = compute_pricing_metrics(
+            total_volume_ml=rows[0][0].total_volume_ml,
+            abv_percent=rows[0][0].abv_percent,
+            effective_price_nzd=effective,
+        )
+        suppress_promo = False
+        if price.promo_price_nzd is not None and price.price_nzd > 0:
+            discount = (price.price_nzd - effective) / price.price_nzd
+            suppress_promo = discount >= _MAX_PROMO_DISPLAY_DISCOUNT
+        return PriceSchema(
+            store_id=store.id,
+            store_name=store.name,
+            chain=store.chain,
+            price_nzd=effective if suppress_promo else price.price_nzd,
+            promo_price_nzd=None if suppress_promo else price.promo_price_nzd,
+            promo_text=None if suppress_promo else price.promo_text,
+            promo_ends_at=None if suppress_promo else price.promo_ends_at,
+            price_per_100ml=metrics.price_per_100ml,
+            standard_drinks=metrics.standard_drinks,
+            price_per_standard_drink=metrics.price_per_standard_drink,
+            is_member_only=False if suppress_promo else price.is_member_only,
+            is_stale=_is_stale(price),
+            distance_km=None,
+        )
+
+    product, first_price, first_store = rows[0]
+    primary_price = _build_price_schema(first_price, first_store)
+    other_prices = [_build_price_schema(p, s) for _, p, s in rows[1:]]
 
     return ProductDetailSchema(
         id=product.id,
@@ -375,22 +394,9 @@ async def fetch_product_detail(session: AsyncSession, product_id: UUID) -> Produ
         image_url=product.image_url,
         product_url=product.product_url,
         is_sugar_free=product.is_sugar_free,
-        price=PriceSchema(
-            store_id=store.id,
-            store_name=store.name,
-            chain=store.chain,
-            price_nzd=effective if suppress_promo else price.price_nzd,
-            promo_price_nzd=None if suppress_promo else price.promo_price_nzd,
-            promo_text=None if suppress_promo else price.promo_text,
-            promo_ends_at=None if suppress_promo else price.promo_ends_at,
-            price_per_100ml=metrics.price_per_100ml,
-            standard_drinks=metrics.standard_drinks,
-            price_per_standard_drink=metrics.price_per_standard_drink,
-            is_member_only=False if suppress_promo else price.is_member_only,
-            is_stale=_is_stale(price),
-            distance_km=None,
-        ),
-        last_updated=price.last_seen_at,
+        price=primary_price,
+        other_prices=other_prices,
+        last_updated=first_price.last_seen_at,
     )
 
 

@@ -285,6 +285,13 @@ const RegisterPage = () => {
             </Button>
           </div>
 
+          <p className="text-xs text-center text-muted-foreground leading-relaxed">
+            By creating an account, you agree to our{' '}
+            <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>
+            {' '}and{' '}
+            <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
+          </p>
+
           <p className="text-sm text-center text-muted-foreground">
             Already have an account?{' '}
             <Link to="/login" className="text-primary font-medium hover:underline">
