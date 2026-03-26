@@ -184,7 +184,7 @@ export const Explore = () => {
           <div className="max-w-6xl mx-auto px-4 py-6 pb-32">
             {/* Combined prompt banner — location + sign-in in one block */}
             {showBanner && (
-              <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-4 flex items-center justify-between gap-4">
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 sm:p-4 mb-4 flex items-start sm:items-center justify-between gap-2 sm:gap-4">
                 <div className="flex flex-col gap-1.5 min-w-0">
                   {needsLocation && (
                     <div className="flex items-center gap-2.5">

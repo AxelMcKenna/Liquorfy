@@ -146,9 +146,9 @@ export const Landing = () => {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_15%_25%,rgba(255,255,255,0.08),transparent_50%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_85%_75%,rgba(0,0,0,0.15),transparent_50%)]" />
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 pt-6 pb-40 md:pb-44">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 pt-6 pb-28 md:pb-44">
           {/* Top nav — logo left, account right */}
-          <div className="flex items-center justify-between mb-14 md:mb-20 animate-fade-up">
+          <div className="flex items-center justify-between mb-10 md:mb-20 animate-fade-up">
             <Link to="/" className="text-xl font-semibold text-white tracking-tight font-display">
               LIQUORFY
             </Link>
@@ -165,25 +165,25 @@ export const Landing = () => {
           </div>
 
           {/* Hero content — asymmetric grid: 7/5 split on desktop */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 items-end">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-12 items-end">
             {/* Left: headline — heavy weight, left-aligned */}
-            <div className="md:col-span-7 animate-slide-left relative">
+            <div className="md:col-span-7 animate-slide-left">
               <p className="text-sm text-white/60 font-medium uppercase tracking-widest mb-3">
                 NZ Liquor Price Comparison
               </p>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight leading-[1.1]">
+              <h1 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight leading-[1.1]">
                 Find the best<br />
                 deals <em className="font-display italic font-normal text-white/80">near you</em>
               </h1>
-              <hr className="accent-rule mt-6" />
-              <p className="text-base md:text-lg text-white/70 max-w-md absolute left-0 top-full mt-4">
+              <hr className="accent-rule mt-4 md:mt-6" />
+              <p className="text-sm md:text-lg text-white/70 max-w-md mt-3 md:mt-4">
                 Compare prices from 10+ major retailers, updated daily.
               </p>
             </div>
 
             {/* Right: search */}
-            <div className="md:col-span-5 animate-slide-right relative" style={{ animationDelay: '150ms' }}>
-              <div className="flex items-center justify-center gap-4 text-xs text-white/50 absolute -top-8 left-0 right-0">
+            <div className="md:col-span-5 animate-slide-right" style={{ animationDelay: '150ms' }}>
+              <div className="flex items-center justify-center gap-4 text-xs text-white/50 mb-3 md:mb-3">
                 <span className="flex items-center gap-1.5">
                   <span className="w-1 h-1 rounded-full bg-white/40" />
                   10+ retailers
