@@ -337,6 +337,93 @@ async def fetch_products(
     return ProductListResponse(items=items, total=total, page=page, page_size=page_size)
 
 
+async def fetch_products_by_ids(
+    session: AsyncSession,
+    product_ids: list[UUID],
+    *,
+    lat: float | None = None,
+    lon: float | None = None,
+    radius_km: float | None = None,
+) -> list[ProductSchema]:
+    """Fetch multiple products by their IDs, returning one row per product (cheapest price)."""
+    if not product_ids:
+        return []
+
+    user_point_geog = None
+    distance_m: Any = literal(None).label("distance_m")
+    if lat is not None and lon is not None and radius_km is not None:
+        user_point = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326)
+        user_point_geog = cast(user_point, Geography)
+        distance_m = func.ST_Distance(Store.geog, user_point_geog).label("distance_m")
+
+    query = (
+        select(Product, Price, Store, distance_m)
+        .join(Price, Price.product_id == Product.id)
+        .join(Store, Store.id == Price.store_id)
+        .where(Product.id.in_(product_ids))
+        .order_by(Price.price_nzd.asc())
+    )
+
+    result = await session.execute(query)
+    rows = result.all()
+
+    # Keep only the cheapest price per product
+    seen: set[UUID] = set()
+    items: list[ProductSchema] = []
+    for product, price, store, distance_m_value in rows:
+        if product.id in seen:
+            continue
+        seen.add(product.id)
+
+        effective = _effective_price(price)
+        metrics = compute_pricing_metrics(
+            total_volume_ml=product.total_volume_ml,
+            abv_percent=product.abv_percent,
+            effective_price_nzd=effective,
+        )
+        distance = round(distance_m_value / 1000, 2) if distance_m_value is not None else None
+
+        suppress_promo = False
+        if price.promo_price_nzd is not None and price.price_nzd > 0:
+            discount = (price.price_nzd - effective) / price.price_nzd
+            suppress_promo = discount >= _MAX_PROMO_DISPLAY_DISCOUNT
+
+        items.append(
+            ProductSchema(
+                id=product.id,
+                name=format_product_name(product.name, product.brand),
+                brand=product.brand,
+                category=product.category,
+                chain=product.chain,
+                abv_percent=product.abv_percent,
+                total_volume_ml=product.total_volume_ml,
+                pack_count=product.pack_count,
+                unit_volume_ml=product.unit_volume_ml,
+                image_url=product.image_url,
+                product_url=product.product_url,
+                is_sugar_free=product.is_sugar_free,
+                price=PriceSchema(
+                    store_id=store.id,
+                    store_name=store.name,
+                    chain=store.chain,
+                    price_nzd=effective if suppress_promo else price.price_nzd,
+                    promo_price_nzd=None if suppress_promo else price.promo_price_nzd,
+                    promo_text=None if suppress_promo else price.promo_text,
+                    promo_ends_at=None if suppress_promo else price.promo_ends_at,
+                    price_per_100ml=metrics.price_per_100ml,
+                    standard_drinks=metrics.standard_drinks,
+                    price_per_standard_drink=metrics.price_per_standard_drink,
+                    is_member_only=False if suppress_promo else price.is_member_only,
+                    is_stale=_is_stale(price),
+                    distance_km=distance,
+                ),
+                last_updated=price.last_seen_at,
+            )
+        )
+
+    return items
+
+
 async def fetch_product_detail(
     session: AsyncSession,
     product_id: UUID,
