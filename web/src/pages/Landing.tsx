@@ -203,12 +203,11 @@ export const Landing = () => {
                   setQuery={setQuery}
                   onSearch={handleSearch}
                   placeholder="Search for beer, wine, spirits..."
-                  inputClassName="pl-12 pr-24 h-14 text-base rounded-lg border-0 bg-white text-foreground shadow-lg"
+                  inputClassName="pl-11 pr-[5.5rem] h-14 text-base rounded-lg border-0 bg-white text-foreground shadow-lg"
                 />
                 <Button
                   onClick={handleSearch}
-                  size="sm"
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 h-11 z-10"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-10 px-5 z-10 text-sm font-semibold"
                 >
                   Search
                 </Button>
