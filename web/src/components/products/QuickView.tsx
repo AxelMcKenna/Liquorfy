@@ -53,7 +53,7 @@ export const QuickView = ({
         <div className="grid grid-cols-1 md:grid-cols-5 max-h-[90vh]">
 
           {/* ── Image Section ── */}
-          <div className="md:col-span-2 relative bg-gradient-to-b from-[hsl(var(--background))] to-[hsl(var(--background-secondary))] flex items-center justify-center p-8 md:p-6 min-h-[240px] md:min-h-0">
+          <div className="md:col-span-2 relative bg-white flex items-center justify-center p-8 md:p-6 min-h-[240px] md:min-h-0">
             {/* Subtle decorative ring behind image */}
             <div className="absolute inset-8 md:inset-6 rounded-full border border-[hsl(var(--border))] opacity-40" />
 
@@ -98,7 +98,7 @@ export const QuickView = ({
           </div>
 
           {/* ── Content Section ── */}
-          <div className="md:col-span-3 overflow-y-auto bg-white" style={{ maxHeight: 'calc(90vh - 1px)' }}>
+          <div className="md:col-span-3 overflow-y-auto bg-[hsl(var(--background))]" style={{ maxHeight: 'calc(90vh - 1px)' }}>
             <div className="p-5 md:p-6 flex flex-col gap-5">
 
               {/* Header */}
@@ -112,7 +112,7 @@ export const QuickView = ({
               </div>
 
               {/* Price block */}
-              <div className="bg-[hsl(var(--background))] rounded-lg p-4 -mx-1">
+              <div className="bg-white rounded-lg p-4 -mx-1 border border-[hsl(var(--border))]">
                 <div className="flex items-baseline gap-3 mb-1.5">
                   <span className="text-3xl font-bold text-primary tracking-tight">
                     ${currentPrice.toFixed(2)}
@@ -175,7 +175,7 @@ export const QuickView = ({
                   {details.map((d) => (
                     <span
                       key={d.label}
-                      className="inline-flex items-center gap-1.5 text-xs bg-[hsl(var(--background-secondary))] text-[hsl(var(--foreground-secondary))] rounded-full px-3 py-1.5"
+                      className="inline-flex items-center gap-1.5 text-xs bg-white text-[hsl(var(--foreground-secondary))] rounded-full px-3 py-1.5 border border-[hsl(var(--border))]"
                     >
                       <span className="font-medium text-[hsl(var(--foreground))]">{d.label}</span>
                       <span className="capitalize">{d.value}</span>
