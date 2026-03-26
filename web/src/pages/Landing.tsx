@@ -271,67 +271,63 @@ export const Landing = () => {
       <section className="py-14 md:py-20 border-t">
         <div className="max-w-7xl mx-auto px-4">
           {!location && (
-            <Reveal>
-              <div className="bg-card border rounded-2xl p-10 md:p-14 max-w-lg mx-auto text-center">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
-                  <MapPin className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="text-xl md:text-2xl text-foreground mb-2">Find nearby stores</h3>
-                <p className="text-sm text-muted-foreground mb-8 max-w-xs mx-auto leading-relaxed">
-                  Enable location to see deals from stores in your area and compare prices nearby.
-                </p>
-                <Button onClick={requestLocation} disabled={locationLoading} size="lg">
-                  <MapPin className="h-4 w-4 mr-2" />
-                  {locationLoading ? 'Getting location...' : 'Enable Location'}
-                </Button>
-                {locationError && (
-                  <p className="text-destructive text-sm mt-4">{locationError}</p>
-                )}
+            <div className="max-w-md mx-auto text-center py-8">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-secondary mb-4">
+                <MapPin className="h-6 w-6 text-primary" />
               </div>
-            </Reveal>
+              <h3 className="text-lg font-medium mb-2">Enable Location</h3>
+              <p className="text-sm text-muted-foreground mb-6">
+                See deals from stores in your area
+              </p>
+              <Button
+                onClick={requestLocation}
+                disabled={locationLoading}
+              >
+                {locationLoading ? 'Getting location...' : 'Enable Location'}
+              </Button>
+              {locationError && (
+                <p className="text-destructive text-sm mt-4">{locationError}</p>
+              )}
+            </div>
           )}
 
           {location && (
             <div className="space-y-4">
-              <Reveal>
-                <div className="bg-card border rounded-xl p-5">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-medium">Search radius</span>
-                    <span className="text-sm font-semibold text-primary">
-                      {tempRadius} km
-                    </span>
-                  </div>
-                  <Slider
-                    value={[tempRadius]}
-                    onValueChange={(value) => setTempRadius(value[0])}
-                    min={1}
-                    max={10}
-                    step={1}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                    <span>1 km</span>
-                    <span>{stores.length} stores</span>
-                    <span>10 km</span>
-                  </div>
+              <div className="bg-secondary rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-medium">Search radius</span>
+                  <span className="text-sm font-semibold text-primary">
+                    {tempRadius} km
+                  </span>
                 </div>
-              </Reveal>
+                <Slider
+                  value={[tempRadius]}
+                  onValueChange={(value) => setTempRadius(value[0])}
+                  min={1}
+                  max={10}
+                  step={1}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                  <span>1 km</span>
+                  <span>{stores.length} stores</span>
+                  <span>10 km</span>
+                </div>
+              </div>
 
-              <Reveal delay={0.1}>
-                <div ref={mapRef} className="rounded-xl overflow-hidden border shadow-sm">
-                  {shouldLoadMap ? (
-                    <LazyStoreMap
-                      userLocation={location}
-                      stores={stores}
-                      selectedStore={null}
-                      onStoreClick={() => {}}
-                      radiusKm={radiusKm}
-                    />
-                  ) : (
-                    <StoreMapSkeleton className="h-[400px] md:h-[480px] border-none" />
-                  )}
-                </div>
-              </Reveal>
+              <div ref={mapRef} className="rounded-lg overflow-hidden border">
+                {shouldLoadMap ? (
+                  <LazyStoreMap
+                    userLocation={location}
+                    stores={stores}
+                    selectedStore={null}
+                    onStoreClick={() => {}}
+                    radiusKm={radiusKm}
+                  />
+                ) : (
+                  <StoreMapSkeleton className="h-[400px] border-none" />
+                )}
+              </div>
             </div>
           )}
         </div>
