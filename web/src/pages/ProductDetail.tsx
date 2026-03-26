@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Footer } from '@/components/layout/Footer';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { PriceHistoryChart } from '@/components/products/PriceHistoryChart';
 import { cn } from '@/lib/utils';
 import {
   formatPromoEndDate,
@@ -217,7 +218,7 @@ export const ProductDetailPage = () => {
     product.pack_count && product.pack_count > 1 && { label: "Pack", value: `${product.pack_count} units` },
   ].filter(Boolean) as { label: string; value: string }[];
 
-  const allPrices = [product.price, ...product.other_prices];
+  const allPrices = [product.price, ...product.other_prices].slice(0, 5);
   const hasMultipleStores = allPrices.length > 1;
 
   return (
@@ -394,6 +395,19 @@ export const ProductDetailPage = () => {
           </section>
         )}
 
+        {/* Price history chart */}
+        {product.price_history && product.price_history.length > 1 && (
+          <section className="mt-10 md:mt-14">
+            <h2 className="text-lg font-semibold text-[hsl(var(--foreground))] mb-4">
+              Price history
+              <span className="text-sm font-normal text-[hsl(var(--foreground-secondary))] ml-2">
+                Last 30 days
+              </span>
+            </h2>
+            <PriceHistoryChart history={product.price_history} />
+          </section>
+        )}
+
         {/* Cross-chain comparison */}
         {product.cross_chain_prices.length > 0 && (
           <section className="mt-10 md:mt-14">
@@ -404,7 +418,7 @@ export const ProductDetailPage = () => {
               Same product at other retailers
             </p>
             <div className="flex flex-col gap-2">
-              {product.cross_chain_prices.map((item) => (
+              {product.cross_chain_prices.slice(0, 5).map((item) => (
                 <CrossChainRow key={item.product_id} item={item} />
               ))}
             </div>
