@@ -36,7 +36,7 @@ export const PageHeader = ({
           <ArrowLeft className="h-4 w-4" />
           <span className="hidden sm:inline">Back</span>
         </button>
-        <Link to="/" className="text-lg font-display font-semibold text-white tracking-tight">
+        <Link to="/" className="text-sm font-medium text-white uppercase tracking-widest">
           LIQUORFY
         </Link>
         <div className="flex items-center gap-1 min-w-[60px] justify-end">

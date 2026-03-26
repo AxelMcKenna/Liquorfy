@@ -28,7 +28,7 @@ const NotFound = lazy(() => import("@/pages/NotFound"));
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
     <div className="text-center">
-      <p className="text-2xl font-display font-semibold text-primary tracking-tight mb-4">LIQUORFY</p>
+      <p className="text-sm font-medium text-primary uppercase tracking-widest mb-4">LIQUORFY</p>
       <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
     </div>
   </div>
