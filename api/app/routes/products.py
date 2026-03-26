@@ -151,7 +151,7 @@ async def product_detail(
 
 
 class BatchProductsRequest(BaseModel):
-    ids: list[UUID] = Field(..., max_length=50, description="Product IDs to fetch (max 50)")
+    ids: list[UUID] = Field(..., description="Product IDs to fetch (max 50)")
     lat: Optional[float] = None
     lon: Optional[float] = None
     radius_km: Optional[float] = Field(None, ge=1, le=10)
