@@ -1,17 +1,17 @@
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Heart, Eye } from 'lucide-react';
+import { ArrowLeft, Heart, Eye, Loader2 } from 'lucide-react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { AlertsList } from '@/components/alerts/AlertsList';
 import { Footer } from '@/components/layout/Footer';
 import { useFavourites } from '@/hooks/useFavourites';
+import { useFavouriteProducts } from '@/hooks/useFavouriteProducts';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 import { ProductGrid } from '@/components/products/ProductGrid';
 
 const WatchlistPage = () => {
   const { favouriteIds } = useFavourites();
+  const { products: favouriteProducts, loading: favouritesLoading } = useFavouriteProducts(favouriteIds);
   const { recentlyViewed } = useRecentlyViewed();
-
-  const favouriteProducts = recentlyViewed.filter((p) => favouriteIds.has(p.id));
 
   return (
     <ProtectedRoute>
@@ -41,14 +41,18 @@ const WatchlistPage = () => {
                 <span className="text-sm text-muted-foreground">({favouriteIds.size})</span>
               )}
             </div>
-            {favouriteProducts.length > 0 ? (
+            {favouritesLoading ? (
+              <div className="bg-white rounded-lg border p-6 flex items-center justify-center gap-2 text-muted-foreground">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span className="text-sm">Loading favourites...</span>
+              </div>
+            ) : favouriteProducts.length > 0 ? (
               <ProductGrid products={favouriteProducts} loading={false} />
             ) : favouriteIds.size > 0 ? (
               <div className="bg-white rounded-lg border p-6 text-center text-muted-foreground">
                 <Heart className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">
-                  You have {favouriteIds.size} favourited product{favouriteIds.size !== 1 ? 's' : ''}.
-                  Browse products to see them here.
+                  Some favourited products may no longer be available.
                 </p>
               </div>
             ) : (

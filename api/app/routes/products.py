@@ -4,15 +4,15 @@ import json
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import ValidationError
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from pydantic import BaseModel, Field, ValidationError
 
 from app.core.config import get_settings
 from app.db.session import get_async_session
-from app.schemas.products import ProductDetailSchema, ProductListResponse
+from app.schemas.products import ProductDetailSchema, ProductListResponse, ProductSchema
 from app.schemas.queries import ProductQueryParams
 from app.services.cache import cached_json
-from app.services.search import fetch_product_detail, fetch_products
+from app.services.search import fetch_product_detail, fetch_products, fetch_products_by_ids
 
 router = APIRouter(prefix="/products", tags=["products"])
 settings = get_settings()
@@ -148,3 +148,26 @@ async def product_detail(
 
     payload = await cached_json(cache_key, settings.api_cache_ttl_seconds, producer)
     return ProductDetailSchema.parse_obj(payload)
+
+
+class BatchProductsRequest(BaseModel):
+    ids: list[UUID] = Field(..., max_length=50, description="Product IDs to fetch (max 50)")
+    lat: Optional[float] = None
+    lon: Optional[float] = None
+    radius_km: Optional[float] = Field(None, ge=1, le=10)
+
+
+@router.post("/batch", response_model=list[ProductSchema])
+async def batch_products(body: BatchProductsRequest) -> list[ProductSchema]:
+    """Fetch multiple products by ID. Used for favourites/watchlists."""
+    if not body.ids:
+        return []
+
+    async with get_async_session() as session:
+        return await fetch_products_by_ids(
+            session,
+            body.ids,
+            lat=body.lat,
+            lon=body.lon,
+            radius_km=body.radius_km,
+        )
