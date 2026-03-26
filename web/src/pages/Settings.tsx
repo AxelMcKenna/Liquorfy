@@ -50,7 +50,7 @@ const SettingsPage = () => {
           }
         />
 
-        <main className="max-w-3xl mx-auto px-4 py-8 space-y-8 flex-1">
+        <main className="max-w-5xl mx-auto px-4 py-8 space-y-8 flex-1 w-full">
           {/* Account info */}
           <section>
             <h2 className="text-lg font-serif font-semibold mb-3">Account</h2>
