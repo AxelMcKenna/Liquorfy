@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom';
-import { ArrowLeft, LogOut, Trash2, BellRing } from 'lucide-react';
+import { LogOut, Trash2, BellRing, Heart } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
 import { Footer } from '@/components/layout/Footer';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { useNotificationPreferences } from '@/hooks/useNotificationPreferences';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -41,14 +42,13 @@ const SettingsPage = () => {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-background flex flex-col">
-        <header className="bg-primary border-b border-primary">
-          <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-4">
-            <Link to="/" className="text-white hover:text-white/80">
-              <ArrowLeft className="h-5 w-5" />
+        <PageHeader
+          rightContent={
+            <Link to="/watchlist" className="flex items-center justify-center h-8 w-8 rounded-md text-white/70 hover:text-white hover:bg-white/10 transition-colors">
+              <Heart className="h-4 w-4" />
             </Link>
-            <h1 className="text-lg font-semibold text-white">Settings</h1>
-          </div>
-        </header>
+          }
+        />
 
         <main className="max-w-3xl mx-auto px-4 py-8 space-y-8 flex-1">
           {/* Account info */}

@@ -1,15 +1,9 @@
-import { Link } from "react-router-dom";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 export const Support = () => {
   return (
     <div className="min-h-screen bg-background">
-      <header className="bg-primary py-6">
-        <div className="px-4">
-          <Link to="/" className="text-xl font-semibold text-white tracking-tight font-display">
-            LIQUORFY
-          </Link>
-        </div>
-      </header>
+      <PageHeader backTo="/" />
 
       <main className="max-w-3xl mx-auto px-4 py-12">
         <h1 className="text-3xl font-semibold text-foreground mb-2">Support</h1>

@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Heart, Eye, Loader2 } from 'lucide-react';
+import { Heart, Eye, Loader2, Settings } from 'lucide-react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { AlertsList } from '@/components/alerts/AlertsList';
 import { Footer } from '@/components/layout/Footer';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { useFavourites } from '@/hooks/useFavourites';
 import { useFavouriteProducts } from '@/hooks/useFavouriteProducts';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
@@ -16,14 +17,13 @@ const WatchlistPage = () => {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-background flex flex-col">
-        <header className="bg-primary border-b border-primary">
-          <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-4">
-            <Link to="/" className="text-white hover:text-white/80">
-              <ArrowLeft className="h-5 w-5" />
+        <PageHeader
+          rightContent={
+            <Link to="/settings" className="flex items-center justify-center h-8 w-8 rounded-md text-white/70 hover:text-white hover:bg-white/10 transition-colors">
+              <Settings className="h-4 w-4" />
             </Link>
-            <h1 className="text-lg font-semibold text-white">Watchlist</h1>
-          </div>
-        </header>
+          }
+        />
 
         <main className="max-w-3xl mx-auto px-4 py-8 space-y-8 flex-1">
           {/* Price Alerts */}

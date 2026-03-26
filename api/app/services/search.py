@@ -432,19 +432,35 @@ async def fetch_product_detail(
     lon: float | None = None,
     radius_km: float | None = None,
 ) -> ProductDetailSchema:
-    query = (
-        select(Product, Price, Store)
-        .join(Price, Price.product_id == Product.id)
-        .join(Store, Store.id == Price.store_id)
-        .where(Product.id == product_id)
-        .order_by(Price.price_nzd.asc())
-    )
+    has_location = lat is not None and lon is not None and radius_km is not None
+
+    if has_location:
+        user_point = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326)
+        distance_m = func.ST_Distance(
+            Store.geog, cast(user_point, Geography)
+        )
+        query = (
+            select(Product, Price, Store, distance_m.label("distance_m"))
+            .join(Price, Price.product_id == Product.id)
+            .join(Store, Store.id == Price.store_id)
+            .where(Product.id == product_id, distance_m <= radius_km * 1000)
+            .order_by(Price.price_nzd.asc())
+        )
+    else:
+        query = (
+            select(Product, Price, Store, literal(None).label("distance_m"))
+            .join(Price, Price.product_id == Product.id)
+            .join(Store, Store.id == Price.store_id)
+            .where(Product.id == product_id)
+            .order_by(Price.price_nzd.asc())
+        )
+
     result = await session.execute(query)
     rows = result.all()
     if not rows:
         raise ValueError("Product not found")
 
-    def _build_price_schema(price: "Price", store: "Store") -> PriceSchema:
+    def _build_price_schema(price: "Price", store: "Store", dist_m=None) -> PriceSchema:
         effective = _effective_price(price)
         metrics = compute_pricing_metrics(
             total_volume_ml=rows[0][0].total_volume_ml,
@@ -468,17 +484,16 @@ async def fetch_product_detail(
             price_per_standard_drink=metrics.price_per_standard_drink,
             is_member_only=False if suppress_promo else price.is_member_only,
             is_stale=_is_stale(price),
-            distance_km=None,
+            distance_km=round(dist_m / 1000, 1) if dist_m is not None else None,
         )
 
-    product, first_price, first_store = rows[0]
-    primary_price = _build_price_schema(first_price, first_store)
-    other_prices = [_build_price_schema(p, s) for _, p, s in rows[1:]]
+    product, first_price, first_store, first_dist = rows[0]
+    primary_price = _build_price_schema(first_price, first_store, first_dist)
+    other_prices = [_build_price_schema(p, s, d) for _, p, s, d in rows[1:]]
 
     # Cross-chain comparison: find same product at other chains
     cross_chain_prices: list[CrossChainPrice] = []
     if product.canonical_product_id is not None:
-        has_location = lat is not None and lon is not None and radius_km is not None
 
         if has_location:
             user_point = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326)
