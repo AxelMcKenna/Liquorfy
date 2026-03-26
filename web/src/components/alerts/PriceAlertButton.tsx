@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell } from 'lucide-react';
+import { Bell, TrendingDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -41,6 +41,7 @@ export const PriceAlertButton = ({
       return;
     }
     setThresholdPrice((currentPrice * 0.9).toFixed(2));
+    setAlertOnPromo(false);
     setOpen(true);
   };
 
@@ -77,42 +78,75 @@ export const PriceAlertButton = ({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Set Price Alert</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Bell className="h-4 w-4 text-primary" />
+              </div>
+              Set Price Alert
+            </DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">{productName}</p>
-          <p className="text-sm">
-            Current price: <strong>${currentPrice.toFixed(2)}</strong>
-          </p>
-          <div className="space-y-4 pt-2">
-            <div>
-              <Label htmlFor="threshold">Alert when price drops below ($)</Label>
-              <Input
-                id="threshold"
-                type="number"
-                step="0.01"
-                min="0"
-                value={thresholdPrice}
-                onChange={(e) => setThresholdPrice(e.target.value)}
-                placeholder="e.g. 25.00"
-                className="mt-1"
-              />
+
+          {/* Product info card */}
+          <div className="bg-secondary rounded-lg p-3 flex items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-foreground truncate">{productName}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Current price: <span className="font-semibold text-primary">${currentPrice.toFixed(2)}</span>
+              </p>
             </div>
-            <div className="flex items-center gap-2">
+          </div>
+
+          <div className="space-y-5 pt-1">
+            {/* Threshold input */}
+            <div>
+              <Label htmlFor="threshold" className="flex items-center gap-1.5 text-sm font-medium mb-2">
+                <TrendingDown className="h-3.5 w-3.5 text-primary" />
+                Alert when price drops below
+              </Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
+                <Input
+                  id="threshold"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={thresholdPrice}
+                  onChange={(e) => setThresholdPrice(e.target.value)}
+                  placeholder="0.00"
+                  className="pl-7"
+                />
+              </div>
+            </div>
+
+            {/* Promo checkbox */}
+            <div className="flex items-start gap-3 p-3 rounded-lg border hover:border-primary/30 transition-colors">
               <Checkbox
                 id="promo"
                 checked={alertOnPromo}
                 onCheckedChange={(v) => setAlertOnPromo(!!v)}
+                className="mt-0.5"
               />
-              <Label htmlFor="promo" className="text-sm font-normal">
-                Also alert me when this goes on promo
-              </Label>
+              <div>
+                <Label htmlFor="promo" className="text-sm font-medium cursor-pointer">
+                  Alert on promotions
+                </Label>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Get notified when this product goes on sale
+                </p>
+              </div>
             </div>
           </div>
-          <DialogFooter>
+
+          <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={saving || (!thresholdPrice && !alertOnPromo)}>
+            <Button
+              onClick={handleSave}
+              disabled={saving || (!thresholdPrice && !alertOnPromo)}
+              className="gap-1.5"
+            >
+              <Bell className="h-4 w-4" />
               {saving ? 'Saving...' : 'Set Alert'}
             </Button>
           </DialogFooter>
