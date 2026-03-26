@@ -19,6 +19,8 @@ logger = logging.getLogger(__name__)
 
 
 # Configuration
+SCRAPE_ON_STARTUP = False  # Set True to run scrapers immediately on container start
+SCRAPE_START_HOUR = 2  # 2 AM NZST
 SCRAPER_INTERVAL_HOURS = 24  # Run scrapers once per day
 SCRAPER_TIMEOUT_MINUTES = 120  # Max time per scraper (Liquor Centre has 90 stores!)
 SEQUENTIAL_DELAY_SECONDS = 60  # Delay between scrapers to avoid overwhelming system
@@ -208,6 +210,22 @@ class WorkerScheduler:
                 await asyncio.sleep(SEQUENTIAL_DELAY_SECONDS)
 
 
+async def _post_scrape_tasks() -> None:
+    """Run discord report and alert evaluation after a scrape pass."""
+    try:
+        from app.workers.discord_report import send_discord_report
+        await send_discord_report()
+    except Exception as e:
+        logger.warning(f"Discord report failed: {e}")
+
+    try:
+        from app.services.alert_evaluator import evaluate_alerts
+        count = await evaluate_alerts()
+        logger.info(f"Alert evaluation: {count} notification(s) sent")
+    except Exception as e:
+        logger.warning(f"Alert evaluation failed: {e}")
+
+
 async def main(chains_to_run: Optional[List[str]] = None) -> None:
     """Main worker loop."""
     # Parse chains from command line args or env var if not provided
@@ -249,61 +267,42 @@ async def main(chains_to_run: Optional[List[str]] = None) -> None:
 
     scheduler = WorkerScheduler(chains_to_run=chains_to_run)
 
-    # Run all scrapers once at startup
-    logger.info("Running initial scraper pass...")
-    await scheduler.run_all_scrapers(force=True)
+    if SCRAPE_ON_STARTUP or run_once:
+        logger.info("Running initial scraper pass...")
+        await scheduler.run_all_scrapers(force=True)
+        await _post_scrape_tasks()
 
-    try:
-        from app.workers.discord_report import send_discord_report
+        if run_once:
+            logger.info("LIQUORFY_RUN_ONCE enabled - exiting after initial pass")
+            return
+    else:
+        logger.info(f"Skipping startup scrape. Nightly run scheduled at {SCRAPE_START_HOUR:02d}:00 NZST")
 
-        await send_discord_report()
-    except Exception as e:
-        logger.warning(f"Discord report failed: {e}")
-
-    # Evaluate price alerts after initial scraper pass
-    try:
-        from app.services.alert_evaluator import evaluate_alerts
-
-        count = await evaluate_alerts()
-        logger.info(f"Alert evaluation: {count} notification(s) sent")
-    except Exception as e:
-        logger.warning(f"Alert evaluation failed: {e}")
-
-    if run_once:
-        logger.info("LIQUORFY_RUN_ONCE enabled - exiting after initial pass")
-        return
-
-    # Then run on schedule
+    # Run on schedule — check every 15 minutes, scrape at the configured hour
+    last_scrape_date: Optional[str] = None
     while True:
-        logger.info("Worker sleeping for 1 hour...")
-        await asyncio.sleep(3600)
+        await asyncio.sleep(900)  # 15-minute check interval
 
-        logger.info("Checking for scheduled scraper runs...")
-        await scheduler.run_all_scrapers()
+        # Use NZST (UTC+13 during NZDT, UTC+12 during NZST)
+        now_nz = datetime.now(timezone(timedelta(hours=13)))
+        today = now_nz.strftime("%Y-%m-%d")
+        current_hour = now_nz.hour
 
-        try:
-            from app.workers.discord_report import send_discord_report
-
-            await send_discord_report()
-        except Exception as e:
-            logger.warning(f"Discord report failed: {e}")
-
-        # Periodic promo expiry cleanup (lightweight, runs every cycle)
+        # Run cleanup every cycle (lightweight)
         try:
             from app.workers.cleanup import run_promo_expiry_cleanup
-
             await run_promo_expiry_cleanup()
         except Exception as e:
             logger.warning(f"Promo expiry cleanup failed: {e}")
 
-        # Evaluate price alerts and send notifications
-        try:
-            from app.services.alert_evaluator import evaluate_alerts
-
-            count = await evaluate_alerts()
-            logger.info(f"Alert evaluation: {count} notification(s) sent")
-        except Exception as e:
-            logger.warning(f"Alert evaluation failed: {e}")
+        # Check if it's time for the nightly scrape
+        if current_hour == SCRAPE_START_HOUR and last_scrape_date != today:
+            logger.info(f"Nightly scrape triggered at {now_nz.strftime('%H:%M')} NZST")
+            last_scrape_date = today
+            await scheduler.run_all_scrapers(force=True)
+            await _post_scrape_tasks()
+        elif last_scrape_date != today:
+            logger.debug(f"Waiting for {SCRAPE_START_HOUR:02d}:00 NZST (currently {now_nz.strftime('%H:%M')})")
 
 
 if __name__ == "__main__":
