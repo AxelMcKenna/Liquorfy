@@ -49,7 +49,7 @@ export const QuickView = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[26rem] p-0 max-h-[90vh] overflow-y-auto rounded-xl border-0 shadow-2xl bg-white">
+      <DialogContent className="sm:max-w-[26rem] p-0 max-h-[90vh] overflow-y-auto rounded-xl border-0 shadow-2xl bg-[hsl(var(--background))]">
         <div className="flex flex-col">
 
           {/* ── Image Section ── */}
@@ -108,10 +108,10 @@ export const QuickView = ({
                 )}
               </div>
 
-              {/* Price block */}
-              <div className="bg-white rounded-lg p-3 -mx-1 border border-[hsl(var(--border))]">
-                <div className="flex items-baseline gap-2 mb-1">
-                  <span className="text-2xl font-bold text-primary tracking-tight">
+              {/* Price */}
+              <div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-xl font-bold text-primary tracking-tight">
                     ${currentPrice.toFixed(2)}
                   </span>
                   {hasPromo && (
@@ -120,7 +120,7 @@ export const QuickView = ({
                     </span>
                   )}
                 </div>
-                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-[hsl(var(--foreground-secondary))]">
+                <div className="flex flex-wrap gap-x-3 text-xs text-[hsl(var(--foreground-secondary))] mt-0.5">
                   {product.price.price_per_100ml && (
                     <span>${product.price.price_per_100ml.toFixed(2)} / 100ml</span>
                   )}
