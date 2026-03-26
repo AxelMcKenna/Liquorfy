@@ -15,16 +15,18 @@ from app.scrapers.super_liquor import SuperLiquorScraper
 from app.scrapers.thirsty_liquor import ThirstyLiquorScraper
 
 CHAINS: Dict[str, Type[Scraper]] = {
+    # Fast API-based scrapers first (~3-18 min each)
+    "black_bull": BlackBullScraper,
+    "thirsty_liquor": ThirstyLiquorScraper,
     "countdown": CountdownAPIScraper,
-    "liquorland": LiquorlandScraper,
-    "liquor_centre": LiquorCentreScraper,
-    "super_liquor": SuperLiquorScraper,
-    "bottle_o": BottleOScraper,
-    "new_world": NewWorldAPIScraper,  # API-based scraper
-    "paknsave": PakNSaveAPIScraper,  # API-based scraper
     "glengarry": GlengarryScraper,
-    "thirsty_liquor": ThirstyLiquorScraper,  # Shopify API-based scraper
-    "black_bull": BlackBullScraper,  # Shopify API-based, DB-backed store list with bootstrap fallback
+    "paknsave": PakNSaveAPIScraper,
+    "new_world": NewWorldAPIScraper,
+    # Slower browser-based scrapers last (~40-160 min each)
+    "super_liquor": SuperLiquorScraper,
+    "liquor_centre": LiquorCentreScraper,
+    "liquorland": LiquorlandScraper,
+    "bottle_o": BottleOScraper,
 }
 
 
