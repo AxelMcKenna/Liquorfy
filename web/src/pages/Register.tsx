@@ -102,7 +102,7 @@ const RegisterPage = () => {
       <div className="min-h-screen bg-background flex flex-col">
         <header className="bg-primary border-b border-primary">
           <div className="px-4 py-3 flex items-center gap-3 min-h-[40px]">
-            <Link to="/" className="text-lg font-semibold text-white">
+            <Link to="/" className="text-xl font-semibold text-white tracking-tight font-display">
               LIQUORFY
             </Link>
           </div>
@@ -138,7 +138,7 @@ const RegisterPage = () => {
           <button onClick={() => navigate(-1)} className="text-white/70 hover:text-white">
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <Link to="/" className="text-lg font-semibold text-white">
+          <Link to="/" className="text-xl font-semibold text-white tracking-tight font-display">
             LIQUORFY
           </Link>
         </div>
