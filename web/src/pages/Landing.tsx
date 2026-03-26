@@ -111,11 +111,11 @@ export const Landing = () => {
         {/* Subtle radial highlight top-left for depth */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_30%,rgba(255,255,255,0.06),transparent_60%)]" />
 
-        <div className="relative max-w-6xl mx-auto px-4 pt-6 pb-40 md:pb-44">
+        <div className="relative max-w-7xl mx-auto px-4 pt-6 pb-40 md:pb-44">
           {/* Top nav — consistent header */}
           <div className="flex items-center justify-between mb-12 md:mb-16">
             <div className="min-w-[60px]" />
-            <Link to="/" className="text-lg font-display font-semibold text-white tracking-tight">
+            <Link to="/" className="text-sm font-medium text-white uppercase tracking-widest">
               LIQUORFY
             </Link>
             <div className="flex items-center gap-1 min-w-[60px] justify-end">
@@ -194,7 +194,7 @@ export const Landing = () => {
 
       {/* ===== DEALS — Left-aligned heading, full grid ===== */}
       <section className="py-14 md:py-20">
-        <div className="max-w-6xl mx-auto px-4">
+        <div className="max-w-7xl mx-auto px-4">
           {/* Offset heading: left-aligned with right action — creates horizontal tension */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-8">
             <div className="md:col-span-8">
@@ -236,13 +236,13 @@ export const Landing = () => {
       </section>
 
       {/* Recently Viewed */}
-      <div className="max-w-6xl mx-auto px-4">
+      <div className="max-w-7xl mx-auto px-4">
         <RecentlyViewed products={recentlyViewed} />
       </div>
 
       {/* ===== MAP ===== */}
       <section className="py-14 md:py-20 border-t">
-        <div className="max-w-6xl mx-auto px-4">
+        <div className="max-w-7xl mx-auto px-4">
           {!location && (
             <div className="max-w-md mx-auto text-center py-8">
               <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-secondary mb-4">
@@ -308,7 +308,7 @@ export const Landing = () => {
 
       {/* ===== CTA — Left-heavy with right button, diagonal accent ===== */}
       <section className="py-14 md:py-20 border-t">
-        <div className="max-w-6xl mx-auto px-4">
+        <div className="max-w-7xl mx-auto px-4">
           <div className="bg-primary rounded-2xl overflow-hidden relative">
             {/* Diagonal accent — subtle geometric interest */}
             <div className="absolute top-0 right-0 w-1/3 h-full bg-white/[0.04] skew-x-[-12deg] translate-x-12" />
@@ -338,7 +338,7 @@ export const Landing = () => {
 
       {/* ===== RESPONSIBLE DRINKING ===== */}
       <section className="py-8 border-t">
-        <div className="max-w-6xl mx-auto px-4">
+        <div className="max-w-7xl mx-auto px-4">
           <div className="bg-secondary rounded-lg p-6 max-w-lg mx-auto text-center">
             <p className="text-sm font-medium mb-1">Drink Responsibly</p>
             <p className="text-xs text-muted-foreground">
