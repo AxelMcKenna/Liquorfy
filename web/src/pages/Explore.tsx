@@ -164,7 +164,7 @@ export const Explore = () => {
   };
 
   return (
-    <div className="min-h-screen bg-secondary">
+    <div className="min-h-screen bg-secondary overflow-x-hidden">
       <div className="sticky top-0 z-50 bg-secondary">
         <Header
           query={searchQuery}
@@ -180,7 +180,7 @@ export const Explore = () => {
           onClose={() => setIsSidebarOpen(false)}
         />
 
-        <main className="flex-1 min-h-screen">
+        <main className="flex-1 min-w-0 min-h-screen">
           <div className="max-w-6xl mx-auto px-4 py-6 pb-32">
             {/* Combined prompt banner — location + sign-in in one block */}
             {showBanner && (
