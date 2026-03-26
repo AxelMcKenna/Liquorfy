@@ -49,9 +49,29 @@ export interface Product {
   last_updated: string;
 }
 
+export interface CrossChainPrice {
+  product_id: string;
+  product_name: string;
+  product_url?: string | null;
+  image_url?: string | null;
+  chain: string;
+  store_id: string;
+  store_name: string;
+  price_nzd: number;
+  promo_price_nzd?: number | null;
+  promo_text?: string | null;
+  promo_ends_at?: string | null;
+  price_per_100ml?: number | null;
+  price_per_standard_drink?: number | null;
+  is_member_only?: boolean;
+  is_stale?: boolean;
+  distance_km?: number | null;
+}
+
 export interface ProductDetail extends Product {
   description?: string | null;
   other_prices: Price[];
+  cross_chain_prices: CrossChainPrice[];
 }
 
 export interface ProductListResponse {

@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useProductDetail } from '@/hooks/useProductDetail';
 import { useFavourites } from '@/hooks/useFavourites';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
+import { useLocationContext } from '@/contexts/LocationContext';
 import { FavouriteButton } from '@/components/products/FavouriteButton';
 import { ShareButton } from '@/components/products/ShareButton';
 import { PriceAlertButton } from '@/components/alerts/PriceAlertButton';
@@ -23,8 +24,9 @@ import {
   Wine,
   Sparkles,
   Search,
+  ArrowRight,
 } from 'lucide-react';
-import { Price } from '@/types';
+import { Price, CrossChainPrice } from '@/types';
 
 const PriceRow = ({ price, isBest }: { price: Price; isBest?: boolean }) => {
   const effective = price.promo_price_nzd ?? price.price_nzd;
@@ -68,16 +70,60 @@ const PriceRow = ({ price, isBest }: { price: Price; isBest?: boolean }) => {
   );
 };
 
+const CrossChainRow = ({ item }: { item: CrossChainPrice }) => {
+  const navigate = useNavigate();
+  const effective = item.promo_price_nzd ?? item.price_nzd;
+  const hasPromo = item.promo_price_nzd != null && item.promo_price_nzd < item.price_nzd;
+
+  return (
+    <button
+      onClick={() => navigate(`/product/${item.product_id}`)}
+      className="flex items-center justify-between gap-4 p-3 rounded-lg border border-[hsl(var(--border))] bg-white hover:border-primary/30 hover:bg-primary/5 transition-colors text-left w-full"
+    >
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 bg-secondary">
+          <StoreIcon className="h-4 w-4 text-muted-foreground" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-[hsl(var(--foreground))] truncate">
+            {item.store_name}
+          </p>
+          <p className="text-xs text-[hsl(var(--foreground-secondary))] capitalize">
+            {item.chain.replace('_', ' ')}
+            {item.distance_km != null && ` · ${item.distance_km} km`}
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="text-right">
+          <span className="font-bold text-sm text-[hsl(var(--foreground))]">
+            ${effective.toFixed(2)}
+          </span>
+          {hasPromo && (
+            <span className="text-xs line-through text-[hsl(var(--foreground-tertiary))] ml-1">
+              ${item.price_nzd.toFixed(2)}
+            </span>
+          )}
+        </div>
+        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+      </div>
+    </button>
+  );
+};
+
 export const ProductDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { product, loading, error, fetchProduct } = useProductDetail();
   const { isFavourite, toggleFavourite } = useFavourites();
   const { addProduct } = useRecentlyViewed();
+  const { location, radiusKm } = useLocationContext();
 
   useEffect(() => {
-    if (id) fetchProduct(id);
-  }, [id, fetchProduct]);
+    if (id) {
+      fetchProduct(id, location ? { lat: location.lat, lon: location.lon, radius_km: radiusKm } : undefined);
+    }
+  }, [id, fetchProduct, location, radiusKm]);
 
   useEffect(() => {
     if (product) addProduct(product);
@@ -286,6 +332,23 @@ export const ProductDetailPage = () => {
             <div className="flex flex-col gap-2">
               {allPrices.map((price, idx) => (
                 <PriceRow key={price.store_id} price={price} isBest={idx === 0} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Cross-chain comparison */}
+        {product.cross_chain_prices.length > 0 && (
+          <section className="mt-10 md:mt-14">
+            <h2 className="text-lg font-semibold text-[hsl(var(--foreground))] mb-1">
+              Compare across chains
+            </h2>
+            <p className="text-sm text-[hsl(var(--foreground-secondary))] mb-4">
+              Same product at other retailers
+            </p>
+            <div className="flex flex-col gap-2">
+              {product.cross_chain_prices.map((item) => (
+                <CrossChainRow key={item.product_id} item={item} />
               ))}
             </div>
           </section>

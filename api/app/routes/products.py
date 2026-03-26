@@ -125,13 +125,23 @@ async def list_products(params: ProductQueryParams = Depends(_params)) -> Produc
 
 
 @router.get("/{product_id}", response_model=ProductDetailSchema)
-async def product_detail(product_id: UUID) -> ProductDetailSchema:
-    cache_key = f"product_detail:{product_id}"
+async def product_detail(
+    product_id: UUID,
+    lat: Optional[float] = Query(None),
+    lon: Optional[float] = Query(None),
+    radius_km: Optional[float] = Query(None),
+) -> ProductDetailSchema:
+    loc_suffix = ""
+    if lat is not None and lon is not None and radius_km is not None:
+        loc_suffix = f":{round(lat, 2)}:{round(lon, 2)}:{round(radius_km, 1)}"
+    cache_key = f"product_detail:{product_id}{loc_suffix}"
 
     async def producer() -> dict:
         async with get_async_session() as session:
             try:
-                product = await fetch_product_detail(session, product_id)
+                product = await fetch_product_detail(
+                    session, product_id, lat=lat, lon=lon, radius_km=radius_km,
+                )
             except ValueError as exc:
                 raise HTTPException(status_code=404, detail=str(exc)) from exc
             return json.loads(product.json())

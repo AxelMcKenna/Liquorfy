@@ -11,7 +11,7 @@ from geoalchemy2 import Geography
 
 from app.core.config import get_settings
 from app.db.models import Price, Product, Store
-from app.schemas.products import PriceSchema, ProductDetailSchema, ProductListResponse, ProductSchema, StoreListResponse, StoreSchema
+from app.schemas.products import CrossChainPrice, PriceSchema, ProductDetailSchema, ProductListResponse, ProductSchema, StoreListResponse, StoreSchema
 from app.schemas.queries import ProductQueryParams
 from app.services.cache import cached_json
 from app.services.parser_utils import CATEGORY_HIERARCHY, format_product_name
@@ -337,7 +337,14 @@ async def fetch_products(
     return ProductListResponse(items=items, total=total, page=page, page_size=page_size)
 
 
-async def fetch_product_detail(session: AsyncSession, product_id: UUID) -> ProductDetailSchema:
+async def fetch_product_detail(
+    session: AsyncSession,
+    product_id: UUID,
+    *,
+    lat: float | None = None,
+    lon: float | None = None,
+    radius_km: float | None = None,
+) -> ProductDetailSchema:
     query = (
         select(Product, Price, Store)
         .join(Price, Price.product_id == Product.id)
@@ -381,6 +388,82 @@ async def fetch_product_detail(session: AsyncSession, product_id: UUID) -> Produ
     primary_price = _build_price_schema(first_price, first_store)
     other_prices = [_build_price_schema(p, s) for _, p, s in rows[1:]]
 
+    # Cross-chain comparison: find same product at other chains
+    cross_chain_prices: list[CrossChainPrice] = []
+    if product.canonical_product_id is not None:
+        has_location = lat is not None and lon is not None and radius_km is not None
+
+        if has_location:
+            user_point = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326)
+            distance_m = func.ST_Distance(
+                Store.geog, cast(user_point, Geography)
+            )
+            cc_query = (
+                select(Product, Price, Store, distance_m.label("distance_m"))
+                .join(Price, Price.product_id == Product.id)
+                .join(Store, Store.id == Price.store_id)
+                .where(
+                    Product.canonical_product_id == product.canonical_product_id,
+                    Product.id != product.id,
+                    distance_m <= radius_km * 1000,
+                )
+                .order_by(Price.price_nzd.asc())
+            )
+        else:
+            cc_query = (
+                select(Product, Price, Store, literal(None).label("distance_m"))
+                .join(Price, Price.product_id == Product.id)
+                .join(Store, Store.id == Price.store_id)
+                .where(
+                    Product.canonical_product_id == product.canonical_product_id,
+                    Product.id != product.id,
+                )
+                .order_by(Price.price_nzd.asc())
+            )
+
+        cc_result = await session.execute(cc_query)
+        cc_rows = cc_result.all()
+
+        # Keep only the best price per chain (cheapest store per chain)
+        seen_chains: set[str] = set()
+        for cc_product, cc_price, cc_store, dist_m in cc_rows:
+            if cc_store.chain in seen_chains:
+                continue
+            seen_chains.add(cc_store.chain)
+
+            effective = _effective_price(cc_price)
+            metrics = compute_pricing_metrics(
+                total_volume_ml=cc_product.total_volume_ml,
+                abv_percent=cc_product.abv_percent,
+                effective_price_nzd=effective,
+            )
+
+            dist_km = round(dist_m / 1000, 1) if dist_m is not None else None
+
+            suppress_promo = False
+            if cc_price.promo_price_nzd is not None and cc_price.price_nzd > 0:
+                discount = (cc_price.price_nzd - effective) / cc_price.price_nzd
+                suppress_promo = discount >= _MAX_PROMO_DISPLAY_DISCOUNT
+
+            cross_chain_prices.append(CrossChainPrice(
+                product_id=cc_product.id,
+                product_name=format_product_name(cc_product.name, cc_product.brand),
+                product_url=cc_product.product_url,
+                image_url=cc_product.image_url,
+                chain=cc_store.chain,
+                store_id=cc_store.id,
+                store_name=cc_store.name,
+                price_nzd=effective if suppress_promo else cc_price.price_nzd,
+                promo_price_nzd=None if suppress_promo else cc_price.promo_price_nzd,
+                promo_text=None if suppress_promo else cc_price.promo_text,
+                promo_ends_at=None if suppress_promo else cc_price.promo_ends_at,
+                price_per_100ml=metrics.price_per_100ml,
+                price_per_standard_drink=metrics.price_per_standard_drink,
+                is_member_only=False if suppress_promo else cc_price.is_member_only,
+                is_stale=_is_stale(cc_price),
+                distance_km=dist_km,
+            ))
+
     return ProductDetailSchema(
         id=product.id,
         name=format_product_name(product.name, product.brand),
@@ -396,6 +479,7 @@ async def fetch_product_detail(session: AsyncSession, product_id: UUID) -> Produ
         is_sugar_free=product.is_sugar_free,
         price=primary_price,
         other_prices=other_prices,
+        cross_chain_prices=cross_chain_prices,
         last_updated=first_price.last_seen_at,
     )
 
