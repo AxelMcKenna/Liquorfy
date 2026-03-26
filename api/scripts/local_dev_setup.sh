@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-# Spin up a local PostGIS DB, run migrations, and seed with test data.
+# Spin up a local PostGIS DB, run migrations, seed, and start dev API + web.
 # Usage: ./api/scripts/local_dev_setup.sh
+#
+# Runs the dev API on port 8001 and web on an available port,
+# so it won't conflict with a production API on port 8000.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -14,17 +17,28 @@ until docker compose -f docker-compose.dev.yml exec db pg_isready -U postgres >/
 done
 echo "    Postgres is ready."
 
-echo "==> Copying local env..."
-cp api/.env.local api/.env
-
 cd api
 
 echo "==> Running Alembic migrations..."
-python -m alembic upgrade head
+DATABASE_URL=postgresql://postgres:postgres@localhost:5433/liquorfy \
+SECRET_KEY=local-dev-key-not-for-production-use-12345 \
+ADMIN_PASSWORD=localdev1234 \
+  python -m alembic upgrade head
 
 echo "==> Seeding database..."
-python -m app.db.seed
+DATABASE_URL=postgresql://postgres:postgres@localhost:5433/liquorfy \
+SECRET_KEY=local-dev-key-not-for-production-use-12345 \
+ADMIN_PASSWORD=localdev1234 \
+  python -m app.db.seed
 
 echo ""
-echo "Done! Local dev DB is running at localhost:5432/liquorfy"
-echo "Start the API with:  cd api && uvicorn app.main:app --reload"
+echo "Done! To start the dev stack (won't conflict with production on :8000):"
+echo ""
+echo "  # Terminal 1 — API on port 8001"
+echo "  cd api && DATABASE_URL=postgresql://postgres:postgres@localhost:5433/liquorfy \\"
+echo "    SECRET_KEY=local-dev-key-not-for-production-use-12345 \\"
+echo "    ADMIN_PASSWORD=localdev1234 \\"
+echo "    uvicorn app.main:app --reload --port 8001"
+echo ""
+echo "  # Terminal 2 — Web pointed at dev API"
+echo "  cd web && VITE_API_URL=http://localhost:8001 npx vite"

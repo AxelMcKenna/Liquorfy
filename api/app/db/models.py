@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Boolean, Computed, DateTime, Float, ForeignKey, Index, String, UniqueConstraint, text
+from sqlalchemy import BigInteger, Boolean, Computed, DateTime, Float, ForeignKey, Index, Integer, String, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from geoalchemy2 import Geography
@@ -112,6 +112,10 @@ class Price(Base):
 class PriceHistory(Base):
     __tablename__ = "price_history"
 
+    # Append-only table — no need for created_at/updated_at from Base
+    created_at = None  # type: ignore[assignment]
+    updated_at = None  # type: ignore[assignment]
+
     id: Mapped[uuid.UUID] = mapped_column(UUID_TYPE, primary_key=True, default=_uuid)
     product_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("products.id", ondelete="CASCADE"), nullable=False)
     store_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("stores.id", ondelete="CASCADE"), nullable=False)
@@ -146,4 +150,22 @@ class IngestionRun(Base):
     )
 
 
-__all__ = ["Store", "Product", "Price", "PriceHistory", "IngestionRun"]
+class ProductView(Base):
+    __tablename__ = "product_views"
+
+    # Override Base timestamps — we only need last_viewed_at
+    created_at = None  # type: ignore[assignment]
+    updated_at = None  # type: ignore[assignment]
+
+    product_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("products.id", ondelete="CASCADE"), primary_key=True
+    )
+    view_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False, server_default="0")
+    last_viewed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (
+        Index("ix_product_views_count", "view_count"),
+    )
+
+
+__all__ = ["Store", "Product", "Price", "PriceHistory", "IngestionRun", "ProductView"]

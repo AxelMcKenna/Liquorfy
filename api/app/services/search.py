@@ -5,7 +5,7 @@ from uuid import UUID
 
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import and_, case, cast, func, literal, or_, select, text
+from sqlalchemy import Float, and_, case, cast, func, literal, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from geoalchemy2 import Geography
 
@@ -83,8 +83,11 @@ def _build_sort_order(
     price_per_standard_drink: Any,
     effective_price: Any,
     distance_m: Any | None,
+    text_similarity: Any | None = None,
 ) -> list[Any]:
     tie_breakers = [Price.price_last_changed_at.desc(), Product.name.asc(), Price.id.asc()]
+    if sort == "relevance" and text_similarity is not None:
+        return [text_similarity.desc().nulls_last(), *tie_breakers]
     if sort == "discount":
         return [discount_ratio.desc().nulls_last(), *tie_breakers]
     if sort == "price_per_standard_drink":
@@ -121,14 +124,31 @@ async def fetch_products(
         user_point_geog = cast(user_point, Geography)
         filters.append(Store.id.in_(nearby_store_ids))
 
+    # Trigram similarity threshold for fuzzy text search (0 = no match, 1 = exact)
+    _TRGM_THRESHOLD = 0.15
+
+    text_similarity = None
     if params.q:
-        pattern = f"%{params.q.lower()}%"
+        q_lower = params.q.lower().strip()
+        # Use trigram similarity for fuzzy matching (leverages GIN trgm indexes)
+        name_sim = func.similarity(func.lower(Product.name), q_lower)
+        brand_sim = func.coalesce(func.similarity(func.lower(Product.brand), q_lower), literal(0))
+        # Also keep LIKE for substring matches that similarity might miss
+        # (e.g. "12pk" inside "Steinlager Classic 12pk 330ml Bottles")
+        pattern = f"%{q_lower}%"
+        like_match = or_(
+            func.lower(Product.name).like(pattern),
+            func.lower(Product.brand).like(pattern),
+        )
         filters.append(
             or_(
-                func.lower(Product.name).like(pattern),
-                func.lower(Product.brand).like(pattern),
+                name_sim >= _TRGM_THRESHOLD,
+                brand_sim >= _TRGM_THRESHOLD,
+                like_match,
             )
         )
+        # Best similarity score across name and brand — used for relevance sorting
+        text_similarity = func.greatest(name_sim, brand_sim).label("text_similarity")
     if params.chain:
         filters.append(Product.chain.in_(params.chain))
     if params.store:
@@ -215,6 +235,7 @@ async def fetch_products(
         price_per_standard_drink=price_per_standard_drink,
         effective_price=effective_price,
         distance_m=distance_m,
+        text_similarity=text_similarity,
     )
 
     if params.unique_products:
@@ -648,4 +669,134 @@ async def fetch_stores_nearby(
     return StoreListResponse(items=items)
 
 
-__all__ = ["fetch_products", "fetch_product_detail", "fetch_stores_nearby"]
+async def fetch_autocomplete(
+    session: AsyncSession,
+    q: str,
+    limit: int = 8,
+) -> list[dict]:
+    """Fast autocomplete: trigram similarity + popularity boost, no price/store joins."""
+    from app.db.models import ProductView
+
+    q_lower = q.lower().strip()
+    if len(q_lower) < 2:
+        return []
+
+    _TRGM_THRESHOLD = 0.15
+    # Popularity boost: log(view_count+1) scaled to add up to ~0.3 to the similarity score
+    _POPULARITY_WEIGHT = 0.05
+
+    name_sim = func.similarity(func.lower(Product.name), q_lower)
+    brand_sim = func.coalesce(func.similarity(func.lower(Product.brand), q_lower), literal(0))
+    text_sim = func.greatest(name_sim, brand_sim)
+
+    # Blend in popularity: similarity + small log(views) boost
+    popularity_boost = (
+        func.coalesce(func.log(cast(ProductView.view_count + 1, Float)), literal(0))
+        * _POPULARITY_WEIGHT
+    )
+    blended_score = (text_sim + popularity_boost).label("score")
+
+    pattern = f"%{q_lower}%"
+    like_match = or_(
+        func.lower(Product.name).like(pattern),
+        func.lower(Product.brand).like(pattern),
+    )
+
+    # Deduplicate by lower(name) to avoid showing the same product from multiple chains
+    name_key = func.lower(func.trim(Product.name)).label("name_key")
+    inner = (
+        select(
+            Product.id,
+            Product.name,
+            Product.brand,
+            Product.category,
+            Product.image_url,
+            Product.chain,
+            blended_score,
+            func.row_number()
+            .over(partition_by=name_key, order_by=blended_score.desc())
+            .label("rn"),
+        )
+        .select_from(Product)
+        .outerjoin(ProductView, ProductView.product_id == Product.id)
+        .where(
+            or_(
+                name_sim >= _TRGM_THRESHOLD,
+                brand_sim >= _TRGM_THRESHOLD,
+                like_match,
+            )
+        )
+    )
+    subq = inner.subquery()
+
+    query = (
+        select(
+            subq.c.id,
+            subq.c.name,
+            subq.c.brand,
+            subq.c.category,
+            subq.c.image_url,
+            subq.c.chain,
+            subq.c.score,
+        )
+        .where(subq.c.rn == 1)
+        .order_by(subq.c.score.desc())
+        .limit(limit)
+    )
+
+    result = await session.execute(query)
+    return [
+        {
+            "id": str(row.id),
+            "name": format_product_name(row.name, row.brand),
+            "brand": row.brand,
+            "category": row.category,
+            "image_url": row.image_url,
+            "chain": row.chain,
+            "score": round(float(row.score), 3),
+        }
+        for row in result.all()
+    ]
+
+
+async def fetch_popular(
+    session: AsyncSession,
+    limit: int = 10,
+) -> list[dict]:
+    """Return the most-viewed products (last 7 days)."""
+    from app.db.models import ProductView
+
+    query = (
+        select(
+            Product.id,
+            Product.name,
+            Product.brand,
+            Product.category,
+            Product.image_url,
+            Product.chain,
+            ProductView.view_count,
+        )
+        .join(ProductView, ProductView.product_id == Product.id)
+        .where(
+            ProductView.last_viewed_at >= func.now() - text("interval '7 days'"),
+        )
+        .order_by(ProductView.view_count.desc())
+        .limit(limit)
+    )
+
+    result = await session.execute(query)
+    return [
+        {
+            "id": str(row.id),
+            "name": format_product_name(row.name, row.brand),
+            "brand": row.brand,
+            "category": row.category,
+            "image_url": row.image_url,
+            "chain": row.chain,
+            "view_count": row.view_count,
+        }
+        for row in result.all()
+    ]
+
+
+__all__ = ["fetch_products", "fetch_product_detail", "fetch_stores_nearby", "fetch_autocomplete", "fetch_popular"]

@@ -1,10 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Clock, X } from 'lucide-react';
+import { Search, Clock, X, TrendingUp } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import api from '@/lib/api';
-import { ProductListResponse } from '@/types';
-import { useLocationContext } from '@/contexts/LocationContext';
 import { cn } from '@/lib/utils';
 
 const RECENT_SEARCHES_KEY = 'liquorfy_recent_searches';
@@ -36,8 +34,20 @@ interface Suggestion {
   id: string;
   name: string;
   brand?: string | null;
-  price: number;
+  category?: string | null;
   image_url?: string | null;
+  chain: string;
+  score: number;
+}
+
+interface PopularProduct {
+  id: string;
+  name: string;
+  brand?: string | null;
+  category?: string | null;
+  image_url?: string | null;
+  chain: string;
+  view_count: number;
 }
 
 interface SearchAutocompleteProps {
@@ -58,19 +68,31 @@ export const SearchAutocomplete = ({
   inputClassName,
 }: SearchAutocompleteProps) => {
   const navigate = useNavigate();
-  const { location, radiusKm, isLocationSet } = useLocationContext();
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [recentSearches, setRecentSearches] = useState<string[]>(getRecentSearches);
+  const [popularProducts, setPopularProducts] = useState<PopularProduct[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const debounceRef = useRef<number | null>(null);
+  const popularFetched = useRef(false);
 
-  const showRecent = isOpen && !query.trim() && recentSearches.length > 0;
+  const isEmpty = !query.trim();
+  const showRecent = isOpen && isEmpty && recentSearches.length > 0;
+  const showPopular = isOpen && isEmpty && popularProducts.length > 0;
   const showSuggestions = isOpen && query.trim().length >= 2 && suggestions.length > 0;
-  const showDropdown = showRecent || showSuggestions;
+  const showDropdown = showRecent || showPopular || showSuggestions;
+
+  // Fetch popular products once on first focus
+  useEffect(() => {
+    if (!isOpen || popularFetched.current) return;
+    popularFetched.current = true;
+    api.get<PopularProduct[]>('/products/popular', { params: { limit: 5 } })
+      .then(({ data }) => setPopularProducts(data))
+      .catch(() => {});
+  }, [isOpen]);
 
   // Fetch suggestions
   const fetchSuggestions = useCallback(async (q: string) => {
@@ -86,29 +108,17 @@ export const SearchAutocomplete = ({
     setLoadingSuggestions(true);
 
     try {
-      const params = new URLSearchParams({ q: trimmed, page_size: '6', page: '1', unique_products: 'true' });
-      if (isLocationSet && location) {
-        params.append('lat', location.lat.toString());
-        params.append('lon', location.lon.toString());
-        params.append('radius_km', radiusKm.toString());
-      }
-      const { data } = await api.get<ProductListResponse>('/products', {
-        params,
+      const { data } = await api.get<Suggestion[]>('/products/autocomplete', {
+        params: { q: trimmed, limit: 8 },
         signal: controller.signal,
       });
-      setSuggestions(data.items.map(p => ({
-        id: p.id,
-        name: p.name,
-        brand: p.brand,
-        price: p.price.promo_price_nzd ?? p.price.price_nzd,
-        image_url: p.image_url,
-      })));
+      setSuggestions(data);
     } catch {
       // cancelled or failed — ignore
     } finally {
       setLoadingSuggestions(false);
     }
-  }, [isLocationSet, location, radiusKm]);
+  }, []);
 
   // Debounced fetch
   useEffect(() => {
@@ -135,7 +145,7 @@ export const SearchAutocomplete = ({
   // Reset active index when dropdown content changes
   useEffect(() => {
     setActiveIndex(-1);
-  }, [suggestions, recentSearches, query]);
+  }, [suggestions, recentSearches, popularProducts, query]);
 
   const executeSearch = (searchQuery: string) => {
     const trimmed = searchQuery.trim();
@@ -165,8 +175,9 @@ export const SearchAutocomplete = ({
       return;
     }
 
-    const items = showRecent ? recentSearches : suggestions;
-    const count = items.length;
+    // Build a flat list of navigable items for keyboard support
+    const emptyStateCount = (showRecent ? recentSearches.length : 0) + (showPopular ? popularProducts.length : 0);
+    const count = showSuggestions ? suggestions.length : emptyStateCount;
 
     switch (e.key) {
       case 'ArrowDown':
@@ -180,10 +191,15 @@ export const SearchAutocomplete = ({
       case 'Enter':
         e.preventDefault();
         if (activeIndex >= 0 && activeIndex < count) {
-          if (showRecent) {
+          if (showSuggestions) {
+            navigateToProduct(suggestions[activeIndex].id);
+          } else if (showRecent && activeIndex < recentSearches.length) {
             executeSearch(recentSearches[activeIndex]);
           } else {
-            navigateToProduct(suggestions[activeIndex].id);
+            const popIdx = activeIndex - (showRecent ? recentSearches.length : 0);
+            if (showPopular && popIdx >= 0 && popIdx < popularProducts.length) {
+              navigateToProduct(popularProducts[popIdx].id);
+            }
           }
         } else {
           executeSearch(query);
@@ -241,6 +257,44 @@ export const SearchAutocomplete = ({
             </div>
           )}
 
+          {/* Popular products (empty state) */}
+          {showPopular && (
+            <div className="py-1.5">
+              <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-[hsl(var(--foreground-tertiary))]">
+                Popular
+              </p>
+              {popularProducts.map((item, idx) => {
+                const flatIdx = (showRecent ? recentSearches.length : 0) + idx;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => navigateToProduct(item.id)}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-secondary transition-colors",
+                      activeIndex === flatIdx && "bg-secondary"
+                    )}
+                  >
+                    {item.image_url ? (
+                      <img src={item.image_url} alt="" className="h-8 w-8 object-contain flex-shrink-0 rounded" />
+                    ) : (
+                      <div className="h-8 w-8 rounded bg-secondary flex items-center justify-center flex-shrink-0">
+                        <TrendingUp className="h-3 w-3 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm text-[hsl(var(--foreground))] truncate">{item.name}</p>
+                      {(item.brand || item.category) && (
+                        <p className="text-xs text-[hsl(var(--foreground-tertiary))] truncate">
+                          {[item.brand, item.category].filter(Boolean).join(' · ')}
+                        </p>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           {/* Product suggestions */}
           {showSuggestions && (
             <div className="py-1.5">
@@ -262,13 +316,12 @@ export const SearchAutocomplete = ({
                   )}
                   <div className="min-w-0 flex-1">
                     <p className="text-sm text-[hsl(var(--foreground))] truncate">{item.name}</p>
-                    {item.brand && (
-                      <p className="text-xs text-[hsl(var(--foreground-tertiary))] truncate">{item.brand}</p>
+                    {(item.brand || item.category) && (
+                      <p className="text-xs text-[hsl(var(--foreground-tertiary))] truncate">
+                        {[item.brand, item.category].filter(Boolean).join(' · ')}
+                      </p>
                     )}
                   </div>
-                  <span className="text-sm font-semibold text-primary flex-shrink-0">
-                    ${item.price.toFixed(2)}
-                  </span>
                 </button>
               ))}
               {/* Search all link */}

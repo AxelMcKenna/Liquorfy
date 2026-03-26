@@ -115,6 +115,7 @@ export type Category =
   | "non_alcoholic";
 
 export enum SortOption {
+  RELEVANCE = "relevance",
   DISCOUNT = "discount",
   BEST_VALUE = "price_per_100ml",
   CHEAPEST = "total_price",
