@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, useInView } from 'framer-motion';
 import { ProductGrid } from '@/components/products/ProductGrid';
 import { Button } from '@/components/ui/button';
 import { SearchAutocomplete } from '@/components/search/SearchAutocomplete';
@@ -18,6 +19,38 @@ import { RecentlyViewed } from '@/components/products/RecentlyViewed';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 import { SortOption } from '@/types';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
+
+/* Scroll-triggered reveal animation */
+const Reveal = ({
+  children,
+  className = '',
+  delay = 0,
+  direction = 'up',
+}: {
+  children: React.ReactNode;
+  className?: string;
+  delay?: number;
+  direction?: 'up' | 'left' | 'right';
+}) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const isInView = useInView(ref, { once: true, margin: '-40px' });
+  const originMap = {
+    up: { y: 28, x: 0 },
+    left: { x: -36, y: 0 },
+    right: { x: 36, y: 0 },
+  };
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, ...originMap[direction] }}
+      animate={isInView ? { opacity: 1, x: 0, y: 0 } : {}}
+      transition={{ duration: 0.65, delay, ease: [0.22, 1, 0.36, 1] }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+};
 
 export const Landing = () => {
   const [query, setQuery] = useState('');
@@ -108,13 +141,14 @@ export const Landing = () => {
     <div className="min-h-screen bg-background overflow-x-hidden flex flex-col">
 
       {/* ===== HERO — Split tension: left text, right search ===== */}
-      <section className="bg-primary hero-clip relative">
-        {/* Subtle radial highlight top-left for depth */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_30%,rgba(255,255,255,0.06),transparent_60%)]" />
+      <section className="bg-primary hero-clip hero-grain relative">
+        {/* Layered gradients for depth */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_15%_25%,rgba(255,255,255,0.08),transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_85%_75%,rgba(0,0,0,0.15),transparent_50%)]" />
 
-        <div className="relative max-w-7xl mx-auto px-4 pt-6 pb-40 md:pb-44">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 pt-6 pb-40 md:pb-44">
           {/* Top nav — logo left, account right */}
-          <div className="flex items-center justify-between mb-12 md:mb-16">
+          <div className="flex items-center justify-between mb-14 md:mb-20 animate-fade-up">
             <Link to="/" className="text-xl font-semibold text-white tracking-tight font-display">
               LIQUORFY
             </Link>
@@ -187,8 +221,9 @@ export const Landing = () => {
       <section className="py-14 md:py-20">
         <div className="max-w-7xl mx-auto px-4">
           {/* Offset heading: left-aligned with right action — creates horizontal tension */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-8">
-            <div className="md:col-span-8">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-10">
+            <Reveal className="md:col-span-8">
+              <hr className="accent-rule mb-4" />
               <h2 className="text-2xl md:text-3xl font-semibold text-foreground tracking-tight">
                 {location ? 'Deals Near You' : 'Top Deals'}
               </h2>
@@ -197,8 +232,8 @@ export const Landing = () => {
                   Enable location for personalized results
                 </p>
               )}
-            </div>
-            <div className="md:col-span-4 flex md:justify-end items-end">
+            </Reveal>
+            <Reveal className="md:col-span-4 flex md:justify-end items-end" delay={0.08}>
               <Button
                 onClick={handleViewAllDeals}
                 variant="ghost"
@@ -208,7 +243,7 @@ export const Landing = () => {
                 View all deals
                 <ArrowRight className="ml-1 h-4 w-4" />
               </Button>
-            </div>
+            </Reveal>
           </div>
 
           <ProductGrid
@@ -235,95 +270,104 @@ export const Landing = () => {
       <section className="py-14 md:py-20 border-t">
         <div className="max-w-7xl mx-auto px-4">
           {!location && (
-            <div className="max-w-md mx-auto text-center py-8">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-secondary mb-4">
-                <MapPin className="h-6 w-6 text-primary" />
+            <Reveal>
+              <div className="bg-card border rounded-2xl p-10 md:p-14 max-w-lg mx-auto text-center">
+                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
+                  <MapPin className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="text-xl md:text-2xl text-foreground mb-2">Find nearby stores</h3>
+                <p className="text-sm text-muted-foreground mb-8 max-w-xs mx-auto leading-relaxed">
+                  Enable location to see deals from stores in your area and compare prices nearby.
+                </p>
+                <Button onClick={requestLocation} disabled={locationLoading} size="lg">
+                  <MapPin className="h-4 w-4 mr-2" />
+                  {locationLoading ? 'Getting location...' : 'Enable Location'}
+                </Button>
+                {locationError && (
+                  <p className="text-destructive text-sm mt-4">{locationError}</p>
+                )}
               </div>
-              <h3 className="text-lg font-medium mb-2">Enable Location</h3>
-              <p className="text-sm text-muted-foreground mb-6">
-                See deals from stores in your area
-              </p>
-              <Button
-                onClick={requestLocation}
-                disabled={locationLoading}
-              >
-                {locationLoading ? 'Getting location...' : 'Enable Location'}
-              </Button>
-              {locationError && (
-                <p className="text-destructive text-sm mt-4">{locationError}</p>
-              )}
-            </div>
+            </Reveal>
           )}
 
           {location && (
             <div className="space-y-4">
-              <div className="bg-secondary rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-medium">Search radius</span>
-                  <span className="text-sm font-semibold text-primary">
-                    {tempRadius} km
-                  </span>
-                </div>
-                <Slider
-                  value={[tempRadius]}
-                  onValueChange={(value) => setTempRadius(value[0])}
-                  min={1}
-                  max={10}
-                  step={1}
-                  className="w-full"
-                />
-                <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                  <span>1 km</span>
-                  <span>{stores.length} stores</span>
-                  <span>10 km</span>
-                </div>
-              </div>
-
-              <div ref={mapRef} className="rounded-lg overflow-hidden border">
-                {shouldLoadMap ? (
-                  <LazyStoreMap
-                    userLocation={location}
-                    stores={stores}
-                    selectedStore={null}
-                    onStoreClick={() => {}}
-                    radiusKm={radiusKm}
+              <Reveal>
+                <div className="bg-card border rounded-xl p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm font-medium">Search radius</span>
+                    <span className="text-sm font-semibold text-primary">
+                      {tempRadius} km
+                    </span>
+                  </div>
+                  <Slider
+                    value={[tempRadius]}
+                    onValueChange={(value) => setTempRadius(value[0])}
+                    min={1}
+                    max={10}
+                    step={1}
+                    className="w-full"
                   />
-                ) : (
-                  <StoreMapSkeleton className="h-[400px] border-none" />
-                )}
-              </div>
+                  <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                    <span>1 km</span>
+                    <span>{stores.length} stores</span>
+                    <span>10 km</span>
+                  </div>
+                </div>
+              </Reveal>
+
+              <Reveal delay={0.1}>
+                <div ref={mapRef} className="rounded-xl overflow-hidden border shadow-sm">
+                  {shouldLoadMap ? (
+                    <LazyStoreMap
+                      userLocation={location}
+                      stores={stores}
+                      selectedStore={null}
+                      onStoreClick={() => {}}
+                      radiusKm={radiusKm}
+                    />
+                  ) : (
+                    <StoreMapSkeleton className="h-[400px] md:h-[480px] border-none" />
+                  )}
+                </div>
+              </Reveal>
             </div>
           )}
         </div>
       </section>
 
       {/* ===== CTA — Left-heavy with right button, diagonal accent ===== */}
-      <section className="py-14 md:py-20 border-t">
+      <section className="pb-16 md:pb-24">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="bg-primary rounded-2xl overflow-hidden relative">
-            {/* Diagonal accent — subtle geometric interest */}
-            <div className="absolute top-0 right-0 w-1/3 h-full bg-white/[0.04] skew-x-[-12deg] translate-x-12" />
-            <div className="relative px-8 py-10 md:px-12 md:py-12 grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-              <div className="md:col-span-8">
-                <h2 className="text-2xl md:text-3xl font-semibold text-white tracking-tight mb-2">
-                  Ready to compare?
-                </h2>
-                <p className="text-white/70 max-w-lg">
-                  Browse thousands of products from every major NZ retailer. Find the lowest price near you.
-                </p>
-              </div>
-              <div className="md:col-span-4 md:text-right">
-                <Button
-                  onClick={() => navigate('/explore')}
-                  size="lg"
-                  className="bg-white text-primary hover:bg-white/90 font-semibold shadow-md"
-                >
-                  <Search className="h-5 w-5 mr-2" />
-                  Explore All Products
-                </Button>
+          <Reveal>
+            <div className="bg-primary rounded-2xl overflow-hidden relative hero-grain card-lift">
+              {/* Layered gradients */}
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_50%,rgba(255,255,255,0.06),transparent_50%)]" />
+              {/* Diagonal accent slab */}
+              <div className="absolute top-0 right-0 w-1/3 h-full bg-white/[0.03] skew-x-[-12deg] translate-x-16" />
+              <div className="relative z-10 px-8 py-10 md:px-12 md:py-14 grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                <div className="md:col-span-8">
+                  <hr className="accent-rule mb-5" />
+                  <h2 className="text-2xl md:text-3xl font-semibold text-white tracking-tight mb-3">
+                    Ready to compare?
+                  </h2>
+                  <p className="text-white/55 max-w-lg text-[15px] leading-relaxed">
+                    Browse thousands of products from every major NZ retailer. Find the lowest price near you.
+                  </p>
+                </div>
+                <div className="md:col-span-4 md:text-right">
+                  <Button
+                    onClick={() => navigate('/explore')}
+                    size="lg"
+                    className="bg-white text-primary hover:bg-white/90 font-semibold shadow-lg"
+                  >
+                    <Search className="h-5 w-5 mr-2" />
+                    Explore All Products
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
+          </Reveal>
         </div>
       </section>
 
