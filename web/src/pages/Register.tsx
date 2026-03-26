@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -94,6 +94,22 @@ const RegisterPage = () => {
     try { await signInWithApple(); } catch { setLoading(false); }
   };
 
+  const passwordStrength = useMemo(() => {
+    if (!password) return { score: 0, label: '', color: '' };
+    let score = 0;
+    if (password.length >= 6) score++;
+    if (password.length >= 10) score++;
+    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
+    if (/\d/.test(password)) score++;
+    if (/[^a-zA-Z0-9]/.test(password)) score++;
+
+    if (score <= 1) return { score: 1, label: 'Weak', color: 'bg-red-400' };
+    if (score <= 2) return { score: 2, label: 'Fair', color: 'bg-amber-400' };
+    if (score <= 3) return { score: 3, label: 'Good', color: 'bg-yellow-400' };
+    if (score === 4) return { score: 4, label: 'Strong', color: 'bg-green-400' };
+    return { score: 5, label: 'Very strong', color: 'bg-primary' };
+  }, [password]);
+
   const fieldClass = (field: keyof typeof errors) =>
     errors[field] ? 'border-red-400 focus-visible:ring-red-400' : '';
 
@@ -145,12 +161,12 @@ const RegisterPage = () => {
       </header>
 
       <main className="flex-1 flex items-center justify-center px-4">
-        <div className="w-full max-w-sm bg-white rounded-lg border shadow-md p-8 space-y-6">
+        <div className="w-full max-w-sm bg-white rounded-lg border shadow-md p-6 space-y-4">
           <div className="text-center">
             <h2 className="text-2xl font-serif font-semibold tracking-tight">
               Create an account
             </h2>
-            <p className="text-sm text-muted-foreground mt-2">
+            <p className="text-sm text-muted-foreground mt-1">
               Sign up to set price alerts and save preferences
             </p>
           </div>
@@ -161,8 +177,8 @@ const RegisterPage = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div className="space-y-1.5">
               <Label htmlFor="name">Name</Label>
               <Input
                 id="name"
@@ -176,7 +192,7 @@ const RegisterPage = () => {
               />
               {errors.name && <p className="text-xs text-red-600">{errors.name}</p>}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
@@ -190,7 +206,7 @@ const RegisterPage = () => {
               />
               {errors.email && <p className="text-xs text-red-600">{errors.email}</p>}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
@@ -202,9 +218,24 @@ const RegisterPage = () => {
                 required
                 disabled={loading}
               />
+              {password && (
+                <div className="space-y-1">
+                  <div className="flex gap-1 h-1">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div
+                        key={i}
+                        className={`flex-1 rounded-full transition-colors ${
+                          i <= passwordStrength.score ? passwordStrength.color : 'bg-gray-200'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">{passwordStrength.label}</p>
+                </div>
+              )}
               {errors.password && <p className="text-xs text-red-600">{errors.password}</p>}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="confirm-password">Confirm Password</Label>
               <Input
                 id="confirm-password"
@@ -236,7 +267,7 @@ const RegisterPage = () => {
             </div>
           </div>
 
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2">
             <Button variant="outline" className="w-full" onClick={handleGoogle} disabled={loading}>
               <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
