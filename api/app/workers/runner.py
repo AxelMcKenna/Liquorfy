@@ -290,10 +290,11 @@ async def main(chains_to_run: Optional[List[str]] = None) -> None:
 
         # Run cleanup every cycle (lightweight)
         try:
-            from app.workers.cleanup import run_promo_expiry_cleanup
+            from app.workers.cleanup import run_promo_expiry_cleanup, run_price_history_cleanup
             await run_promo_expiry_cleanup()
+            await run_price_history_cleanup()
         except Exception as e:
-            logger.warning(f"Promo expiry cleanup failed: {e}")
+            logger.warning(f"Cleanup failed: {e}")
 
         # Check if it's time for the nightly scrape
         if current_hour == SCRAPE_START_HOUR and last_scrape_date != today:

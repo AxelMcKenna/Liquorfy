@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import asyncio
 import random
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 from sqlalchemy import delete
 
-from app.db.models import Price, Product, Store
+from app.db.models import Price, PriceHistory, Product, Store
 from app.db.session import get_async_session
+from app.services.canonical import compute_canonical_id
 
 CHAINS = ["countdown", "new_world", "paknsave", "liquorland", "super_liquor", "bottle_o", "liquor_centre", "glengarry"]
 CATEGORIES = ["beer", "wine", "spirits", "rtd", "cider"]
@@ -17,6 +18,7 @@ BRANDS = ["Heineken", "Corona", "Gordon's", "Absolut", "Somersby", "Jameson", "M
 
 async def seed() -> None:
     async with get_async_session() as session:
+        await session.execute(delete(PriceHistory))
         await session.execute(delete(Price))
         await session.execute(delete(Product))
         await session.execute(delete(Store))
@@ -36,6 +38,8 @@ async def seed() -> None:
                 stores.append(store)
         await session.flush()
 
+        now = datetime.now(timezone.utc)
+
         for i in range(60):
             chain = random.choice(CHAINS)
             brand = random.choice(BRANDS)
@@ -44,6 +48,15 @@ async def seed() -> None:
             unit_volume_ml = random.choice([330, 500, 700, 1000])
             total_volume = (pack_count or 1) * unit_volume_ml
             abv = random.choice([None, 4.5, 5.0, 13.0, 37.0])
+
+            canonical_id = compute_canonical_id(
+                brand=brand,
+                total_volume_ml=total_volume,
+                pack_count=pack_count or 1,
+                abv_percent=abv,
+                category=category,
+            )
+
             product = Product(
                 id=uuid4(),
                 chain=chain,
@@ -55,6 +68,7 @@ async def seed() -> None:
                 pack_count=pack_count,
                 unit_volume_ml=unit_volume_ml,
                 total_volume_ml=total_volume,
+                canonical_product_id=canonical_id,
             )
             session.add(product)
             store = random.choice([s for s in stores if s.chain == chain])
@@ -67,11 +81,28 @@ async def seed() -> None:
                 price_nzd=round(price_value, 2),
                 promo_price_nzd=round(promo_price, 2) if promo_price else None,
                 promo_text="10% off" if promo_price else None,
-                last_seen_at=datetime.now(timezone.utc),
-                price_last_changed_at=datetime.now(timezone.utc),
+                last_seen_at=now,
+                price_last_changed_at=now,
                 is_member_only=False,
             )
             session.add(price)
+
+            # Generate 30 days of price history with realistic fluctuations
+            base_price = price_value
+            for day_offset in range(30, 0, -1):
+                day = now - timedelta(days=day_offset)
+                # Simulate small daily price drift (+-5%)
+                daily_price = base_price * random.uniform(0.95, 1.05)
+                daily_promo = daily_price * 0.9 if random.random() < 0.2 else None
+                session.add(PriceHistory(
+                    product_id=product.id,
+                    store_id=store.id,
+                    price_nzd=round(daily_price, 2),
+                    promo_price_nzd=round(daily_promo, 2) if daily_promo else None,
+                    is_member_only=False,
+                    recorded_at=day,
+                ))
+
         await session.commit()
 
 

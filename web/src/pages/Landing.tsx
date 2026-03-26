@@ -141,7 +141,7 @@ export const Landing = () => {
     <div className="min-h-screen bg-background overflow-x-hidden flex flex-col">
 
       {/* ===== HERO — Split tension: left text, right search ===== */}
-      <section className="bg-primary hero-clip hero-grain relative">
+      <section className="bg-primary hero-clip relative">
         {/* Layered gradients for depth */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_15%_25%,rgba(255,255,255,0.08),transparent_50%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_85%_75%,rgba(0,0,0,0.15),transparent_50%)]" />
@@ -337,7 +337,7 @@ export const Landing = () => {
       <section className="py-14 md:py-20 border-t">
         <div className="max-w-7xl mx-auto px-4">
           <Reveal>
-            <div className="bg-primary rounded-2xl overflow-hidden relative hero-grain card-lift">
+            <div className="bg-primary rounded-2xl overflow-hidden relative card-lift">
               {/* Layered gradients */}
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_50%,rgba(255,255,255,0.06),transparent_50%)]" />
               {/* Diagonal accent slab */}

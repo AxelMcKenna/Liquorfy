@@ -59,12 +59,19 @@ class CrossChainPrice(BaseModel):
     distance_km: Optional[float] = None
 
 
+class PriceHistoryPoint(BaseModel):
+    date: str
+    price_nzd: float
+    promo_price_nzd: Optional[float] = None
+
+
 class ProductDetailSchema(ProductSchema):
     description: Optional[str] = Field(None, description="Placeholder for future enrichment")
     other_prices: list[PriceSchema] = Field(default_factory=list, description="Same product at other stores")
     cross_chain_prices: list[CrossChainPrice] = Field(
         default_factory=list, description="Same product at other chains"
     )
+    price_history: list[PriceHistoryPoint] = Field(default_factory=list, description="30-day price history")
 
 
 class ProductListResponse(BaseModel):
@@ -93,6 +100,7 @@ __all__ = [
     "PriceSchema",
     "ProductSchema",
     "CrossChainPrice",
+    "PriceHistoryPoint",
     "ProductDetailSchema",
     "ProductListResponse",
     "StoreSchema",

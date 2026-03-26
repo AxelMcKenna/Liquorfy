@@ -21,7 +21,7 @@ from playwright.async_api import (
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 
-from app.db.models import IngestionRun, Price, Product, Store
+from app.db.models import IngestionRun, Price, PriceHistory, Product, Store
 from app.db.session import async_transaction
 from app.scrapers.base import Scraper
 
@@ -513,11 +513,13 @@ class BrowserScraper(Scraper):
             )
             existing_price = existing.scalar_one_or_none()
 
+            price_changed = False
             if existing_price:
                 # Check if price actually changed
                 if existing_price.price_nzd != price_data["price_nzd"]:
                     price_data["price_last_changed_at"] = now
                     changed = True
+                    price_changed = True
                 else:
                     price_data["price_last_changed_at"] = existing_price.price_last_changed_at
 
@@ -542,6 +544,16 @@ class BrowserScraper(Scraper):
                 },
             )
             await session.execute(price_stmt)
+
+            # Record price history on change or new product-store pair
+            if price_changed or not existing_price:
+                session.add(PriceHistory(
+                    product_id=product_id, store_id=store.id,
+                    price_nzd=price_data["price_nzd"],
+                    promo_price_nzd=price_data.get("promo_price_nzd"),
+                    is_member_only=price_data.get("is_member_only", False),
+                    recorded_at=now,
+                ))
 
         return changed
 

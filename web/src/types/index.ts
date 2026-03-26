@@ -68,10 +68,17 @@ export interface CrossChainPrice {
   distance_km?: number | null;
 }
 
+export interface PriceHistoryPoint {
+  date: string;
+  price_nzd: number;
+  promo_price_nzd?: number | null;
+}
+
 export interface ProductDetail extends Product {
   description?: string | null;
   other_prices: Price[];
   cross_chain_prices: CrossChainPrice[];
+  price_history: PriceHistoryPoint[];
 }
 
 export interface ProductListResponse {

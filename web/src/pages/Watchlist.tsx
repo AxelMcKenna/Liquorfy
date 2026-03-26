@@ -56,7 +56,7 @@ const WatchlistPage = () => {
         />
 
         {/* ── Hero summary strip ── */}
-        <div className="bg-primary hero-grain relative">
+        <div className="bg-primary relative">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_50%,rgba(255,255,255,0.06),transparent_50%)]" />
           <div className="relative z-10 max-w-6xl mx-auto px-4 py-10 md:py-14">
             <motion.div
