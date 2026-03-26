@@ -170,7 +170,7 @@ class FoodstuffsAPIScraper(Scraper, APIAuthBase):
         level0: str,
         level1: str,
         page: int = 0,
-        hits_per_page: int = 100
+        hits_per_page: int = 50
     ) -> dict:
         """
         Fetch products for a specific category using the API.
