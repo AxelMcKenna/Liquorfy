@@ -2,17 +2,15 @@ import { useState, useEffect, useRef } from 'react';
 import { Header } from '@/components/layout/Header';
 import { FilterSidebar } from '@/components/filters/FilterSidebar';
 import { ProductGrid } from '@/components/products/ProductGrid';
-import { LocationGate } from '@/components/location/LocationGate';
 import { usePaginatedProducts } from '@/hooks/usePaginatedProducts';
 import { useFilters } from '@/hooks/useFilters';
 import { useLocationContext } from '@/contexts/LocationContext';
 import { useSearchParams } from 'react-router-dom';
-import { MapPin, Navigation, SlidersHorizontal, Search } from 'lucide-react';
-import { SignInNudge } from '@/components/auth/SignInNudge';
-import { SortOption } from '@/types';
+import { MapPin, SlidersHorizontal, Search, X, Bell } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { Link } from 'react-router-dom';
 import { useSavedFilters } from '@/hooks/useSavedFilters';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import {
   Pagination,
   PaginationContent,
@@ -28,7 +26,9 @@ export const Explore = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 1024);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const { location, radiusKm, isLocationSet, openLocationModal, requestAutoLocation, loading: locationLoading, error: locationError } = useLocationContext();
+  const { user } = useAuth();
   const { filters, updateFilters } = useFilters();
   const { products, total, loading, error, currentPage, totalPages, fetchProducts, goToPage, clearProducts } = usePaginatedProducts();
   const { getSavedFilters } = useSavedFilters();
@@ -53,43 +53,54 @@ export const Explore = () => {
     setSearchQuery(filters.query || '');
   }, [filters.query]);
 
+  // Dismiss the banner once both conditions are resolved
+  const needsLocation = !isLocationSet;
+  const needsSignIn = !user;
+  const showBanner = !bannerDismissed && (needsLocation || needsSignIn);
+
   useEffect(() => {
-    if (!location || !isLocationSet) {
-      return;
+    // Auto-dismiss when everything is resolved
+    if (!needsLocation && !needsSignIn) setBannerDismissed(true);
+  }, [needsLocation, needsSignIn]);
+
+  useEffect(() => {
+    const hasLocation = location && isLocationSet;
+
+    // Build fetch filters: include location if available, otherwise fetch locationless
+    const fetchFilters = hasLocation
+      ? { ...filters, lat: location.lat, lon: location.lon, radius_km: radiusKm }
+      : { ...filters };
+
+    // Without location, force promo_only if no search query (API requires either promo_only or q)
+    if (!hasLocation && !filters.query) {
+      fetchFilters.promo_only = true;
     }
 
     const nonPageKey = JSON.stringify({
-      filters,
-      location,
-      radiusKm,
-      isLocationSet,
+      filters: fetchFilters,
+      location: hasLocation ? location : null,
+      radiusKm: hasLocation ? radiusKm : null,
     });
 
     const previous = previousFetchInputsRef.current;
+    const effectivePage = hasLocation ? page : 1; // locationless queries pinned to page 1
     const pageChangedOnly = Boolean(
       previous &&
-      previous.page !== page &&
+      previous.page !== effectivePage &&
       previous.nonPageKey === nonPageKey
     );
 
-    previousFetchInputsRef.current = { page, nonPageKey };
-
-    const fetchFilters = {
-      ...filters,
-      lat: location.lat,
-      lon: location.lon,
-      radius_km: radiusKm,
-    };
+    previousFetchInputsRef.current = { page: effectivePage, nonPageKey };
 
     if (pageChangedOnly) {
-      fetchProducts(fetchFilters, page);
+      fetchProducts(fetchFilters, effectivePage);
       return;
     }
 
     clearProducts();
 
     const timer = window.setTimeout(() => {
-      fetchProducts(fetchFilters, page);
+      fetchProducts(fetchFilters, effectivePage);
     }, FETCH_DEBOUNCE_MS);
 
     return () => window.clearTimeout(timer);
@@ -152,158 +163,165 @@ export const Explore = () => {
   };
 
   return (
-    <LocationGate>
-      <div className="min-h-screen bg-secondary">
-        <div className="sticky top-0 z-50 bg-secondary">
-          <Header
-            query={searchQuery}
-            setQuery={setSearchQuery}
-            onSearch={handleSearch}
-            variant="compact"
-          />
-        </div>
-
-        <div className="flex">
-          <FilterSidebar
-            isOpen={isSidebarOpen}
-            onClose={() => setIsSidebarOpen(false)}
-          />
-
-          <main className="flex-1 min-h-screen">
-            <div className="max-w-6xl mx-auto px-4 py-6 pb-32">
-              {/* Location requirement gate */}
-              {!isLocationSet && (
-                <div className="flex items-center justify-center min-h-[50vh]">
-                  <Card className="p-8 text-center max-w-md border bg-card">
-                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-secondary mb-4">
-                      <Navigation className="h-6 w-6 text-primary" />
-                    </div>
-                    <h2 className="text-xl font-semibold mb-2">
-                      Location Required
-                    </h2>
-                    <p className="text-sm text-muted-foreground mb-6">
-                      Enable location to see products from stores in your area.
-                    </p>
-                    {locationError && (
-                      <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-                        <p className="text-sm text-destructive">{locationError}</p>
-                      </div>
-                    )}
-                    <div className="space-y-2">
-                      <Button
-                        onClick={requestAutoLocation}
-                        disabled={locationLoading}
-                        className="w-full"
-                      >
-                        {locationLoading ? (
-                          'Getting location...'
-                        ) : (
-                          <>
-                            <Navigation className="h-4 w-4 mr-2" />
-                            Use My Location
-                          </>
-                        )}
-                      </Button>
-                      <Button
-                        onClick={openLocationModal}
-                        variant="outline"
-                        className="w-full"
-                      >
-                        <MapPin className="h-4 w-4 mr-2" />
-                        Set Manually
-                      </Button>
-                    </div>
-                  </Card>
-                </div>
-              )}
-
-              {/* Content when location is set */}
-              {isLocationSet && (
-                <>
-                  <SignInNudge />
-
-                  {error && (
-                    <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 mb-4">
-                      <p className="text-sm text-destructive">{error}</p>
-                    </div>
-                  )}
-
-                  {/* Results count */}
-                  {!loading && products.length > 0 && (
-                    <div className="mb-4 text-sm text-muted-foreground">
-                      {total === 0
-                        ? 'No products found'
-                        : `${(currentPage - 1) * 24 + 1}–${Math.min(currentPage * 24, total)} of ${total} products`}
-                    </div>
-                  )}
-
-                  <ProductGrid
-                    products={products}
-                    loading={loading}
-                  />
-
-                  {/* Pagination */}
-                  {!loading && products.length > 0 && totalPages > 1 && (
-                    <div className="mt-6">
-                      <Pagination>
-                        <PaginationContent>
-                          <PaginationItem>
-                            <PaginationPrevious
-                              onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}
-                              className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
-                            />
-                          </PaginationItem>
-
-                          {getPageNumbers().map((pageNum, idx) =>
-                            pageNum === 'ellipsis' ? (
-                              <PaginationItem key={`ellipsis-${idx}`}>
-                                <PaginationEllipsis />
-                              </PaginationItem>
-                            ) : (
-                              <PaginationItem key={pageNum}>
-                                <PaginationLink
-                                  onClick={() => handlePageChange(pageNum)}
-                                  isActive={currentPage === pageNum}
-                                >
-                                  {pageNum}
-                                </PaginationLink>
-                              </PaginationItem>
-                            )
-                          )}
-
-                          <PaginationItem>
-                            <PaginationNext
-                              onClick={() => currentPage < totalPages && handlePageChange(currentPage + 1)}
-                              className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
-                            />
-                          </PaginationItem>
-                        </PaginationContent>
-                      </Pagination>
-                    </div>
-                  )}
-
-                  {!loading && products.length === 0 && (
-                    <div className="text-center py-16">
-                      <Search className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
-                      <p className="text-muted-foreground font-medium">No products found</p>
-                      <p className="text-sm text-muted-foreground/70 mt-1">Try adjusting your filters or search terms</p>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </main>
-        </div>
-
-        {/* Mobile filter FAB */}
-        <button
-          onClick={() => setIsSidebarOpen(true)}
-          className="fixed bottom-6 right-6 z-30 lg:hidden bg-primary text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors"
-        >
-          <SlidersHorizontal className="h-5 w-5" />
-        </button>
+    <div className="min-h-screen bg-secondary">
+      <div className="sticky top-0 z-50 bg-secondary">
+        <Header
+          query={searchQuery}
+          setQuery={setSearchQuery}
+          onSearch={handleSearch}
+          variant="compact"
+        />
       </div>
-    </LocationGate>
+
+      <div className="flex">
+        <FilterSidebar
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+        />
+
+        <main className="flex-1 min-h-screen">
+          <div className="max-w-6xl mx-auto px-4 py-6 pb-32">
+            {/* Combined prompt banner — location + sign-in in one block */}
+            {showBanner && (
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-4 flex items-center justify-between gap-4">
+                <div className="flex flex-col gap-1.5 min-w-0">
+                  {needsLocation && (
+                    <div className="flex items-center gap-2.5">
+                      <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
+                      <p className="text-sm text-foreground">
+                        <button
+                          onClick={requestAutoLocation}
+                          disabled={locationLoading}
+                          className="font-medium text-primary hover:underline"
+                        >
+                          {locationLoading ? 'Getting location...' : 'Enable location'}
+                        </button>
+                        {' '}to see nearby store prices.
+                        {' '}
+                        <button
+                          onClick={openLocationModal}
+                          className="text-primary/70 hover:underline text-xs"
+                        >
+                          Set manually
+                        </button>
+                      </p>
+                    </div>
+                  )}
+                  {needsSignIn && (
+                    <div className="flex items-center gap-2.5">
+                      <Bell className="h-4 w-4 text-primary flex-shrink-0" />
+                      <p className="text-sm text-foreground">
+                        <Link to="/register" className="font-medium text-primary hover:underline">
+                          Create an account
+                        </Link>
+                        {' '}to get notified when prices drop.
+                      </p>
+                    </div>
+                  )}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setBannerDismissed(true)}
+                  className="flex-shrink-0 h-8 w-8 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+
+            {locationError && !isLocationSet && (
+              <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                <p className="text-sm text-destructive">{locationError}</p>
+              </div>
+            )}
+
+            {error && (
+              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 mb-4">
+                <p className="text-sm text-destructive">{error}</p>
+              </div>
+            )}
+
+            {/* Results count */}
+            {!loading && products.length > 0 && (
+              <div className="mb-4 text-sm text-muted-foreground">
+                {!isLocationSet && (
+                  <span className="text-primary/70 mr-2">Showing nationwide results ·</span>
+                )}
+                {total === 0
+                  ? 'No products found'
+                  : `${(currentPage - 1) * 24 + 1}–${Math.min(currentPage * 24, total)} of ${total} products`}
+              </div>
+            )}
+
+            <ProductGrid
+              products={products}
+              loading={loading}
+            />
+
+            {/* Pagination — only when location is set (locationless queries are page-1 only) */}
+            {isLocationSet && !loading && products.length > 0 && totalPages > 1 && (
+              <div className="mt-6">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}
+                        className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
+                      />
+                    </PaginationItem>
+
+                    {getPageNumbers().map((pageNum, idx) =>
+                      pageNum === 'ellipsis' ? (
+                        <PaginationItem key={`ellipsis-${idx}`}>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      ) : (
+                        <PaginationItem key={pageNum}>
+                          <PaginationLink
+                            onClick={() => handlePageChange(pageNum)}
+                            isActive={currentPage === pageNum}
+                          >
+                            {pageNum}
+                          </PaginationLink>
+                        </PaginationItem>
+                      )
+                    )}
+
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() => currentPage < totalPages && handlePageChange(currentPage + 1)}
+                        className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
+
+            {!loading && products.length === 0 && (
+              <div className="text-center py-16">
+                <Search className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+                <p className="text-muted-foreground font-medium">No products found</p>
+                <p className="text-sm text-muted-foreground/70 mt-1">
+                  {!isLocationSet
+                    ? 'Try enabling location for more results, or adjust your search'
+                    : 'Try adjusting your filters or search terms'}
+                </p>
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
+
+      {/* Mobile filter FAB */}
+      <button
+        onClick={() => setIsSidebarOpen(true)}
+        className="fixed bottom-6 right-6 z-30 lg:hidden bg-primary text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors"
+      >
+        <SlidersHorizontal className="h-5 w-5" />
+      </button>
+    </div>
   );
 };
 

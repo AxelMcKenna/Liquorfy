@@ -49,6 +49,11 @@ export interface Product {
   last_updated: string;
 }
 
+export interface ProductDetail extends Product {
+  description?: string | null;
+  other_prices: Price[];
+}
+
 export interface ProductListResponse {
   items: Product[];
   total: number;

@@ -12,7 +12,7 @@ interface ShareButtonProps {
 export const ShareButton = ({ productName, productId, className }: ShareButtonProps) => {
   const handleShare = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    const url = `${window.location.origin}/explore?q=${encodeURIComponent(productName)}`;
+    const url = `${window.location.origin}/product/${productId}`;
 
     if (navigator.share) {
       try {

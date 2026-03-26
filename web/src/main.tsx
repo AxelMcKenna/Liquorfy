@@ -1,6 +1,6 @@
 import React, { lazy, Suspense } from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { LocationProvider } from "@/contexts/LocationContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -13,6 +13,7 @@ import "./styles.css";
 // Lazy load route components for code splitting
 const Landing = lazy(() => import("@/pages/Landing"));
 const Explore = lazy(() => import("@/pages/Explore"));
+const ProductDetail = lazy(() => import("@/pages/ProductDetail"));
 const Privacy = lazy(() => import("@/pages/Privacy"));
 const Support = lazy(() => import("@/pages/Support"));
 const AuthCallback = lazy(() => import("@/pages/AuthCallback"));
@@ -20,6 +21,7 @@ const Login = lazy(() => import("@/pages/Login"));
 const Register = lazy(() => import("@/pages/Register"));
 const Settings = lazy(() => import("@/pages/Settings"));
 const Watchlist = lazy(() => import("@/pages/Watchlist"));
+const Terms = lazy(() => import("@/pages/Terms"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 // Loading fallback component
@@ -43,9 +45,10 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
               <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route path="/explore" element={<Explore />} />
-                <Route path="/product/:id" element={<Navigate to="/explore" replace />} />
+                <Route path="/product/:id" element={<ProductDetail />} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/support" element={<Support />} />
+                <Route path="/terms" element={<Terms />} />
                 <Route path="/auth/callback" element={<AuthCallback />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />

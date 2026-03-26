@@ -42,6 +42,7 @@ class ProductSchema(BaseModel):
 
 class ProductDetailSchema(ProductSchema):
     description: Optional[str] = Field(None, description="Placeholder for future enrichment")
+    other_prices: list[PriceSchema] = Field(default_factory=list, description="Same product at other stores")
 
 
 class ProductListResponse(BaseModel):

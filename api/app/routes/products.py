@@ -81,17 +81,17 @@ async def _params(
 
 @router.get("", response_model=ProductListResponse)
 async def list_products(params: ProductQueryParams = Depends(_params)) -> ProductListResponse:
-    # Allow location-optional queries ONLY for small promotional queries (landing page top deals)
-    # Benefits:
-    # - Lighter query that can be efficiently cached in Redis
-    # - Provides immediate value to users before they enable location
-    # - Nationwide deals query is the same for all users (high cache hit rate)
-    # - Still requires location for larger queries to prevent expensive DB operations
-    is_small_promo_query = params.promo_only and params.page_size <= 100 and params.page == 1
+    # Allow location-optional queries for:
+    # 1. Small promo queries (landing page top deals) — high cache hit rate
+    # 2. Text searches (user searched from hero before enabling location)
+    # Both are capped to prevent expensive full-table scans without geographic filtering.
     has_location = params.lat is not None and params.lon is not None and params.radius_km is not None
+    is_small_promo_query = params.promo_only and params.page_size <= 100 and params.page == 1
+    is_small_search_query = params.q and params.page_size <= 50 and params.page == 1
+    locationless_allowed = is_small_promo_query or is_small_search_query
 
-    # Enforce location requirement for all queries EXCEPT small promo queries
-    if not has_location and not is_small_promo_query:
+    # Enforce location requirement for all queries EXCEPT locationless-allowed ones
+    if not has_location and not locationless_allowed:
         raise HTTPException(
             status_code=400,
             detail="Location parameters (lat, lon, radius_km) are required. Please enable location services."

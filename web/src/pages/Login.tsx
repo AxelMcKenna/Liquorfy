@@ -163,6 +163,13 @@ const LoginPage = () => {
             </Button>
           </div>
 
+          <p className="text-xs text-center text-muted-foreground leading-relaxed">
+            By signing in, you agree to our{' '}
+            <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>
+            {' '}and{' '}
+            <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
+          </p>
+
           <p className="text-sm text-center text-muted-foreground">
             Don't have an account?{' '}
             <Link to="/register" className="text-primary font-medium hover:underline">
