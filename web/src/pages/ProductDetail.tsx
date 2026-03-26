@@ -179,7 +179,7 @@ export const ProductDetailPage = () => {
   const hasMultipleStores = allPrices.length > 1;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <PageHeader
         sticky
         rightContent={
@@ -190,7 +190,7 @@ export const ProductDetailPage = () => {
         }
       />
 
-      <main className="max-w-4xl mx-auto px-4 py-6 md:py-10">
+      <main className="max-w-4xl mx-auto px-4 py-6 md:py-10 flex-1">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
 
           {/* Left: Image */}
