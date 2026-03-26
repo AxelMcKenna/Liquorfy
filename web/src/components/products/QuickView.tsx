@@ -49,11 +49,11 @@ export const QuickView = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-sm p-0 max-h-[90vh] overflow-y-auto rounded-xl border-0 shadow-2xl">
+      <DialogContent className="sm:max-w-[26rem] p-0 max-h-[90vh] overflow-y-auto rounded-xl border-0 shadow-2xl bg-white">
         <div className="flex flex-col">
 
           {/* ── Image Section ── */}
-          <div className="relative bg-white flex items-center justify-center p-6">
+          <div className="relative flex items-center justify-center p-6">
 {product.image_url ? (
               <img
                 src={product.image_url}
@@ -81,8 +81,8 @@ export const QuickView = ({
               </div>
             )}
 
-            {/* Action buttons pinned top-right */}
-            <div className="absolute top-3 right-3 flex items-center gap-1 z-20">
+            {/* Action buttons pinned top-right, below close X */}
+            <div className="absolute top-10 right-3 flex items-center gap-1 z-20">
               {onToggleFavourite && (
                 <FavouriteButton
                   isFavourite={isFavourite}
@@ -96,11 +96,11 @@ export const QuickView = ({
 
           {/* ── Content Section ── */}
           <div className="bg-[hsl(var(--background))]">
-            <div className="p-5 flex flex-col gap-5">
+            <div className="p-4 flex flex-col gap-4">
 
               {/* Header */}
               <div>
-                <h2 className="text-xl font-serif font-semibold text-[hsl(var(--foreground))] leading-snug mb-1">
+                <h2 className="text-lg font-serif font-semibold text-[hsl(var(--foreground))] leading-snug mb-0.5">
                   {product.name}
                 </h2>
                 {product.brand && (
@@ -109,13 +109,13 @@ export const QuickView = ({
               </div>
 
               {/* Price block */}
-              <div className="bg-white rounded-lg p-4 -mx-1 border border-[hsl(var(--border))]">
-                <div className="flex items-baseline gap-3 mb-1.5">
-                  <span className="text-3xl font-bold text-primary tracking-tight">
+              <div className="bg-white rounded-lg p-3 -mx-1 border border-[hsl(var(--border))]">
+                <div className="flex items-baseline gap-2 mb-1">
+                  <span className="text-2xl font-bold text-primary tracking-tight">
                     ${currentPrice.toFixed(2)}
                   </span>
                   {hasPromo && (
-                    <span className="text-base line-through text-[hsl(var(--foreground-tertiary))]">
+                    <span className="text-sm line-through text-[hsl(var(--foreground-tertiary))]">
                       ${product.price.price_nzd.toFixed(2)}
                     </span>
                   )}
