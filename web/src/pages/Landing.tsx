@@ -334,7 +334,7 @@ export const Landing = () => {
       </section>
 
       {/* ===== CTA — Left-heavy with right button, diagonal accent ===== */}
-      <section className="pb-16 md:pb-24">
+      <section className="py-14 md:py-20 border-t">
         <div className="max-w-7xl mx-auto px-4">
           <Reveal>
             <div className="bg-primary rounded-2xl overflow-hidden relative hero-grain card-lift">
