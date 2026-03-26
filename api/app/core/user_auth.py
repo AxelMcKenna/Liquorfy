@@ -14,6 +14,10 @@ settings = get_settings()
 _security = HTTPBearer(auto_error=False)
 _jwt_secret = base64.b64decode(settings.supabase_jwt_secret) if settings.supabase_jwt_secret else b""
 
+# Supabase JWKS endpoint for ES256 token verification
+_jwks_url = f"{settings.supabase_url}/auth/v1/.well-known/jwks.json" if settings.supabase_url else None
+_jwks_client = jwt.PyJWKClient(_jwks_url) if _jwks_url else None
+
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(_security),
@@ -26,12 +30,27 @@ async def get_current_user(
 
     token = credentials.credentials
     try:
-        payload = jwt.decode(
-            token,
-            _jwt_secret,
-            algorithms=["HS256"],
-            audience="authenticated",
-        )
+        # Peek at the algorithm to decide verification method
+        header = jwt.get_unverified_header(token)
+        alg = header.get("alg", "HS256")
+
+        if alg == "HS256":
+            payload = jwt.decode(
+                token,
+                _jwt_secret,
+                algorithms=["HS256"],
+                audience="authenticated",
+            )
+        elif _jwks_client:
+            signing_key = _jwks_client.get_signing_key_from_jwt(token)
+            payload = jwt.decode(
+                token,
+                signing_key.key,
+                algorithms=["ES256"],
+                audience="authenticated",
+            )
+        else:
+            raise jwt.PyJWTError("Unsupported algorithm and no JWKS configured")
     except jwt.PyJWTError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
