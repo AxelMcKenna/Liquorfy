@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,8 +16,7 @@ const LoginPage = () => {
   const [errors, setErrors] = useState<{ email?: string; password?: string; form?: string }>({});
 
   if (user) {
-    navigate('/settings', { replace: true });
-    return null;
+    return <Navigate to="/settings" replace />;
   }
 
   const validate = (): boolean => {

@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,8 +28,7 @@ const RegisterPage = () => {
   }>({});
 
   if (user) {
-    navigate('/settings', { replace: true });
-    return null;
+    return <Navigate to="/settings" replace />;
   }
 
   const validate = (): boolean => {
