@@ -40,7 +40,7 @@ export const Header = ({
             )}
           </div>
           <div className="text-center">
-            <h1 className="text-3xl md:text-4xl font-semibold text-white mb-2 tracking-tight font-sans">
+            <h1 className="text-3xl md:text-4xl font-semibold text-white mb-2 tracking-[0.15em] font-sans">
               LIQUORFY
             </h1>
             <p className="text-sm text-white/80 mb-6">
@@ -66,7 +66,7 @@ export const Header = ({
         {/* Mobile: logo row + search row */}
         <div className="flex items-center justify-between gap-2 sm:hidden">
           <Link to="/" className="flex-shrink-0">
-            <span className="text-lg font-semibold text-white tracking-tight font-sans">LIQUORFY</span>
+            <span className="text-lg font-semibold text-white tracking-[0.15em] font-sans">LIQUORFY</span>
           </Link>
           <div className="flex items-center gap-1">
             <Button
@@ -103,7 +103,7 @@ export const Header = ({
           {/* Logo - left */}
           <div className="flex items-center">
             <Link to="/" className="flex-shrink-0">
-              <span className="text-xl font-semibold text-white tracking-tight font-sans">LIQUORFY</span>
+              <span className="text-xl font-semibold text-white tracking-[0.15em] font-sans">LIQUORFY</span>
             </Link>
           </div>
 
