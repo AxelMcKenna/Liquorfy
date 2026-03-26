@@ -68,8 +68,8 @@ export const Explore = () => {
 
     // Build fetch filters: include location if available, otherwise fetch locationless
     const fetchFilters = hasLocation
-      ? { ...filters, lat: location.lat, lon: location.lon, radius_km: radiusKm }
-      : { ...filters };
+      ? { ...filters, lat: location.lat, lon: location.lon, radius_km: radiusKm, unique_products: true }
+      : { ...filters, unique_products: true };
 
     // Without location, force promo_only if no search query (API requires either promo_only or q)
     if (!hasLocation && !filters.query) {
