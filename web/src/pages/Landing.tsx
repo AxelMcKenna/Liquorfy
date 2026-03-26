@@ -149,7 +149,7 @@ export const Landing = () => {
         <div className="relative z-10 max-w-7xl mx-auto px-4 pt-6 pb-28 md:pb-44">
           {/* Top nav — logo left, account right */}
           <div className="flex items-center justify-between mb-10 md:mb-20 animate-fade-up">
-            <Link to="/" className="text-xl font-semibold text-white tracking-tight font-sans">
+            <Link to="/" className="text-xl font-semibold text-white tracking-[0.15em] font-sans">
               LIQUORFY
             </Link>
             {user ? (
