@@ -40,9 +40,9 @@ class _FakeCredentials:
 
 @pytest.fixture(autouse=True)
 def _set_supabase_secret(monkeypatch):
-    """Patch the module-level settings object so JWT verification uses the test secret."""
+    """Patch the module-level _jwt_secret so JWT verification uses the test secret."""
     import app.core.user_auth as mod
-    monkeypatch.setattr(mod.settings, "supabase_jwt_secret", _JWT_SECRET)
+    monkeypatch.setattr(mod, "_jwt_secret", _JWT_SECRET.encode())
 
 
 @pytest.mark.asyncio

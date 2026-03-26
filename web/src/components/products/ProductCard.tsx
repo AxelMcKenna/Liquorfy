@@ -1,5 +1,5 @@
 import { memo, useState } from "react";
-import { Store, Clock, Crown, Wine, MapPin, Eye } from "lucide-react";
+import { Store, Clock, Crown, Wine, MapPin, Eye, Sparkles } from "lucide-react";
 import { Product } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -49,7 +49,7 @@ const ProductCardComponent = ({
   return (
     <>
       <Card
-        className="h-full flex flex-col overflow-hidden border bg-white hover:shadow-sm transition-shadow cursor-pointer group [backface-visibility:hidden] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 animate-card-enter"
+        className="h-full flex flex-col overflow-hidden border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer group [backface-visibility:hidden] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 animate-card-enter rounded-xl"
         style={{ animationDelay: `${Math.min(index * 50, 500)}ms` }}
         onClick={handleCardClick}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleCardClick(); } }}
@@ -58,12 +58,12 @@ const ProductCardComponent = ({
         aria-label={`View ${product.name}, $${(product.price.promo_price_nzd ?? product.price.price_nzd).toFixed(2)} at ${product.price.store_name}`}
       >
         {/* Product Image */}
-        <div className="w-full aspect-square relative overflow-hidden border-b">
+        <div className="w-full aspect-square relative overflow-hidden bg-white">
           {product.image_url && !imageError ? (
             <img
               src={product.image_url}
               alt={product.name}
-              className="w-full h-full object-contain p-4"
+              className="w-full h-full object-contain p-4 drop-shadow-sm"
               loading="lazy"
               decoding="async"
               onError={() => setImageError(true)}
@@ -74,14 +74,15 @@ const ProductCardComponent = ({
             </div>
           )}
 
-          {/* Sale badge */}
+          {/* Sale badges */}
           {hasPromo && savingsPercent > 0 && (
-            <div className="absolute top-2 left-2 flex gap-1">
-              <Badge className="bg-primary text-white text-xs">
+            <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
+              <Badge className="bg-primary text-white text-xs font-semibold shadow-sm">
                 {savingsPercent}% off
               </Badge>
               {isNewPromo && (
-                <Badge className="bg-amber-500 text-white text-xs">
+                <Badge className="bg-amber-500 text-white text-xs gap-1 shadow-sm">
+                  <Sparkles className="h-3 w-3" />
                   New
                 </Badge>
               )}
@@ -129,25 +130,27 @@ const ProductCardComponent = ({
           </Button>
         </div>
 
-        <CardContent className="p-3 flex-1">
+        <CardContent className="p-3 flex-1 bg-[hsl(var(--background))]">
           {/* Product info */}
           <div className="mb-2">
-            <h3 className="text-sm font-medium line-clamp-2 group-hover:text-primary transition-colors">
+            <h3 className="text-sm font-serif font-semibold line-clamp-2 group-hover:text-primary transition-colors leading-snug">
               {product.name}
             </h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {product.brand ?? "Unknown brand"}
-            </p>
+            {product.brand && (
+              <p className="text-xs text-[hsl(var(--foreground-secondary))] mt-0.5">
+                {product.brand}
+              </p>
+            )}
           </div>
 
-          {/* Store info */}
-          <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
-            <span className="flex items-center gap-1">
-              <Store className="h-3 w-3" />
-              {product.price.store_name}
+          {/* Store & distance */}
+          <div className="flex items-center justify-between text-xs text-[hsl(var(--foreground-secondary))] mb-2">
+            <span className="flex items-center gap-1 min-w-0 truncate">
+              <Store className="h-3 w-3 text-primary flex-shrink-0" />
+              <span className="truncate">{product.price.store_name}</span>
             </span>
             {distanceText && (
-              <span className={cn("flex items-center gap-1", distanceColorClass)}>
+              <span className={cn("flex items-center gap-1 flex-shrink-0 ml-2 font-medium", distanceColorClass)}>
                 <MapPin className="h-3 w-3" />
                 {distanceText}
               </span>
@@ -156,27 +159,27 @@ const ProductCardComponent = ({
 
           {/* Price */}
           <div className="flex items-baseline gap-2">
-            <span className="text-xl font-semibold text-primary">
+            <span className="text-xl font-bold text-primary tracking-tight">
               ${(product.price.promo_price_nzd ?? product.price.price_nzd).toFixed(2)}
             </span>
             {hasPromo && (
-              <span className="text-xs line-through text-muted-foreground">
+              <span className="text-xs line-through text-[hsl(var(--foreground-tertiary))]">
                 ${product.price.price_nzd.toFixed(2)}
               </span>
             )}
           </div>
 
           {/* Badges */}
-          {hasPromo && (
+          {hasPromo && (product.price.is_member_only || promoEndText) && (
             <div className="flex flex-wrap gap-1 mt-2">
               {product.price.is_member_only && (
-                <Badge variant="outline" className="text-xs gap-1">
+                <Badge variant="outline" className="text-xs gap-1 text-gold border-gold font-medium">
                   <Crown className="h-3 w-3" />
                   Members
                 </Badge>
               )}
               {promoEndText && (
-                <Badge variant="outline" className="text-xs gap-1">
+                <Badge variant="outline" className="text-xs gap-1 text-primary border-primary/30 font-medium">
                   <Clock className="h-3 w-3" />
                   {promoEndText}
                 </Badge>
@@ -186,7 +189,7 @@ const ProductCardComponent = ({
 
           {/* Per unit price */}
           {product.price.price_per_100ml && (
-            <p className="text-xs text-muted-foreground mt-2">
+            <p className="text-xs text-[hsl(var(--foreground-secondary))] mt-2">
               ${product.price.price_per_100ml.toFixed(2)} / 100ml
             </p>
           )}
