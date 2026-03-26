@@ -109,6 +109,23 @@ class Price(Base):
     )
 
 
+class PriceHistory(Base):
+    __tablename__ = "price_history"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID_TYPE, primary_key=True, default=_uuid)
+    product_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("products.id", ondelete="CASCADE"), nullable=False)
+    store_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("stores.id", ondelete="CASCADE"), nullable=False)
+    price_nzd: Mapped[float] = mapped_column(Float, nullable=False)
+    promo_price_nzd: Mapped[Optional[float]] = mapped_column(Float)
+    is_member_only: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (
+        Index("ix_price_history_product_recorded", "product_id", "recorded_at"),
+        Index("ix_price_history_recorded_at", "recorded_at"),
+    )
+
+
 class IngestionRun(Base):
     __tablename__ = "ingestion_runs"
 
@@ -129,4 +146,4 @@ class IngestionRun(Base):
     )
 
 
-__all__ = ["Store", "Product", "Price", "IngestionRun"]
+__all__ = ["Store", "Product", "Price", "PriceHistory", "IngestionRun"]

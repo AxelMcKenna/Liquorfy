@@ -5,13 +5,13 @@ from uuid import UUID
 
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import and_, case, cast, func, literal, or_, select
+from sqlalchemy import and_, case, cast, func, literal, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from geoalchemy2 import Geography
 
 from app.core.config import get_settings
-from app.db.models import Price, Product, Store
-from app.schemas.products import CrossChainPrice, PriceSchema, ProductDetailSchema, ProductListResponse, ProductSchema, StoreListResponse, StoreSchema
+from app.db.models import Price, PriceHistory, Product, Store
+from app.schemas.products import CrossChainPrice, PriceHistoryPoint, PriceSchema, ProductDetailSchema, ProductListResponse, ProductSchema, StoreListResponse, StoreSchema
 from app.schemas.queries import ProductQueryParams
 from app.services.cache import cached_json
 from app.services.parser_utils import CATEGORY_HIERARCHY, format_product_name
@@ -566,6 +566,30 @@ async def fetch_product_detail(
                 distance_km=dist_km,
             ))
 
+    # Price history (30-day rolling, best price per day)
+    history_query = (
+        select(
+            func.date(PriceHistory.recorded_at).label("day"),
+            func.min(PriceHistory.price_nzd).label("price_nzd"),
+            func.min(PriceHistory.promo_price_nzd).label("promo_price_nzd"),
+        )
+        .where(
+            PriceHistory.product_id == product_id,
+            PriceHistory.recorded_at >= func.now() - text("interval '30 days'"),
+        )
+        .group_by(text("day"))
+        .order_by(text("day"))
+    )
+    history_result = await session.execute(history_query)
+    price_history = [
+        PriceHistoryPoint(
+            date=str(row.day),
+            price_nzd=row.price_nzd,
+            promo_price_nzd=row.promo_price_nzd,
+        )
+        for row in history_result.all()
+    ]
+
     return ProductDetailSchema(
         id=product.id,
         name=format_product_name(product.name, product.brand),
@@ -582,6 +606,7 @@ async def fetch_product_detail(
         price=primary_price,
         other_prices=other_prices,
         cross_chain_prices=cross_chain_prices,
+        price_history=price_history,
         last_updated=first_price.last_seen_at,
     )
 
