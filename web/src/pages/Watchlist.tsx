@@ -26,7 +26,7 @@ const WatchlistPage = () => {
           }
         />
 
-        <main className="max-w-3xl mx-auto px-4 py-8 space-y-8 flex-1">
+        <main className="max-w-6xl mx-auto px-4 py-8 space-y-8 flex-1">
           {/* Price Alerts */}
           <section>
             <h2 className="text-lg font-serif font-semibold mb-3">Price Alerts</h2>
