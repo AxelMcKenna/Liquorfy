@@ -8,9 +8,9 @@ export const ProductSkeleton = () => {
       <div className="h-1 bg-primary/20 animate-pulse" />
 
       {/* Image skeleton - Light background */}
-      <div className="w-full aspect-square bg-gray-200 animate-pulse" />
+      <div className="w-full aspect-[4/3] sm:aspect-square bg-gray-200 animate-pulse" />
 
-      <CardContent className="p-4 flex-1 space-y-3">
+      <CardContent className="p-2 sm:p-4 flex-1 space-y-2 sm:space-y-3">
         {/* Title and brand */}
         <div className="space-y-2">
           <Skeleton className="h-4 w-full bg-secondary/50" />

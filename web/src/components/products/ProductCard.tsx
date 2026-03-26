@@ -56,19 +56,19 @@ const ProductCardComponent = ({
       aria-label={`View details for ${product.name}, $${(product.price.promo_price_nzd ?? product.price.price_nzd).toFixed(2)} at ${product.price.store_name}`}
     >
       {/* Product Image */}
-      <div className="w-full aspect-square relative overflow-hidden border-b">
+      <div className="w-full aspect-[4/3] sm:aspect-square relative overflow-hidden border-b">
         {product.image_url && !imageError ? (
           <img
             src={product.image_url}
             alt={product.name}
-            className="w-full h-full object-contain p-4"
+            className="w-full h-full object-contain p-3 sm:p-4"
             loading="lazy"
             decoding="async"
             onError={() => setImageError(true)}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <Wine className="h-12 w-12 text-muted-foreground/20" />
+            <Wine className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground/20" />
           </div>
         )}
 
@@ -98,13 +98,13 @@ const ProductCardComponent = ({
         )}
       </div>
 
-      <CardContent className="p-3 flex-1">
+      <CardContent className="p-2 sm:p-3 flex-1">
         {/* Product info */}
-        <div className="mb-2">
-          <h3 className="text-sm font-medium line-clamp-2 group-hover:text-primary transition-colors">
+        <div className="mb-1.5 sm:mb-2">
+          <h3 className="text-xs sm:text-sm font-medium line-clamp-2 group-hover:text-primary transition-colors">
             {product.name}
           </h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">
             {product.brand ?? "Unknown brand"}
           </p>
         </div>
@@ -124,8 +124,8 @@ const ProductCardComponent = ({
         </div>
 
         {/* Price */}
-        <div className="flex items-baseline gap-2">
-          <span className="text-xl font-semibold text-primary">
+        <div className="flex items-baseline gap-1.5 sm:gap-2">
+          <span className="text-base sm:text-xl font-semibold text-primary">
             ${(product.price.promo_price_nzd ?? product.price.price_nzd).toFixed(2)}
           </span>
           {hasPromo && (
@@ -135,9 +135,9 @@ const ProductCardComponent = ({
           )}
         </div>
 
-        {/* Badges */}
+        {/* Badges — hidden on small mobile to keep cards compact */}
         {hasPromo && (
-          <div className="flex flex-wrap gap-1 mt-2">
+          <div className="hidden sm:flex flex-wrap gap-1 mt-2">
             {product.price.is_member_only && (
               <Badge variant="outline" className="text-xs gap-1">
                 <Crown className="h-3 w-3" />
@@ -155,7 +155,7 @@ const ProductCardComponent = ({
 
         {/* Per unit price */}
         {product.price.price_per_100ml && (
-          <p className="text-xs text-muted-foreground mt-2">
+          <p className="text-xs text-muted-foreground mt-1.5 sm:mt-2">
             ${product.price.price_per_100ml.toFixed(2)} / 100ml
           </p>
         )}
