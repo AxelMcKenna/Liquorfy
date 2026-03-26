@@ -1,9 +1,8 @@
-import { ExternalLink, Store, Clock, Crown, Wine, MapPin } from "lucide-react";
+import { ExternalLink, Store, Clock, Crown, Wine, MapPin, Sparkles } from "lucide-react";
 import { Product } from "@/types";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { FavouriteButton } from "./FavouriteButton";
 import { ShareButton } from "./ShareButton";
@@ -41,178 +40,172 @@ export const QuickView = ({
   const isNewPromo = hasPromo && product.last_updated &&
     (Date.now() - new Date(product.last_updated).getTime()) < 24 * 60 * 60 * 1000;
 
+  const details = [
+    product.category && { label: "Category", value: product.category.replace('_', ' ') },
+    product.abv_percent && { label: "ABV", value: `${product.abv_percent}%` },
+    product.total_volume_ml && { label: "Volume", value: `${product.total_volume_ml}ml` },
+    product.pack_count && product.pack_count > 1 && { label: "Pack", value: `${product.pack_count} units` },
+  ].filter(Boolean) as { label: string; value: string }[];
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-2xl p-0 max-h-[90vh] overflow-y-auto">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-0">
-          {/* Image Section */}
-          <div className="md:col-span-2 bg-white p-6 flex items-center justify-center relative">
-            {hasPromo && (
-              <div className="absolute top-3 left-3 z-10">
-                <Badge className="bg-primary text-white font-semibold text-xs">
-                  SALE
-                </Badge>
-              </div>
-            )}
-            {hasPromo && savingsPercent > 0 && (
-              <div className="absolute top-3 right-3 z-10">
-                <Badge className="bg-primary text-white font-semibold text-xs">
-                  {savingsPercent}% off
-                </Badge>
-              </div>
-            )}
+      <DialogContent className="sm:max-w-2xl p-0 max-h-[90vh] overflow-hidden rounded-xl border-0 shadow-2xl">
+        <div className="grid grid-cols-1 md:grid-cols-5 max-h-[90vh]">
+
+          {/* ── Image Section ── */}
+          <div className="md:col-span-2 relative bg-gradient-to-b from-[hsl(var(--background))] to-[hsl(var(--background-secondary))] flex items-center justify-center p-8 md:p-6 min-h-[240px] md:min-h-0">
+            {/* Subtle decorative ring behind image */}
+            <div className="absolute inset-8 md:inset-6 rounded-full border border-[hsl(var(--border))] opacity-40" />
+
             {product.image_url ? (
               <img
                 src={product.image_url}
                 alt={product.name}
-                className="w-full h-64 object-contain"
+                className="relative z-10 w-full h-56 md:h-full object-contain drop-shadow-sm"
               />
             ) : (
-              <Wine className="h-32 w-32 text-tertiary-gray/30" />
+              <Wine className="relative z-10 h-24 w-24 text-[hsl(var(--foreground-tertiary))]/30" />
             )}
+
+            {/* Badges pinned top-left */}
+            {hasPromo && (
+              <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-20">
+                {savingsPercent > 0 && (
+                  <Badge className="bg-primary text-white font-semibold text-xs shadow-sm">
+                    {savingsPercent}% off
+                  </Badge>
+                )}
+                {isNewPromo && (
+                  <Badge className="bg-amber-500 text-white text-xs gap-1 shadow-sm">
+                    <Sparkles className="h-3 w-3" />
+                    New
+                  </Badge>
+                )}
+              </div>
+            )}
+
+            {/* Action buttons pinned top-right */}
+            <div className="absolute top-3 right-3 flex items-center gap-1 z-20">
+              {onToggleFavourite && (
+                <FavouriteButton
+                  isFavourite={isFavourite}
+                  onToggle={onToggleFavourite}
+                  className="bg-white/80 backdrop-blur-sm hover:bg-white shadow-sm"
+                />
+              )}
+              <ShareButton productName={product.name} productId={product.id} />
+            </div>
           </div>
 
-          {/* Content Section */}
-          <div className="md:col-span-3 p-6 flex flex-col">
-            {/* Header + actions */}
-            <div className="mb-4">
-              <div className="flex items-start justify-between gap-2">
-                <h2 className="text-2xl font-bold text-primary-gray mb-2 line-clamp-2">
+          {/* ── Content Section ── */}
+          <div className="md:col-span-3 overflow-y-auto bg-white" style={{ maxHeight: 'calc(90vh - 1px)' }}>
+            <div className="p-5 md:p-6 flex flex-col gap-5">
+
+              {/* Header */}
+              <div>
+                <h2 className="text-xl font-serif font-semibold text-[hsl(var(--foreground))] leading-snug mb-1">
                   {product.name}
                 </h2>
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  {onToggleFavourite && (
-                    <FavouriteButton
-                      isFavourite={isFavourite}
-                      onToggle={onToggleFavourite}
-                    />
+                {product.brand && (
+                  <p className="text-sm text-[hsl(var(--foreground-secondary))]">{product.brand}</p>
+                )}
+              </div>
+
+              {/* Price block */}
+              <div className="bg-[hsl(var(--background))] rounded-lg p-4 -mx-1">
+                <div className="flex items-baseline gap-3 mb-1.5">
+                  <span className="text-3xl font-bold text-primary tracking-tight">
+                    ${currentPrice.toFixed(2)}
+                  </span>
+                  {hasPromo && (
+                    <span className="text-base line-through text-[hsl(var(--foreground-tertiary))]">
+                      ${product.price.price_nzd.toFixed(2)}
+                    </span>
                   )}
-                  <ShareButton productName={product.name} productId={product.id} />
-                  <PriceAlertButton
-                    productId={product.id}
-                    productName={product.name}
-                    currentPrice={currentPrice}
-                  />
+                </div>
+                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-[hsl(var(--foreground-secondary))]">
+                  {product.price.price_per_100ml && (
+                    <span>${product.price.price_per_100ml.toFixed(2)} / 100ml</span>
+                  )}
+                  {product.price.price_per_standard_drink && (
+                    <span>${product.price.price_per_standard_drink.toFixed(2)} / std drink</span>
+                  )}
                 </div>
               </div>
-              {product.brand && (
-                <p className="text-base text-secondary-gray">{product.brand}</p>
-              )}
-            </div>
 
-            {/* Price */}
-            <div className="mb-4">
-              <div className="flex items-baseline gap-3 mb-2">
-                <span className="text-4xl font-black text-primary">
-                  ${currentPrice.toFixed(2)}
-                </span>
-                {hasPromo && (
-                  <span className="text-lg line-through text-tertiary-gray">
-                    ${product.price.price_nzd.toFixed(2)}
+              {/* Promo info badges */}
+              {hasPromo && (product.price.is_member_only || promoEndText) && (
+                <div className="flex flex-wrap gap-2">
+                  {product.price.is_member_only && (
+                    <Badge variant="outline" className="gap-1 text-gold border-gold font-medium">
+                      <Crown className="h-3 w-3" />
+                      Members Only
+                    </Badge>
+                  )}
+                  {promoEndText && (
+                    <Badge variant="outline" className="gap-1 text-primary border-primary/30 font-medium">
+                      <Clock className="h-3 w-3" />
+                      {promoEndText}
+                    </Badge>
+                  )}
+                </div>
+              )}
+
+              {/* Store & distance */}
+              <div className="flex items-center justify-between gap-3 py-3 border-y border-[hsl(var(--border))]">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <Store className="h-4 w-4 text-primary" />
+                  </div>
+                  <span className="text-sm font-medium text-[hsl(var(--foreground))] truncate">
+                    {product.price.store_name}
+                  </span>
+                </div>
+                {distanceText && (
+                  <span className={cn("flex items-center gap-1 text-sm font-medium flex-shrink-0", distanceColorClass)}>
+                    <MapPin className="h-3.5 w-3.5" />
+                    {distanceText}
                   </span>
                 )}
               </div>
 
-              {/* Price metrics */}
-              <div className="flex flex-wrap gap-2 text-sm text-secondary-gray">
-                {product.price.price_per_100ml && (
-                  <span>${product.price.price_per_100ml.toFixed(2)} per 100ml</span>
-                )}
-                {product.price.price_per_standard_drink && (
-                  <span>• ${product.price.price_per_standard_drink.toFixed(2)} per drink</span>
-                )}
-              </div>
-            </div>
-
-            {/* Promo badges */}
-            {hasPromo && (
-              <div className="flex flex-wrap gap-2 mb-4">
-                {product.price.is_member_only && (
-                  <Badge variant="outline" className="gap-1 text-gold border-gold">
-                    <Crown className="h-3 w-3" />
-                    Members Only
-                  </Badge>
-                )}
-                {promoEndText && (
-                  <Badge variant="outline" className="gap-1 text-primary border-primary/30">
-                    <Clock className="h-3 w-3" />
-                    {promoEndText}
-                  </Badge>
-                )}
-                {isNewPromo && (
-                  <Badge className="bg-amber-500 text-white gap-1">
-                    New Promo
-                  </Badge>
-                )}
-              </div>
-            )}
-
-            {/* Store Info */}
-            <div className="mb-4">
-              <div className="flex items-center gap-2 text-secondary-gray mb-2">
-                <Store className="h-4 w-4 text-primary" />
-                <span className="font-medium text-primary-gray">{product.price.store_name}</span>
-              </div>
-              {distanceText && (
-                <div className={cn("flex items-center gap-2", distanceColorClass)}>
-                  <MapPin className="h-4 w-4" />
-                  <span className="text-sm font-medium">{distanceText}</span>
+              {/* Product details chips */}
+              {details.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {details.map((d) => (
+                    <span
+                      key={d.label}
+                      className="inline-flex items-center gap-1.5 text-xs bg-[hsl(var(--background-secondary))] text-[hsl(var(--foreground-secondary))] rounded-full px-3 py-1.5"
+                    >
+                      <span className="font-medium text-[hsl(var(--foreground))]">{d.label}</span>
+                      <span className="capitalize">{d.value}</span>
+                    </span>
+                  ))}
                 </div>
               )}
+
+              {/* Actions */}
+              <div className="flex gap-2 pt-1">
+                {product.product_url && (
+                  <Button asChild className="flex-1 bg-primary hover:bg-primary/90 h-11 text-sm font-semibold shadow-sm">
+                    <a
+                      href={product.product_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2"
+                    >
+                      View at Store
+                      <ExternalLink className="h-4 w-4" />
+                    </a>
+                  </Button>
+                )}
+                <PriceAlertButton
+                  productId={product.id}
+                  productName={product.name}
+                  currentPrice={currentPrice}
+                />
+              </div>
             </div>
-
-            <Separator className="my-4" />
-
-            {/* Product Details */}
-            <div className="mb-6 flex-1">
-              <h3 className="text-sm font-semibold mb-3 text-primary-gray">Product Details</h3>
-              <dl className="grid grid-cols-2 gap-2 text-sm">
-                {product.category && (
-                  <>
-                    <dt className="text-secondary-gray">Category</dt>
-                    <dd className="font-medium text-primary-gray capitalize">
-                      {product.category.replace('_', ' ')}
-                    </dd>
-                  </>
-                )}
-                {product.abv_percent && (
-                  <>
-                    <dt className="text-secondary-gray">Alcohol %</dt>
-                    <dd className="font-medium text-primary-gray">{product.abv_percent}%</dd>
-                  </>
-                )}
-                {product.total_volume_ml && (
-                  <>
-                    <dt className="text-secondary-gray">Volume</dt>
-                    <dd className="font-medium text-primary-gray">{product.total_volume_ml}ml</dd>
-                  </>
-                )}
-                {product.pack_count && product.pack_count > 1 && (
-                  <>
-                    <dt className="text-secondary-gray">Pack Size</dt>
-                    <dd className="font-medium text-primary-gray">{product.pack_count} units</dd>
-                  </>
-                )}
-              </dl>
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-2">
-              {product.product_url && (
-                <Button asChild className="flex-1 bg-primary hover:bg-accent">
-                  <a
-                    href={product.product_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2"
-                  >
-                    View at Store
-                    <ExternalLink className="h-4 w-4" />
-                  </a>
-                </Button>
-              )}
-            </div>
-
           </div>
         </div>
       </DialogContent>
