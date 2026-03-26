@@ -72,7 +72,7 @@ struct AlertSetupSheet: View {
             )
             dismiss()
         } catch {
-            errorMessage = "Failed to create alert. You may already have an active alert."
+            errorMessage = "Failed to create alert. You may have reached the limit of 10 active alerts."
         }
     }
 }
