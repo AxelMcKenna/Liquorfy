@@ -126,9 +126,15 @@ async def list_products(params: ProductQueryParams = Depends(_params)) -> Produc
 
 @router.get("/{product_id}", response_model=ProductDetailSchema)
 async def product_detail(product_id: UUID) -> ProductDetailSchema:
-    async with get_async_session() as session:
-        try:
-            product = await fetch_product_detail(session, product_id)
-        except ValueError as exc:
-            raise HTTPException(status_code=404, detail=str(exc)) from exc
-        return product
+    cache_key = f"product_detail:{product_id}"
+
+    async def producer() -> dict:
+        async with get_async_session() as session:
+            try:
+                product = await fetch_product_detail(session, product_id)
+            except ValueError as exc:
+                raise HTTPException(status_code=404, detail=str(exc)) from exc
+            return json.loads(product.json())
+
+    payload = await cached_json(cache_key, settings.api_cache_ttl_seconds, producer)
+    return ProductDetailSchema.parse_obj(payload)

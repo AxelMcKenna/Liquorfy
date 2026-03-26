@@ -1,5 +1,7 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, lazy, Suspense } from 'react';
 import { Location } from '@/types';
+
+const LocationModal = lazy(() => import('@/components/location/LocationModal').then(m => ({ default: m.LocationModal })));
 
 interface LocationData {
   location: Location;
@@ -195,6 +197,11 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
   return (
     <LocationContext.Provider value={value}>
       {children}
+      {isLocationModalOpen && (
+        <Suspense fallback={null}>
+          <LocationModal />
+        </Suspense>
+      )}
     </LocationContext.Provider>
   );
 };

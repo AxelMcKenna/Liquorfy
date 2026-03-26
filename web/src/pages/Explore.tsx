@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Header } from '@/components/layout/Header';
 import { FilterSidebar } from '@/components/filters/FilterSidebar';
+import { FilterChips } from '@/components/filters/FilterChips';
 import { ProductGrid } from '@/components/products/ProductGrid';
 import { usePaginatedProducts } from '@/hooks/usePaginatedProducts';
 import { useFilters } from '@/hooks/useFilters';
@@ -235,6 +236,9 @@ export const Explore = () => {
                 <p className="text-sm text-destructive">{locationError}</p>
               </div>
             )}
+
+            {/* Mobile filter chips */}
+            <FilterChips />
 
             {error && (
               <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 mb-4">

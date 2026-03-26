@@ -130,22 +130,22 @@ export const ProductDetailPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Top bar */}
-      <header className="sticky top-0 z-50 bg-background border-b border-[hsl(var(--border))]">
+      {/* Top bar — green, consistent with Header */}
+      <header className="sticky top-0 z-50 bg-primary border-b border-primary">
         <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center gap-1.5 text-sm text-[hsl(var(--foreground-secondary))] hover:text-[hsl(var(--foreground))] transition-colors"
+            className="flex items-center gap-1.5 text-sm text-white/70 hover:text-white transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             Back
           </button>
-          <Link to="/" className="text-lg font-display font-semibold text-primary tracking-tight">
+          <Link to="/" className="text-lg font-display font-semibold text-white tracking-tight">
             LIQUORFY
           </Link>
           <div className="flex items-center gap-1">
-            <ShareButton productName={product.name} productId={product.id} />
-            <FavouriteButton isFavourite={favourite} onToggle={() => toggleFavourite(product.id)} />
+            <ShareButton productName={product.name} productId={product.id} className="text-white/70 hover:text-white hover:bg-white/10" />
+            <FavouriteButton isFavourite={favourite} onToggle={() => toggleFavourite(product.id)} className="text-white/70 hover:text-white hover:bg-white/10" />
           </div>
         </div>
       </header>
