@@ -104,7 +104,7 @@ export const Landing = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background overflow-x-hidden">
+    <div className="min-h-screen bg-background overflow-x-hidden flex flex-col">
 
       {/* ===== HERO — Split tension: left text, right search ===== */}
       <section className="bg-primary hero-clip relative">
