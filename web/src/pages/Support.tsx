@@ -5,7 +5,7 @@ export const Support = () => {
     <div className="min-h-screen bg-background">
       <header className="bg-primary py-6">
         <div className="px-4">
-          <Link to="/" className="text-xl font-semibold text-white tracking-tight">
+          <Link to="/" className="text-xl font-semibold text-white tracking-tight font-display">
             LIQUORFY
           </Link>
         </div>

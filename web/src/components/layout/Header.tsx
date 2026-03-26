@@ -69,7 +69,7 @@ export const Header = ({
           {/* Logo - left */}
           <div className="flex items-center">
             <Link to="/" className="flex-shrink-0">
-              <span className="text-lg font-semibold text-white">LIQUORFY</span>
+              <span className="text-xl font-semibold text-white tracking-tight font-display">LIQUORFY</span>
             </Link>
           </div>
 

@@ -40,17 +40,17 @@ const SettingsPage = () => {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-background">
-        <header className="border-b">
+      <div className="min-h-screen bg-background flex flex-col">
+        <header className="bg-primary border-b border-primary">
           <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-4">
-            <Link to="/" className="text-muted-foreground hover:text-foreground">
+            <Link to="/" className="text-white hover:text-white/80">
               <ArrowLeft className="h-5 w-5" />
             </Link>
-            <h1 className="text-lg font-semibold">Settings</h1>
+            <h1 className="text-lg font-semibold text-white">Settings</h1>
           </div>
         </header>
 
-        <main className="max-w-3xl mx-auto px-4 py-8 space-y-8">
+        <main className="max-w-3xl mx-auto px-4 py-8 space-y-8 flex-1">
           {/* Account info */}
           <section>
             <h2 className="text-lg font-serif font-semibold mb-3">Account</h2>
