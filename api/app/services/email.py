@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import logging
+from html import escape
 
 import httpx
 
@@ -41,15 +42,19 @@ def _render_alert_html(
     elif alert_on_promo:
         reason = f"A new promo is available at <strong>${current_price:.2f}</strong>."
 
+    safe_name = escape(product_name)
+    safe_store = escape(store_name)
+
     cta = ""
-    if product_url:
-        cta = f'<p><a href="{product_url}" style="display:inline-block;padding:12px 24px;background:#0d6b3b;color:#fff;text-decoration:none;border-radius:6px;">View Product</a></p>'
+    if product_url and product_url.startswith(("https://", "http://")):
+        safe_url = escape(product_url, quote=True)
+        cta = f'<p><a href="{safe_url}" style="display:inline-block;padding:12px 24px;background:#0d6b3b;color:#fff;text-decoration:none;border-radius:6px;">View Product</a></p>'
 
     return f"""
     <div style="font-family:Georgia,serif;max-width:600px;margin:0 auto;padding:24px;">
-        <h2 style="color:#0d6b3b;">Price Alert: {product_name}</h2>
+        <h2 style="color:#0d6b3b;">Price Alert: {safe_name}</h2>
         <p>{reason}</p>
-        <p>Available at <strong>{store_name}</strong>.</p>
+        <p>Available at <strong>{safe_store}</strong>.</p>
         {cta}
         <hr style="border:none;border-top:1px solid #e5e5e5;margin:24px 0;">
         <p style="font-size:12px;color:#888;">

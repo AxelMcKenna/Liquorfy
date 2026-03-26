@@ -55,7 +55,7 @@ async def health() -> JSONResponse:
         logger.error(f"Database health check failed: {e}")
         health_status["checks"]["database"] = {
             "status": "unhealthy",
-            "message": f"Database connection failed: {str(e)}",
+            "message": "Database unavailable",
         }
         overall_healthy = False
 
@@ -71,7 +71,7 @@ async def health() -> JSONResponse:
         logger.error(f"Redis health check failed: {e}")
         health_status["checks"]["redis"] = {
             "status": "unhealthy",
-            "message": f"Redis connection failed: {str(e)}",
+            "message": "Redis unavailable",
         }
         overall_healthy = False
 
