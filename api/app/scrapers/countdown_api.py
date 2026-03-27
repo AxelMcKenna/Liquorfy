@@ -156,9 +156,11 @@ class CountdownAPIScraper(Scraper):
         slug = product_data.get("slug", "")
         url = f"https://www.woolworths.co.nz/shop/productdetails?stockcode={sku}&name={slug}" if slug else None
 
-        # Parse volume from size info
+        # Parse volume from size info — append to name so build_product_dict can parse it
         size_info = product_data.get("size", {})
         volume_size = size_info.get("volumeSize", "")  # e.g., "24 x 330mL"
+        if volume_size:
+            full_name = f"{full_name} {volume_size}"
 
         # Use standardized product dict builder
         inferred_brand = infer_brand(full_name)
