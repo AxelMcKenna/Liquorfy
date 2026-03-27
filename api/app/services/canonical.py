@@ -69,12 +69,16 @@ def compute_canonical_id(
 
     variant = _extract_variant(name, brand) if name else ""
 
+    # ABV is intentionally excluded from the key because retailers
+    # inconsistently include it in product names, causing the same product
+    # to get different canonical IDs across chains.  Genuine ABV-based
+    # variants (e.g. "5%" vs "7%") are rare for otherwise-identical names;
+    # the variant descriptor handles meaningful differences.
     key = "|".join([
         brand.strip().lower(),
         variant,
         str(total_volume_ml),
         str(pack_count),
-        str(abv_percent) if abv_percent is not None else "NO_ABV",
         category.strip().lower() if category else "NO_CAT",
         str(is_sugar_free),
     ])
