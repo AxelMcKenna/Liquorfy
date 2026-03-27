@@ -3,8 +3,11 @@ The Bottle O scraper — per-store CityHive scraping with franchise fallback.
 
 Individual Bottle O stores run on the CityHive platform (same as Liquor Centre)
 at {slug}.shop.thebottleo.co.nz with per-store pricing.  Stores without an
-online shop fall back to the franchise catalog at thebottleo.co.nz (GTM
-dataLayer extraction).
+online shop fall back to the franchise catalog at thebottleo.co.nz.
+
+Uses plain HTTP with Pjax headers instead of a headless browser — CityHive
+serves pre-rendered HTML fragments that contain the same .talker product
+elements, making browser automation unnecessary.
 """
 from __future__ import annotations
 
@@ -12,15 +15,10 @@ import asyncio
 import json
 import logging
 import re
-from contextlib import suppress
 from datetime import datetime, timezone
 from typing import List, Optional
 
-from playwright.async_api import (
-    Error as PlaywrightError,
-    TimeoutError as PlaywrightTimeout,
-    async_playwright,
-)
+import httpx
 from selectolax.parser import HTMLParser
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
@@ -138,10 +136,10 @@ class BottleOScraper(Scraper):
 
     async def fetch_catalog_pages(self) -> List[str]:
         """
-        Fetch product pages from per-store CityHive sites and (optionally)
-        the franchise catalog for non-shoppable stores.
+        Fetch product pages from per-store CityHive sites and the franchise
+        catalog using plain HTTP with Pjax headers (no browser needed).
 
-        Returns tagged HTML strings (per-store) and JSON strings (franchise).
+        Returns tagged HTML strings (per-store and franchise).
         """
         if self.use_fixtures:
             return await self._fetch_from_fixtures()
@@ -156,110 +154,78 @@ class BottleOScraper(Scraper):
                 logger.info(f"Using fallback Bottle O store list ({len(self.stores)} stores)")
 
         pages: List[str] = []
+        shoppable_slugs: set[str] = set()
 
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(
-                headless=True,
-                args=["--no-sandbox", "--disable-dev-shm-usage"],
-            )
-            context = await browser.new_context(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-            )
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "X-PJAX": "true",
+            "X-PJAX-Container": "[data-pjax=shopfront]",
+            "Accept": "text/html",
+        }
 
-            # Block resources we don't need — significantly reduces page load time.
-            _BLOCK_TYPES = {"image", "media", "font", "stylesheet"}
-            async def _route_handler(route):
-                """Ignore route errors that happen during shutdown/cancellation."""
-                try:
-                    if route.request.resource_type in _BLOCK_TYPES:
-                        await route.abort()
-                    else:
-                        await route.continue_()
-                except PlaywrightError as e:
-                    if "Target page, context or browser has been closed" not in str(e):
-                        raise
-            await context.route(
-                "**/*",
-                _route_handler,
-            )
-
-            page = await context.new_page()
-
+        async with httpx.AsyncClient(headers=headers, timeout=30, follow_redirects=True) as client:
             # --- Per-store scraping ---
-            shoppable_slugs: set[str] = set()
-            try:
-                for store_slug in self.stores:
-                    logger.info(f"Scraping store: {store_slug}")
-                    consecutive_failures = 0
-                    max_failures = 3
-                    store_had_products = False
+            for store_slug in self.stores:
+                logger.info(f"Scraping store: {store_slug}")
+                consecutive_failures = 0
+                max_failures = 3
+                store_had_products = False
 
-                    for category in CATEGORIES:
-                        if consecutive_failures >= max_failures:
-                            logger.warning(f"  Skipping remaining categories for {store_slug}")
+                for category in CATEGORIES:
+                    if consecutive_failures >= max_failures:
+                        logger.warning(f"  Skipping remaining categories for {store_slug}")
+                        break
+
+                    logger.info(f"  Category: {category}")
+                    category_success = False
+                    page_num = 1
+
+                    while True:
+                        url = self._build_url(store_slug, category, page_num)
+
+                        try:
+                            resp = await client.get(url)
+                            resp.raise_for_status()
+                            html = resp.text
+
+                            tagged_html = self._tag_html(html, store_slug, category, page_num)
+                            pages.append(tagged_html)
+                            category_success = True
+                            store_had_products = True
+
+                            has_next = self._has_next_page_html(html)
+                            if not has_next:
+                                logger.info(f"    Scraped {page_num} page(s)")
+                                break
+
+                            page_num += 1
+                            if page_num > 50:
+                                logger.warning(f"    Hit page limit at page {page_num}")
+                                break
+
+                            await asyncio.sleep(DELAY_BETWEEN_REQUESTS)
+
+                        except httpx.TimeoutException:
+                            logger.error(f"    Timeout loading {url}")
+                            break
+                        except Exception as e:
+                            logger.error(f"    Error loading {url}: {e}")
                             break
 
-                        logger.info(f"  Category: {category}")
-                        category_success = False
-                        page_num = 1
+                    if category_success:
+                        consecutive_failures = 0
+                    else:
+                        consecutive_failures += 1
 
-                        while True:
-                            url = self._build_url(store_slug, category, page_num)
+                    await asyncio.sleep(DELAY_BETWEEN_CATEGORIES)
 
-                            try:
-                                await page.goto(url, wait_until="domcontentloaded", timeout=30000)
-                                try:
-                                    await page.wait_for_selector(".talker", state="attached", timeout=8000)
-                                except Exception:
-                                    pass  # Page may be empty (no products in category)
-                                await asyncio.sleep(DELAY_BETWEEN_REQUESTS)
+                if store_had_products:
+                    shoppable_slugs.add(store_slug)
 
-                                html = await page.content()
-                                tagged_html = self._tag_html(html, store_slug, category, page_num)
-                                pages.append(tagged_html)
-                                category_success = True
-                                store_had_products = True
-
-                                has_next = await self._has_next_page(page)
-                                if not has_next:
-                                    logger.info(f"    Scraped {page_num} page(s)")
-                                    break
-
-                                page_num += 1
-                                if page_num > 50:
-                                    logger.warning(f"    Hit page limit at page {page_num}")
-                                    break
-
-                            except PlaywrightTimeout:
-                                logger.error(f"    Timeout loading {url}")
-                                break
-                            except Exception as e:
-                                logger.error(f"    Error loading {url}: {e}")
-                                break
-
-                        if category_success:
-                            consecutive_failures = 0
-                        else:
-                            consecutive_failures += 1
-
-                        await asyncio.sleep(DELAY_BETWEEN_CATEGORIES)
-
-                    if store_had_products:
-                        shoppable_slugs.add(store_slug)
-
-                # --- Franchise fallback for non-shoppable stores ---
-                franchise_pages = await self._fetch_franchise_pages(page)
-                if franchise_pages:
-                    pages.extend(franchise_pages)
-            finally:
-                with suppress(Exception):
-                    await context.unroute_all(behavior="ignoreErrors")
-                with suppress(Exception):
-                    await page.close()
-                with suppress(Exception):
-                    await context.close()
-                with suppress(Exception):
-                    await browser.close()
+            # --- Franchise fallback for non-shoppable stores ---
+            franchise_pages = await self._fetch_franchise_pages(client)
+            if franchise_pages:
+                pages.extend(franchise_pages)
 
         logger.info(
             f"Fetched {len(pages)} total pages "
@@ -267,8 +233,8 @@ class BottleOScraper(Scraper):
         )
         return pages
 
-    async def _fetch_franchise_pages(self, page) -> List[str]:
-        """Fetch franchise catalog pages via GTM dataLayer extraction."""
+    async def _fetch_franchise_pages(self, client: httpx.AsyncClient) -> List[str]:
+        """Fetch franchise catalog pages via Pjax (same .talker HTML)."""
         franchise_pages: List[str] = []
 
         for cat_url in FRANCHISE_CATALOG_URLS:
@@ -279,38 +245,19 @@ class BottleOScraper(Scraper):
                 while True:
                     url = cat_url if page_num == 1 else f"{cat_url}&page={page_num}"
 
-                    await page.goto(url, wait_until="domcontentloaded", timeout=60000)
-                    await page.wait_for_selector("body", timeout=10000)
-                    await page.wait_for_timeout(5000)
+                    resp = await client.get(url)
+                    resp.raise_for_status()
+                    html = resp.text
 
-                    product_count = await page.evaluate("""() => {
-                        if (!window.gtmDataLayer) return 0;
-                        let count = 0;
-                        for (const event of window.gtmDataLayer) {
-                            if (event.event === 'productListImpression') {
-                                count += (event.ecommerce && event.ecommerce.impressions)
-                                    ? event.ecommerce.impressions.length : 0;
-                            }
-                        }
-                        return count;
-                    }""")
-
+                    # Count products on this page
+                    product_count = html.count('class="talker ')
                     if product_count == 0:
                         if page_num == 1:
                             logger.warning(f"  No products on franchise page 1")
                         break
 
-                    gtm_data = await page.evaluate(
-                        "() => JSON.stringify(window.gtmDataLayer || [])"
-                    )
-                    html = await page.content()
-
-                    combined = json.dumps({
-                        "gtm": json.loads(gtm_data),
-                        "html": html,
-                        "_franchise": True,
-                    })
-                    franchise_pages.append(combined)
+                    tagged = self._tag_html(html, "__franchise__", "mixed", page_num)
+                    franchise_pages.append(tagged)
                     logger.info(f"  Page {page_num}: {product_count} products")
 
                     if product_count < 48:
@@ -331,15 +278,9 @@ class BottleOScraper(Scraper):
 
     async def parse_products(self, payload: str) -> List[dict]:
         """
-        Parse products from either:
-        - Tagged CityHive HTML (per-store)
-        - JSON blob with GTM dataLayer (franchise fallback)
+        Parse products from tagged CityHive HTML (per-store or franchise).
         """
-        # Franchise pages are JSON, per-store pages start with <!--METADATA:
-        if payload.startswith("<!--METADATA:"):
-            return self._parse_cityhive_products(payload)
-        else:
-            return self._parse_franchise_products(payload)
+        return self._parse_cityhive_products(payload)
 
     def _parse_cityhive_products(self, tagged_html: str) -> List[dict]:
         """Parse products from CityHive .talker HTML (per-store pages)."""
@@ -699,11 +640,17 @@ class BottleOScraper(Scraper):
         return base
 
     async def _has_next_page(self, page) -> bool:
+        """Legacy Playwright method — kept for compatibility."""
         try:
             next_link = await page.locator('a[rel="next"]').count()
             return next_link > 0
         except Exception:
             return False
+
+    @staticmethod
+    def _has_next_page_html(html: str) -> bool:
+        """Check for a next-page link in raw HTML."""
+        return 'rel="next"' in html
 
     def _tag_html(self, html: str, store: str, category: str, page: int) -> str:
         return f"<!--METADATA:store={store},category={category},page={page}-->{html}"
