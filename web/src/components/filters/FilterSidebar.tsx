@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useFilters } from '@/hooks/useFilters';
 import { CategoryFilter } from './CategoryFilter';
 import { ChainFilter } from './ChainFilter';
@@ -16,6 +17,15 @@ interface FilterSidebarProps {
 
 export const FilterSidebar = ({ isOpen, onClose }: FilterSidebarProps) => {
   const { filters, updateFilters, clearFilters, activeFilterCount } = useFilters();
+
+  // Lock body scroll when sidebar is open on mobile
+  useEffect(() => {
+    const isMobile = window.innerWidth < 1024;
+    if (isOpen && isMobile) {
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = ''; };
+    }
+  }, [isOpen]);
   const { saveFilters, clearSavedFilters, getSavedFilters } = useSavedFilters();
   const hasSavedFilters = Boolean(getSavedFilters());
 

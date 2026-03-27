@@ -72,9 +72,16 @@ const LoginPage = () => {
     }, 15000);
   };
 
+  const persistRedirect = () => {
+    if (redirectTo && redirectTo !== '/') {
+      sessionStorage.setItem('auth_redirect', redirectTo);
+    }
+  };
+
   const handleGoogle = async () => {
     setLoading(true);
     setErrors({});
+    persistRedirect();
     startOAuthTimeout();
     try { await signInWithGoogle(); } catch { setLoading(false); if (oauthTimerRef.current) window.clearTimeout(oauthTimerRef.current); }
   };
@@ -82,6 +89,7 @@ const LoginPage = () => {
   const handleApple = async () => {
     setLoading(true);
     setErrors({});
+    persistRedirect();
     startOAuthTimeout();
     try { await signInWithApple(); } catch { setLoading(false); if (oauthTimerRef.current) window.clearTimeout(oauthTimerRef.current); }
   };
@@ -115,7 +123,7 @@ const LoginPage = () => {
                 type="email"
                 placeholder="you@example.com"
                 value={email}
-                onChange={(e) => { setEmail(e.target.value); setErrors((p) => ({ ...p, email: undefined })); }}
+                onChange={(e) => { setEmail(e.target.value); setErrors((p) => ({ ...p, email: undefined, form: undefined })); }}
                 className={errors.email ? 'border-red-400 focus-visible:ring-red-400' : ''}
                 required
                 disabled={loading}
@@ -129,7 +137,7 @@ const LoginPage = () => {
                 type="password"
                 placeholder="Your password"
                 value={password}
-                onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: undefined })); }}
+                onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: undefined, form: undefined })); }}
                 className={errors.password ? 'border-red-400 focus-visible:ring-red-400' : ''}
                 required
                 disabled={loading}

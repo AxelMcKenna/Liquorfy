@@ -111,7 +111,7 @@ const ProductCardComponent = ({
 
         {/* Store info */}
         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2 min-w-0">
-          <span className="flex items-center gap-1 min-w-0 truncate">
+          <span className="flex items-center gap-1 min-w-0 truncate" title={product.price.store_name}>
             <Store className="h-3 w-3 flex-shrink-0" />
             <span className="truncate">{product.price.store_name}</span>
           </span>
