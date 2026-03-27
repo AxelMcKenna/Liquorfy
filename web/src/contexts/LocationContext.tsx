@@ -19,7 +19,7 @@ interface LocationContextType {
   error: string | null;
   setRadiusKm: (radius: number) => void;
   requestAutoLocation: () => Promise<void>;
-  setManualLocation: (lat: number, lon: number) => void;
+  setManualLocation: (lat: number, lon: number, radius?: number) => void;
   clearLocation: () => void;
   openLocationModal: () => void;
   closeLocationModal: () => void;

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link, useNavigate, Navigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate, Navigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,10 +10,20 @@ import { PageHeader } from '@/components/layout/PageHeader';
 const LoginPage = () => {
   const { user, signInWithPassword, signInWithGoogle, signInWithApple } = useAuth();
   const navigate = useNavigate();
+  const locationState = useLocation();
+  const redirectTo = (locationState.state as { from?: string })?.from || '/';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string; form?: string }>({});
+  const oauthTimerRef = useRef<number | null>(null);
+
+  // Clear OAuth timeout on unmount (successful redirect)
+  useEffect(() => {
+    return () => {
+      if (oauthTimerRef.current) window.clearTimeout(oauthTimerRef.current);
+    };
+  }, []);
 
   if (user) {
     return <Navigate to="/settings" replace />;
@@ -38,7 +48,7 @@ const LoginPage = () => {
     setErrors({});
     try {
       await signInWithPassword(email.trim(), password);
-      navigate('/', { replace: true });
+      navigate(redirectTo, { replace: true });
     } catch (err: any) {
       const msg = err?.message?.toLowerCase() ?? '';
       if (msg.includes('invalid login credentials') || msg.includes('invalid_credentials')) {
@@ -55,16 +65,25 @@ const LoginPage = () => {
     }
   };
 
+  const startOAuthTimeout = () => {
+    oauthTimerRef.current = window.setTimeout(() => {
+      setLoading(false);
+      setErrors({ form: 'Sign-in took too long. Please try again.' });
+    }, 15000);
+  };
+
   const handleGoogle = async () => {
     setLoading(true);
     setErrors({});
-    try { await signInWithGoogle(); } catch { setLoading(false); }
+    startOAuthTimeout();
+    try { await signInWithGoogle(); } catch { setLoading(false); if (oauthTimerRef.current) window.clearTimeout(oauthTimerRef.current); }
   };
 
   const handleApple = async () => {
     setLoading(true);
     setErrors({});
-    try { await signInWithApple(); } catch { setLoading(false); }
+    startOAuthTimeout();
+    try { await signInWithApple(); } catch { setLoading(false); if (oauthTimerRef.current) window.clearTimeout(oauthTimerRef.current); }
   };
 
   return (

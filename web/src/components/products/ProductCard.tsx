@@ -135,17 +135,24 @@ const ProductCardComponent = ({
           )}
         </div>
 
-        {/* Badges — hidden on small mobile to keep cards compact */}
+        {/* Badges */}
         {hasPromo && (
-          <div className="hidden sm:flex flex-wrap gap-1 mt-2">
+          <div className="flex flex-wrap gap-1 mt-1.5 sm:mt-2">
             {product.price.is_member_only && (
-              <Badge variant="outline" className="text-xs gap-1">
-                <Crown className="h-3 w-3" />
-                Members
-              </Badge>
+              <>
+                {/* Compact icon on mobile */}
+                <Badge variant="outline" className="text-xs gap-0 px-1.5 sm:hidden" title="Members only">
+                  <Crown className="h-3 w-3" />
+                </Badge>
+                {/* Full badge on desktop */}
+                <Badge variant="outline" className="text-xs gap-1 hidden sm:inline-flex">
+                  <Crown className="h-3 w-3" />
+                  Members
+                </Badge>
+              </>
             )}
             {promoEndText && (
-              <Badge variant="outline" className="text-xs gap-1">
+              <Badge variant="outline" className="text-xs gap-1 hidden sm:inline-flex">
                 <Clock className="h-3 w-3" />
                 {promoEndText}
               </Badge>

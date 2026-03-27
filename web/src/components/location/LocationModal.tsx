@@ -114,15 +114,17 @@ export const LocationModal = () => {
     });
   };
 
-  const canClose = isLocationSet;
+  const handleSkip = () => {
+    closeLocationModal();
+    toast('Browsing nationwide', {
+      description: 'Enable location anytime for nearby store prices',
+      duration: 4000,
+    });
+  };
 
   return (
-    <Dialog open={isLocationModalOpen} onOpenChange={canClose ? closeLocationModal : undefined}>
-      <DialogContent
-        className={`sm:max-w-2xl ${!canClose ? '[&>button]:hidden' : ''}`}
-        onPointerDownOutside={(e) => !canClose && e.preventDefault()}
-        onEscapeKeyDown={(e) => !canClose && e.preventDefault()}
-      >
+    <Dialog open={isLocationModalOpen} onOpenChange={closeLocationModal}>
+      <DialogContent className="sm:max-w-2xl">
         {step === 'initial' && (
           <>
             <DialogHeader>
@@ -169,6 +171,15 @@ export const LocationModal = () => {
                 <MapPin className="w-5 h-5 mr-2" />
                 Set Location on Map
               </Button>
+
+              {!isLocationSet && (
+                <button
+                  onClick={handleSkip}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Skip — browse nationwide
+                </button>
+              )}
             </div>
           </>
         )}
@@ -280,14 +291,9 @@ export const LocationModal = () => {
                 </div>
               </div>
 
-              <div className="flex gap-3">
-                <Button variant="outline" onClick={() => setStep('initial')} className="flex-1">
-                  Back
-                </Button>
-                <Button onClick={handleConfirmManual} className="flex-1">
-                  Confirm Location
-                </Button>
-              </div>
+              <Button onClick={handleConfirmManual} className="w-full">
+                Use This Location
+              </Button>
             </div>
           </>
         )}

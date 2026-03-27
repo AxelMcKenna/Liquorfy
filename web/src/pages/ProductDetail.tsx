@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProductDetail } from '@/hooks/useProductDetail';
 import { useFavourites } from '@/hooks/useFavourites';
@@ -119,6 +119,38 @@ const CrossChainRow = ({ item }: { item: CrossChainPrice }) => {
         <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
       </div>
     </button>
+  );
+};
+
+const CROSS_CHAIN_INITIAL = 5;
+
+const CrossChainSection = ({ prices }: { prices: CrossChainPrice[] }) => {
+  const [expanded, setExpanded] = useState(false);
+  const visible = expanded ? prices : prices.slice(0, CROSS_CHAIN_INITIAL);
+  const remaining = prices.length - CROSS_CHAIN_INITIAL;
+
+  return (
+    <section className="mt-10 md:mt-14">
+      <h2 className="text-lg font-semibold text-[hsl(var(--foreground))] mb-1">
+        Compare across chains
+      </h2>
+      <p className="text-sm text-[hsl(var(--foreground-secondary))] mb-4">
+        Same product at other retailers
+      </p>
+      <div className="flex flex-col gap-2">
+        {visible.map((item) => (
+          <CrossChainRow key={item.product_id} item={item} />
+        ))}
+      </div>
+      {!expanded && remaining > 0 && (
+        <button
+          onClick={() => setExpanded(true)}
+          className="mt-3 text-sm text-primary font-medium hover:underline"
+        >
+          Show {remaining} more {remaining === 1 ? 'store' : 'stores'}
+        </button>
+      )}
+    </section>
   );
 };
 
@@ -402,33 +434,27 @@ export const ProductDetailPage = () => {
         )}
 
         {/* Price history chart */}
-        {product.price_history && product.price_history.length > 1 && (
-          <section className="mt-10 md:mt-14">
-            <h2 className="text-lg font-semibold text-[hsl(var(--foreground))] mb-4">
-              Price history
+        <section className="mt-10 md:mt-14">
+          <h2 className="text-lg font-semibold text-[hsl(var(--foreground))] mb-4">
+            Price history
+            {product.price_history && product.price_history.length > 1 && (
               <span className="text-sm font-normal text-[hsl(var(--foreground-secondary))] ml-2">
                 Last 30 days
               </span>
-            </h2>
+            )}
+          </h2>
+          {product.price_history && product.price_history.length > 1 ? (
             <PriceHistoryChart history={product.price_history} />
-          </section>
-        )}
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Price history will appear once we track more data for this product.
+            </p>
+          )}
+        </section>
 
         {/* Cross-chain comparison */}
         {product.cross_chain_prices.length > 0 && (
-          <section className="mt-10 md:mt-14">
-            <h2 className="text-lg font-semibold text-[hsl(var(--foreground))] mb-1">
-              Compare across chains
-            </h2>
-            <p className="text-sm text-[hsl(var(--foreground-secondary))] mb-4">
-              Same product at other retailers
-            </p>
-            <div className="flex flex-col gap-2">
-              {product.cross_chain_prices.slice(0, 5).map((item) => (
-                <CrossChainRow key={item.product_id} item={item} />
-              ))}
-            </div>
-          </section>
+          <CrossChainSection prices={product.cross_chain_prices} />
         )}
 
         {/* Recently Viewed (excluding current product) */}
