@@ -394,13 +394,36 @@ class FoodstuffsAPIScraper(Scraper, APIAuthBase):
                     for store in result.scalars().all():
                         store_map[store.api_id] = store
 
+            # Auto-create stores not yet in DB
+            missing_api_ids = set(products_by_store.keys()) - set(store_map.keys())
+            if missing_api_ids:
+                logger.info(f"Auto-creating {len(missing_api_ids)} new {self.chain} stores")
+                async with async_transaction() as session:
+                    for api_id in missing_api_ids:
+                        new_store = Store(
+                            chain=self.chain,
+                            api_id=str(api_id),
+                            name=f"{self.chain} #{api_id}",
+                        )
+                        session.add(new_store)
+                    await session.flush()
+                    # Reload into store_map
+                    result = await session.execute(
+                        select(Store).where(
+                            Store.chain == self.chain,
+                            Store.api_id.in_([str(aid) for aid in missing_api_ids]),
+                        )
+                    )
+                    for store in result.scalars().all():
+                        store_map[store.api_id] = store
+
             # Batched upsert per store
             seen_store_ids: set = set()
 
             for store_api_id, store_products in products_by_store.items():
                 store = store_map.get(store_api_id)
                 if not store:
-                    logger.debug(f"Store not found in DB for api_id={store_api_id}, skipping {len(store_products)} products")
+                    logger.warning(f"Store still not found for api_id={store_api_id}, skipping {len(store_products)} products")
                     failed_items += len(store_products)
                     continue
 
