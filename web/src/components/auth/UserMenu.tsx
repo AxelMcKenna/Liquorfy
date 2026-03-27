@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { LogOut, User, Eye, Settings } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 export const UserMenu = () => {
   const { user, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   if (!user) return null;
 
@@ -12,9 +13,16 @@ export const UserMenu = () => {
   const firstName = rawName.split(' ')[0];
   const displayName = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
 
+  // Position dropdown using fixed positioning to escape overflow clipping
+  const rect = buttonRef.current?.getBoundingClientRect();
+  const dropdownStyle = rect
+    ? { top: rect.bottom + 4, right: Math.max(8, window.innerWidth - rect.right) }
+    : { top: 0, right: 8 };
+
   return (
     <div className="relative">
       <button
+        ref={buttonRef}
         onClick={() => setMenuOpen(!menuOpen)}
         className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors"
       >
@@ -30,7 +38,10 @@ export const UserMenu = () => {
             className="fixed inset-0 z-40"
             onClick={() => setMenuOpen(false)}
           />
-          <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-lg shadow-lg border z-50 py-1">
+          <div
+            className="fixed w-48 sm:w-56 bg-white rounded-lg shadow-lg border z-50 py-1"
+            style={dropdownStyle}
+          >
             <a
               href="/watchlist"
               className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-gray-50"
