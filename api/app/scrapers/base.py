@@ -222,6 +222,7 @@ class Scraper(abc.ABC):
             "abv_percent": abv,
             "is_sugar_free": sugar_free,
             "canonical_product_id": compute_canonical_id(
+                name=name,
                 brand=resolved_brand,
                 total_volume_ml=vol_ml,
                 pack_count=pack,
