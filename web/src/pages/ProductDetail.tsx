@@ -239,7 +239,7 @@ export const ProductDetailPage = () => {
         }
       />
 
-      <main className="max-w-4xl mx-auto px-4 py-6 md:py-10 flex-1">
+      <main className="max-w-4xl mx-auto px-4 py-6 md:py-10 flex-1 w-full overflow-x-hidden">
         {/* Breadcrumbs */}
         <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm text-muted-foreground mb-6 overflow-x-auto no-scrollbar">
           <Link to="/" className="flex items-center gap-1 hover:text-foreground transition-colors flex-shrink-0">
