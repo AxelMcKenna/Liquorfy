@@ -3,6 +3,7 @@ import { LogOut, Trash2, BellRing, Heart } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Footer } from '@/components/layout/Footer';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -85,7 +86,10 @@ const SettingsPage = () => {
                 </div>
                 <Switch
                   checked={prefs.weeklyDealsEmail}
-                  onCheckedChange={(v) => updatePref('weeklyDealsEmail', v)}
+                  onCheckedChange={(v) => {
+                    updatePref('weeklyDealsEmail', v);
+                    toast(v ? 'Weekly deals email enabled' : 'Weekly deals email disabled', { duration: 2000 });
+                  }}
                 />
               </div>
               <div className="flex items-center justify-between p-4">
@@ -95,7 +99,10 @@ const SettingsPage = () => {
                 </div>
                 <Switch
                   checked={prefs.priceDropAlerts}
-                  onCheckedChange={(v) => updatePref('priceDropAlerts', v)}
+                  onCheckedChange={(v) => {
+                    updatePref('priceDropAlerts', v);
+                    toast(v ? 'Price drop alerts enabled' : 'Price drop alerts disabled', { duration: 2000 });
+                  }}
                 />
               </div>
             </div>

@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/pagination';
 
 export const Explore = () => {
-  const FETCH_DEBOUNCE_MS = 220;
+  const FETCH_DEBOUNCE_MS = 300;
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 1024);
@@ -300,6 +300,21 @@ export const Explore = () => {
                     </PaginationItem>
                   </PaginationContent>
                 </Pagination>
+              </div>
+            )}
+
+            {/* Hint when pagination is hidden due to no location */}
+            {!isLocationSet && !loading && products.length > 0 && totalPages > 1 && (
+              <div className="mt-6 text-center">
+                <p className="text-sm text-muted-foreground">
+                  <button
+                    onClick={openLocationModal}
+                    className="text-primary font-medium hover:underline"
+                  >
+                    Enable location
+                  </button>
+                  {' '}to browse more results near you
+                </p>
               </div>
             )}
 

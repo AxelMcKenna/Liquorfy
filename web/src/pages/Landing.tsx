@@ -105,7 +105,7 @@ export const Landing = () => {
       if (tempRadius !== radiusKm) {
         setRadiusKm(tempRadius);
       }
-    }, 500);
+    }, 300);
 
     return () => window.clearTimeout(debounceId);
   }, [tempRadius, radiusKm, setRadiusKm]);

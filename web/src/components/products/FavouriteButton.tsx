@@ -1,6 +1,7 @@
 import { Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface FavouriteButtonProps {
   isFavourite: boolean;
@@ -22,6 +23,9 @@ export const FavouriteButton = ({
       onClick={(e) => {
         e.stopPropagation();
         onToggle();
+        toast(isFavourite ? 'Removed from watchlist' : 'Added to watchlist', {
+          duration: 2000,
+        });
       }}
       className={cn(
         'rounded-full',

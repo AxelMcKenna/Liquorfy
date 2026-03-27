@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -83,16 +83,31 @@ const RegisterPage = () => {
     }
   };
 
+  const oauthTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => { if (oauthTimerRef.current) window.clearTimeout(oauthTimerRef.current); };
+  }, []);
+
+  const startOAuthTimeout = () => {
+    oauthTimerRef.current = window.setTimeout(() => {
+      setLoading(false);
+      setErrors({ form: 'Sign-up took too long. Please try again.' });
+    }, 15000);
+  };
+
   const handleGoogle = async () => {
     setLoading(true);
     setErrors({});
-    try { await signInWithGoogle(); } catch { setLoading(false); }
+    startOAuthTimeout();
+    try { await signInWithGoogle(); } catch { setLoading(false); if (oauthTimerRef.current) window.clearTimeout(oauthTimerRef.current); }
   };
 
   const handleApple = async () => {
     setLoading(true);
     setErrors({});
-    try { await signInWithApple(); } catch { setLoading(false); }
+    startOAuthTimeout();
+    try { await signInWithApple(); } catch { setLoading(false); if (oauthTimerRef.current) window.clearTimeout(oauthTimerRef.current); }
   };
 
   const passwordStrength = useMemo(() => {
@@ -177,6 +192,12 @@ const RegisterPage = () => {
             <Button variant="outline" className="w-full" onClick={() => navigate('/login')}>
               Go to Sign In
             </Button>
+            <button
+              onClick={() => navigate('/explore')}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Continue browsing
+            </button>
           </div>
         </main>
         <Footer />

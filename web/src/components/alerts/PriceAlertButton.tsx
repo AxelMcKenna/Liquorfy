@@ -53,7 +53,13 @@ export const PriceAlertButton = ({
         threshold_price: thresholdPrice ? parseFloat(thresholdPrice) : undefined,
         alert_on_promo: alertOnPromo,
       });
-      toast.success(`Alert set for ${productName}`);
+      toast.success(`Alert set for ${productName}`, {
+        description: 'Manage alerts in your Watchlist',
+        action: {
+          label: 'View',
+          onClick: () => navigate('/watchlist'),
+        },
+      });
       setOpen(false);
     } catch (err: any) {
       const detail = err?.response?.data?.detail;

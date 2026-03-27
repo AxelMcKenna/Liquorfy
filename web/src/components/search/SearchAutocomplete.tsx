@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Clock, X, TrendingUp } from 'lucide-react';
+import { Search, Clock, X, TrendingUp, AlertCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 const RECENT_SEARCHES_KEY = 'liquorfy_recent_searches';
 const MAX_RECENT = 5;
-const DEBOUNCE_MS = 250;
+const DEBOUNCE_MS = 300;
 
 function getRecentSearches(): string[] {
   try {
@@ -28,6 +28,10 @@ function addRecentSearch(query: string) {
 function removeRecentSearch(query: string) {
   const recent = getRecentSearches().filter(s => s !== query);
   localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(recent));
+}
+
+function clearAllRecentSearches() {
+  localStorage.removeItem(RECENT_SEARCHES_KEY);
 }
 
 interface Suggestion {
@@ -74,6 +78,7 @@ export const SearchAutocomplete = ({
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [suggestionError, setSuggestionError] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const debounceRef = useRef<number | null>(null);
@@ -83,7 +88,8 @@ export const SearchAutocomplete = ({
   const showRecent = isOpen && isEmpty && recentSearches.length > 0;
   const showPopular = isOpen && isEmpty && popularProducts.length > 0;
   const showSuggestions = isOpen && query.trim().length >= 2 && suggestions.length > 0;
-  const showDropdown = showRecent || showPopular || showSuggestions;
+  const showError = isOpen && query.trim().length >= 2 && suggestionError && suggestions.length === 0;
+  const showDropdown = showRecent || showPopular || showSuggestions || showError;
 
   // Fetch popular products once on first focus
   useEffect(() => {
@@ -106,6 +112,7 @@ export const SearchAutocomplete = ({
     const controller = new AbortController();
     abortRef.current = controller;
     setLoadingSuggestions(true);
+    setSuggestionError(false);
 
     try {
       const { data } = await api.get<Suggestion[]>('/products/autocomplete', {
@@ -113,8 +120,10 @@ export const SearchAutocomplete = ({
         signal: controller.signal,
       });
       setSuggestions(data);
-    } catch {
-      // cancelled or failed — ignore
+    } catch (err: any) {
+      if (err?.name !== 'CanceledError' && err?.code !== 'ERR_CANCELED') {
+        setSuggestionError(true);
+      }
     } finally {
       setLoadingSuggestions(false);
     }
@@ -165,6 +174,11 @@ export const SearchAutocomplete = ({
     e.stopPropagation();
     removeRecentSearch(search);
     setRecentSearches(getRecentSearches());
+  };
+
+  const handleClearAllRecent = () => {
+    clearAllRecentSearches();
+    setRecentSearches([]);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -230,9 +244,17 @@ export const SearchAutocomplete = ({
           {/* Recent searches */}
           {showRecent && (
             <div className="py-1.5">
-              <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-[hsl(var(--foreground-tertiary))]">
-                Recent
-              </p>
+              <div className="flex items-center justify-between px-3 py-1">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-[hsl(var(--foreground-tertiary))]">
+                  Recent
+                </p>
+                <button
+                  onClick={handleClearAllRecent}
+                  className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Clear all
+                </button>
+              </div>
               {recentSearches.map((search, idx) => (
                 <button
                   key={search}
@@ -292,6 +314,15 @@ export const SearchAutocomplete = ({
                   </button>
                 );
               })}
+            </div>
+          )}
+
+          {/* Search error */}
+          {showError && (
+            <div className="px-3 py-4 text-center">
+              <AlertCircle className="h-4 w-4 text-muted-foreground mx-auto mb-1.5" />
+              <p className="text-sm text-muted-foreground">Search unavailable</p>
+              <p className="text-xs text-muted-foreground/70 mt-0.5">Press Enter to search anyway</p>
             </div>
           )}
 
