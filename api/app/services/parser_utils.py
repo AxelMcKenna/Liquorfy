@@ -8,6 +8,11 @@ VOLUME_PATTERN = re.compile(
     r"(?P<count>\d+)\s*[x×]\s*(?P<unit>\d+(?:\.\d+)?)\s*(?P<measure>ml|cl|l|ltr|litre|litres|liters)\b",
     re.IGNORECASE,
 )
+# "12pk 250ml Cans", "6 Pack 330ml Bottles" — pack keyword then volume
+PACK_VOLUME_PATTERN = re.compile(
+    r"(?P<count>\d+)\s*(?:pk|pack)\s+(?P<unit>\d+(?:\.\d+)?)\s*(?P<measure>ml|cl|l|ltr|litre|litres|liters)\b",
+    re.IGNORECASE,
+)
 SINGLE_VOLUME_PATTERN = re.compile(
     r"(?P<unit>\d+(?:\.\d+)?)\s*(?P<measure>ml|cl|l|ltr|litre|litres|liters)\b",
     re.IGNORECASE,
@@ -31,6 +36,13 @@ def parse_volume(text: str) -> ParsedVolume:
     normalized = text.lower().replace("litre", "l").replace("litres", "l")
     normalized = normalized.replace("liters", "l").replace("ltr", "l")
     match = VOLUME_PATTERN.search(normalized)
+    if match:
+        count = int(match.group("count"))
+        unit_value = float(match.group("unit"))
+        measure = match.group("measure")
+        unit_ml = unit_value * (1000 if measure == "l" else 10 if measure == "cl" else 1)
+        return ParsedVolume(pack_count=count, unit_volume_ml=unit_ml, total_volume_ml=count * unit_ml)
+    match = PACK_VOLUME_PATTERN.search(normalized)
     if match:
         count = int(match.group("count"))
         unit_value = float(match.group("unit"))
