@@ -35,7 +35,7 @@ def parse_volume(text: str) -> ParsedVolume:
         unit_value = float(match.group("unit"))
         measure = match.group("measure")
         unit_ml = unit_value * (1000 if measure == "l" else 10 if measure == "cl" else 1)
-        return ParsedVolume(pack_count=None, unit_volume_ml=unit_ml, total_volume_ml=unit_ml)
+        return ParsedVolume(pack_count=1, unit_volume_ml=unit_ml, total_volume_ml=unit_ml)
     return ParsedVolume(pack_count=None, unit_volume_ml=None, total_volume_ml=None)
 
 
