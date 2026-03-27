@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { LogOut, User, Eye, Settings } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -13,7 +14,6 @@ export const UserMenu = () => {
   const firstName = rawName.split(' ')[0];
   const displayName = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
 
-  // Position dropdown using fixed positioning to escape overflow clipping
   const rect = buttonRef.current?.getBoundingClientRect();
   const dropdownStyle = rect
     ? { top: rect.bottom + 4, right: Math.max(8, window.innerWidth - rect.right) }
@@ -32,14 +32,14 @@ export const UserMenu = () => {
         </span>
       </button>
 
-      {menuOpen && (
+      {menuOpen && createPortal(
         <>
           <div
-            className="fixed inset-0 z-40"
+            className="fixed inset-0 z-[9998]"
             onClick={() => setMenuOpen(false)}
           />
           <div
-            className="fixed w-48 sm:w-56 bg-white rounded-lg shadow-lg border z-50 py-1"
+            className="fixed w-48 sm:w-56 bg-white rounded-lg shadow-lg border z-[9999] py-1"
             style={dropdownStyle}
           >
             <a
@@ -69,7 +69,8 @@ export const UserMenu = () => {
               Sign Out
             </button>
           </div>
-        </>
+        </>,
+        document.body
       )}
     </div>
   );
