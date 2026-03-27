@@ -255,14 +255,27 @@
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
 }
 
-/* Hero diagonal clip for asymmetric split */
+/* Hero diagonal clip for asymmetric split — uses pseudo-element to avoid clipping dropdown */
 .hero-clip {
-  clip-path: polygon(0 0, 100% 0, 100% 93%, 0 100%);
+  position: relative;
+}
+
+.hero-clip::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 7%;
+  background: hsl(var(--background));
+  clip-path: polygon(0 100%, 100% 0, 100% 100%);
+  pointer-events: none;
+  z-index: 20;
 }
 
 @media (min-width: 768px) {
-  .hero-clip {
-    clip-path: polygon(0 0, 100% 0, 100% 88%, 0 100%);
+  .hero-clip::after {
+    height: 12%;
   }
 }
 
