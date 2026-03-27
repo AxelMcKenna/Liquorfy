@@ -122,6 +122,11 @@ export const PriceAlertButton = ({
                   className="pl-7"
                 />
               </div>
+              {thresholdPrice && parseFloat(thresholdPrice) >= currentPrice && (
+                <p className="text-xs text-amber-600 mt-1.5">
+                  Threshold is at or above the current price (${currentPrice.toFixed(2)}). Set it lower to get notified on a drop.
+                </p>
+              )}
             </div>
 
             {/* Promo checkbox */}

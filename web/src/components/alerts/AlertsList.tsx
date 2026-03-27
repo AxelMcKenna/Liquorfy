@@ -45,7 +45,7 @@ export const AlertsList = () => {
     return (
       <div className="py-8 text-center">
         <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center mx-auto mb-3">
-          <Bell className="h-5 w-5 text-red-400" />
+          <Bell className="h-6 w-6 text-red-400" />
         </div>
         <p className="text-sm text-destructive">{error}</p>
       </div>
@@ -56,7 +56,7 @@ export const AlertsList = () => {
     return (
       <div className="border border-dashed rounded-xl p-8 sm:p-10 text-center">
         <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-          <Bell className="h-5 w-5 text-primary" />
+          <Bell className="h-6 w-6 text-primary" />
         </div>
         <p className="text-foreground font-medium mb-1">No price alerts set</p>
         <p className="text-sm text-muted-foreground max-w-xs mx-auto">

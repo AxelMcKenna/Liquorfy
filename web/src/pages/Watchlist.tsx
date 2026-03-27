@@ -145,7 +145,7 @@ const WatchlistPage = () => {
                 ) : (
                   <div className="border border-dashed rounded-xl p-10 md:p-14 text-center">
                     <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center mx-auto mb-4">
-                      <Heart className="h-5 w-5 text-red-400" />
+                      <Heart className="h-6 w-6 text-red-400" />
                     </div>
                     <p className="text-foreground font-medium mb-1">
                       {favouriteIds.size > 0

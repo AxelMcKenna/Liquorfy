@@ -23,9 +23,17 @@ export const FavouriteButton = ({
       onClick={(e) => {
         e.stopPropagation();
         onToggle();
-        toast(isFavourite ? 'Removed from watchlist' : 'Added to watchlist', {
-          duration: 2000,
-        });
+        if (isFavourite) {
+          toast('Removed from watchlist', {
+            duration: 4000,
+            action: {
+              label: 'Undo',
+              onClick: () => onToggle(),
+            },
+          });
+        } else {
+          toast('Added to watchlist', { duration: 2000 });
+        }
       }}
       className={cn(
         'rounded-full',

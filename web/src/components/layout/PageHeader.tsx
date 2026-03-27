@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 
 interface PageHeaderProps {
@@ -17,12 +17,17 @@ export const PageHeader = ({
   sticky = false,
 }: PageHeaderProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleBack = () => {
-    if (backTo === "history") {
+    if (backTo !== "history") {
+      navigate(backTo);
+    } else if (location.key !== "default") {
+      // Browser has real history to go back to
       navigate(-1);
     } else {
-      navigate(backTo);
+      // Direct URL visit — no history, fall back to explore
+      navigate("/explore");
     }
   };
 
