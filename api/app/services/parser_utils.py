@@ -5,10 +5,17 @@ from dataclasses import dataclass
 from typing import Optional
 
 VOLUME_PATTERN = re.compile(
-    r"(?P<count>\d+)\s*[x×]\s*(?P<unit>\d+(?:\.\d+)?)\s*(?P<measure>ml|cl|l|ltr|litre|litres|liters)"
+    r"(?P<count>\d+)\s*[x×]\s*(?P<unit>\d+(?:\.\d+)?)\s*(?P<measure>ml|cl|l|ltr|litre|litres|liters)\b",
+    re.IGNORECASE,
 )
 SINGLE_VOLUME_PATTERN = re.compile(
-    r"(?P<unit>\d+(?:\.\d+)?)\s*(?P<measure>ml|cl|l|ltr|litre|litres|liters)"
+    r"(?P<unit>\d+(?:\.\d+)?)\s*(?P<measure>ml|cl|l|ltr|litre|litres|liters)\b",
+    re.IGNORECASE,
+)
+# Matches "12 Bottles", "6 Pack Cans", "15 Pk Btls", "(6 Pack)" — pack count without unit volume
+PACK_ONLY_PATTERN = re.compile(
+    r"(?P<count>\d+)\s*(?:pk|pack)?\s*(?:bottles?|btls?|cans?|pack|pk)\b",
+    re.IGNORECASE,
 )
 ABV_PATTERN = re.compile(r"(?<!\d)(?P<abv>\d{1,2}(?:\.\d+)?)\s*%")
 
@@ -36,6 +43,12 @@ def parse_volume(text: str) -> ParsedVolume:
         measure = match.group("measure")
         unit_ml = unit_value * (1000 if measure == "l" else 10 if measure == "cl" else 1)
         return ParsedVolume(pack_count=1, unit_volume_ml=unit_ml, total_volume_ml=unit_ml)
+    # Pack-only: "12 Bottles", "6 Pack Cans" — assume 330ml (standard NZ beer bottle/can)
+    match = PACK_ONLY_PATTERN.search(normalized)
+    if match:
+        count = int(match.group("count"))
+        if count >= 2:  # Avoid matching stray single digits
+            return ParsedVolume(pack_count=count, unit_volume_ml=330.0, total_volume_ml=count * 330.0)
     return ParsedVolume(pack_count=None, unit_volume_ml=None, total_volume_ml=None)
 
 
