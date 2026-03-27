@@ -187,6 +187,24 @@ class Scraper(abc.ABC):
         abv = extract_abv(name)
         sugar_free = detect_sugar_free(name)
 
+        # Infer standard bottle volume from category when parser couldn't extract it.
+        # Single-unit wines are virtually always 750ml; spirits 700ml.
+        vol_ml = volume.total_volume_ml
+        unit_ml = volume.unit_volume_ml
+        pack = volume.pack_count
+        if vol_ml is None and resolved_category:
+            _WINE_CATS = {"wine", "red_wine", "white_wine", "rose", "sparkling", "champagne", "fortified_wine"}
+            _SPIRIT_CATS = {"spirits", "vodka", "gin", "rum", "whisky", "bourbon", "scotch", "tequila", "brandy", "liqueur"}
+            cat_lower = resolved_category.lower()
+            if cat_lower in _WINE_CATS:
+                vol_ml = 750.0
+                unit_ml = 750.0
+                pack = 1
+            elif cat_lower in _SPIRIT_CATS:
+                vol_ml = 700.0
+                unit_ml = 700.0
+                pack = 1
+
         return {
             "chain": self.chain,
             "source_id": source_id,
@@ -198,15 +216,15 @@ class Scraper(abc.ABC):
             "promo_text": promo_text[:255] if promo_text else None,
             "promo_ends_at": promo_ends_at,
             "is_member_only": is_member_only,
-            "pack_count": volume.pack_count,
-            "unit_volume_ml": volume.unit_volume_ml,
-            "total_volume_ml": volume.total_volume_ml,
+            "pack_count": pack,
+            "unit_volume_ml": unit_ml,
+            "total_volume_ml": vol_ml,
             "abv_percent": abv,
             "is_sugar_free": sugar_free,
             "canonical_product_id": compute_canonical_id(
                 brand=resolved_brand,
-                total_volume_ml=volume.total_volume_ml,
-                pack_count=volume.pack_count,
+                total_volume_ml=vol_ml,
+                pack_count=pack,
                 abv_percent=abv,
                 category=resolved_category,
                 is_sugar_free=sugar_free,
