@@ -1,4 +1,10 @@
-"""One-time backfill: compute canonical_product_id for existing products.
+"""Enhanced backfill: compute canonical_product_id for all products.
+
+Improvements over the original:
+- Processes ALL products (not just those with all fields already set)
+- Re-infers brand from name to normalize cross-chain brand inconsistencies
+- Applies standard volume inference (wine→750ml, spirits→700ml) for
+  products with no volume in their name
 
 Usage:
     cd api && python scripts/backfill_canonical_ids.py
@@ -8,71 +14,109 @@ import asyncio
 import sys
 from pathlib import Path
 
-# Add parent directory to path so we can import app modules
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from sqlalchemy import select, update
 
 from app.db.models import Product
-from app.db.session import get_async_session
+from app.db.session import async_transaction, get_async_session
 from app.services.canonical import compute_canonical_id
+from app.services.parser_utils import infer_brand, infer_category
 
 BATCH_SIZE = 1000
+
+_WINE_CATS = frozenset({
+    "wine", "red_wine", "white_wine", "rose", "sparkling", "champagne", "fortified_wine",
+})
+_SPIRIT_CATS = frozenset({
+    "spirits", "vodka", "gin", "rum", "whisky", "bourbon", "scotch",
+    "tequila", "brandy", "cognac", "liqueur",
+})
+
+
+def _infer_standard_volume(category: str | None) -> tuple[float | None, int | None]:
+    """Return (total_volume_ml, pack_count) for single-unit products by category."""
+    if not category:
+        return None, None
+    cat = category.lower()
+    if cat in _WINE_CATS:
+        return 750.0, 1
+    if cat in _SPIRIT_CATS:
+        return 700.0, 1
+    return None, None
 
 
 async def backfill() -> None:
     async with get_async_session() as session:
-        # Fetch all products that could be matched (have brand + volume + pack)
-        result = await session.execute(
-            select(Product).where(
-                Product.brand.isnot(None),
-                Product.total_volume_ml.isnot(None),
-                Product.pack_count.isnot(None),
-            )
-        )
+        result = await session.execute(select(Product))
         products = result.scalars().all()
 
-        updated = 0
-        skipped = 0
+    total = len(products)
+    print(f"Total products to process: {total}")
 
-        for i in range(0, len(products), BATCH_SIZE):
-            batch = products[i : i + BATCH_SIZE]
-            for product in batch:
-                canonical_id = compute_canonical_id(
-                    brand=product.brand,
-                    total_volume_ml=product.total_volume_ml,
-                    pack_count=product.pack_count,
-                    abv_percent=product.abv_percent,
-                    category=product.category,
-                    is_sugar_free=product.is_sugar_free,
-                )
-                if canonical_id and canonical_id != product.canonical_product_id:
+    updated = 0
+    skipped = 0
+    unmatchable = 0
+
+    for i in range(0, total, BATCH_SIZE):
+        batch = products[i : i + BATCH_SIZE]
+        batch_updates: list[tuple] = []  # (id, canonical_product_id)
+
+        for product in batch:
+            # Re-infer brand from name to normalize across chains.
+            # Fall back to stored brand if inference returns nothing.
+            brand = product.brand
+            if product.name:
+                inferred = infer_brand(product.name)
+                if inferred:
+                    brand = inferred
+
+            # Resolve volume: use stored values, or infer from category.
+            vol_ml = product.total_volume_ml
+            pack = product.pack_count
+            if vol_ml is None or pack is None:
+                cat = product.category
+                if cat is None and product.name:
+                    cat = infer_category(product.name)
+                inf_vol, inf_pack = _infer_standard_volume(cat)
+                if vol_ml is None:
+                    vol_ml = inf_vol
+                if pack is None:
+                    pack = inf_pack
+
+            canonical_id = compute_canonical_id(
+                name=product.name,
+                brand=brand,
+                total_volume_ml=vol_ml,
+                pack_count=pack,
+                category=product.category,
+                is_sugar_free=product.is_sugar_free or False,
+            )
+
+            if canonical_id is None:
+                unmatchable += 1
+            elif canonical_id != product.canonical_product_id:
+                batch_updates.append((product.id, canonical_id))
+                updated += 1
+            else:
+                skipped += 1
+
+        if batch_updates:
+            async with async_transaction() as session:
+                for prod_id, cid in batch_updates:
                     await session.execute(
                         update(Product)
-                        .where(Product.id == product.id)
-                        .values(canonical_product_id=canonical_id)
+                        .where(Product.id == prod_id)
+                        .values(canonical_product_id=cid)
                     )
-                    updated += 1
-                else:
-                    skipped += 1
 
-            await session.commit()
-            print(f"  Processed {min(i + BATCH_SIZE, len(products))}/{len(products)}")
+        done = min(i + BATCH_SIZE, total)
+        print(f"  {done}/{total} — updated={updated}, skipped={skipped}, unmatchable={unmatchable}")
 
-        # Count products that couldn't be matched (null required fields)
-        null_result = await session.execute(
-            select(Product).where(
-                (Product.brand.is_(None))
-                | (Product.total_volume_ml.is_(None))
-                | (Product.pack_count.is_(None))
-            )
-        )
-        unmatchable = len(null_result.scalars().all())
-
-        print(f"\nBackfill complete:")
-        print(f"  Updated:     {updated}")
-        print(f"  Skipped:     {skipped} (already correct)")
-        print(f"  Unmatchable: {unmatchable} (missing brand/volume/pack)")
+    print(f"\nBackfill complete:")
+    print(f"  Updated:     {updated}")
+    print(f"  Skipped:     {skipped} (canonical ID already correct)")
+    print(f"  Unmatchable: {unmatchable} (missing brand/volume even after inference)")
 
 
 if __name__ == "__main__":

@@ -84,19 +84,28 @@ KNOWN_BRANDS = [
     "Cloudy Bay", "Kim Crawford", "Oyster Bay", "Villa Maria", "Brancott",
     "Matua", "Nobilo", "Saint Clair", "Delegat", "Yealands", "Marlborough",
     "Wither Hills", "Monkey Bay", "Stoneleigh", "Whitehaven", "Invivo",
+    "Akarua", "Giesen", "Jules Taylor", "Mud House", "Main Divide",
+    "Matawhero", "Trinity Hill", "Te Mata",
 
     # Spirits
     "Gordon's", "Bombay", "Tanqueray", "Beefeater", "Hendrick's",
     "Smirnoff", "Absolut", "Grey Goose", "Belvedere", "Ketel One",
-    "Bacardi", "Captain Morgan", "Havana Club", "Malibu", "Kraken",
+    "Ciroc", "Finlandia", "42 Below",
+    "Bacardi", "Captain Morgan", "Havana Club", "Malibu", "Kraken", "Bumbu",
     "Jack Daniel's", "Jim Beam", "Johnnie Walker", "Jameson", "Chivas",
     "Glenfiddich", "Glenlivet", "Monkey Shoulder", "Famous Grouse",
-    "Jose Cuervo", "Patron", "1800", "Sauza", "El Jimador",
-    "Baileys", "Kahlua", "Cointreau", "Midori",
+    "Aberlour", "Balvenie", "Glenmorangie", "Highland Park", "Oban",
+    "Laphroaig", "Talisker", "Dalmore", "Bowmore", "Bruichladdich",
+    "Jose Cuervo", "Patron", "1800", "1792", "Sauza", "El Jimador",
+    "Baileys", "Kahlua", "Cointreau", "Midori", "Campari", "Aperol",
+    "Woodford Reserve", "Maker's Mark", "Wild Turkey",
+    "Diplomatico", "Mount Gay", "Sailor Jerry",
+    "8pm", "Scapegrace",
 
     # RTD/Cider
     "Smirnoff Ice", "Cruiser", "Codys", "KGB", "Woodstock",
     "Somersby", "Rekorderlig", "Strongbow", "Old Mout", "Zeffer",
+    "Long White", "White Claw", "Pals", "Alba",
 ]
 
 # Pre-compile word-boundary brand patterns, sorted longest-first so
@@ -105,6 +114,25 @@ _BRAND_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     (brand, re.compile(r"\b" + re.escape(brand.lower()) + r"\b"))
     for brand in sorted(KNOWN_BRANDS, key=len, reverse=True)
 ]
+
+# Words that must NOT appear as the second word in a two-word brand fallback.
+# Prevents "Akarua Pinot", "1792 Small", "Alba Cuba", etc.
+_FALLBACK_SECOND_WORD_REJECT = frozenset({
+    # Wine variety words
+    "pinot", "noir", "blanc", "gris", "grigio", "sauvignon", "chardonnay",
+    "merlot", "shiraz", "cabernet", "riesling", "malbec", "syrah",
+    # Spirit type words
+    "malt", "blended", "spiced", "bourbon", "scotch", "whisky", "whiskey",
+    "vodka", "gin", "rum", "tequila", "brandy", "cognac", "liqueur",
+    # Beer types
+    "lager", "ale", "stout", "porter", "pilsner", "ipa", "beer",
+    # RTD/cocktail words
+    "cuba", "libre", "sour", "mule", "margarita",
+    # Generic batch/cask descriptors (e.g. "1792 Small Batch")
+    "small", "batch", "cask", "barrel",
+    # Volume/format words (shouldn't end up here, but safety net)
+    "creme", "cream",
+})
 
 # Category keywords (ordered by specificity - more specific first)
 CATEGORY_KEYWORDS = {
@@ -192,8 +220,14 @@ def infer_brand(product_name: str) -> Optional[str]:
             return None
         potential_brand = words[start]
         if start + 1 < len(words) and len(words[start + 1]) > 2:
-            if words[start + 1].lower() not in common_descriptors:
-                potential_brand = f"{words[start]} {words[start + 1]}"
+            second = words[start + 1]
+            second_lower = second.lower()
+            if (
+                second_lower not in common_descriptors
+                and second_lower not in _FALLBACK_SECOND_WORD_REJECT
+                and not any(c.isdigit() for c in second)
+            ):
+                potential_brand = f"{words[start]} {second}"
         return potential_brand
 
     return None
