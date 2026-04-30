@@ -281,13 +281,13 @@ class LiquorlandScraper(Scraper):
                                         logger.warning(f"  Page {page_num}/{total_pages} returned no content ({consecutive_zero} consecutive)")
 
                                     logger.info(f"  Fetched page {page_num}/{total_pages}")
-
-                                    if consecutive_zero >= MAX_CONSECUTIVE_ZERO_PAGES:
-                                        logger.warning(f"  Skipping remaining pages after {MAX_CONSECUTIVE_ZERO_PAGES} consecutive empty pages")
-                                        break
                                 except Exception as e:
                                     logger.error(f"  Failed to fetch page {page_num}: {e}")
-                                    continue
+                                    consecutive_zero += 1
+
+                                if consecutive_zero >= MAX_CONSECUTIVE_ZERO_PAGES:
+                                    logger.warning(f"  Skipping remaining pages after {MAX_CONSECUTIVE_ZERO_PAGES} consecutive empty/failed pages")
+                                    break
                         else:
                             logger.info(f"  Only 1 page found")
                     finally:
