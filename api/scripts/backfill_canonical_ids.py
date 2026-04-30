@@ -5,6 +5,7 @@ Improvements over the original:
 - Re-infers brand from name to normalize cross-chain brand inconsistencies
 - Applies standard volume inference (wine→750ml, spirits→700ml) for
   products with no volume in their name
+- Uses paginated queries to stay within container memory limits
 
 Usage:
     cd api && python scripts/backfill_canonical_ids.py
@@ -16,14 +17,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 
 from app.db.models import Product
 from app.db.session import async_transaction, get_async_session
 from app.services.canonical import compute_canonical_id
 from app.services.parser_utils import infer_brand, infer_category
 
-BATCH_SIZE = 1000
+PAGE_SIZE = 2000
 
 _WINE_CATS = frozenset({
     "wine", "red_wine", "white_wine", "rose", "sparkling", "champagne", "fortified_wine",
@@ -47,24 +48,33 @@ def _infer_standard_volume(category: str | None) -> tuple[float | None, int | No
 
 
 async def backfill() -> None:
+    # Get total count
     async with get_async_session() as session:
-        result = await session.execute(select(Product))
-        products = result.scalars().all()
+        count_result = await session.execute(select(func.count()).select_from(Product))
+        total = count_result.scalar_one()
 
-    total = len(products)
     print(f"Total products to process: {total}")
 
     updated = 0
     skipped = 0
     unmatchable = 0
+    offset = 0
 
-    for i in range(0, total, BATCH_SIZE):
-        batch = products[i : i + BATCH_SIZE]
+    while offset < total:
+        # Load one page
+        async with get_async_session() as session:
+            result = await session.execute(
+                select(Product).order_by(Product.id).offset(offset).limit(PAGE_SIZE)
+            )
+            products = result.scalars().all()
+
+        if not products:
+            break
+
         batch_updates: list[tuple] = []  # (id, canonical_product_id)
 
-        for product in batch:
+        for product in products:
             # Re-infer brand from name to normalize across chains.
-            # Fall back to stored brand if inference returns nothing.
             brand = product.brand
             if product.name:
                 inferred = infer_brand(product.name)
@@ -110,8 +120,11 @@ async def backfill() -> None:
                         .values(canonical_product_id=cid)
                     )
 
-        done = min(i + BATCH_SIZE, total)
-        print(f"  {done}/{total} — updated={updated}, skipped={skipped}, unmatchable={unmatchable}")
+        offset += len(products)
+        print(
+            f"  {offset}/{total} — "
+            f"updated={updated}, skipped={skipped}, unmatchable={unmatchable}"
+        )
 
     print(f"\nBackfill complete:")
     print(f"  Updated:     {updated}")
