@@ -19,18 +19,46 @@ _ABV_RE = re.compile(r"\b\d{1,2}(?:\.\d+)?\s*%")
 _NOISE_RE = re.compile(r"\b(?:premium|classic|original|imported|range|nz|new zealand)\b", re.IGNORECASE)
 _MULTI_SPACE = re.compile(r"\s+")
 
+# Generic liquor type words that don't distinguish variants across chains.
+# e.g. "Absolut Vodka 700ml" vs "Absolut 700ml" should share a canonical ID.
+_BASE_TYPE_WORDS = frozenset({
+    "vodka", "gin", "rum", "whisky", "whiskey", "bourbon", "scotch",
+    "beer", "lager", "ale", "pilsner", "stout", "porter",
+    "wine", "cider", "tequila", "brandy", "cognac",
+    "spirits", "spirit", "liqueur", "rtd",
+})
+
+
+def _normalize_variant(variant: str) -> str:
+    """Collapse base-type-only variants to empty string.
+
+    Chains inconsistently include type words ("Vodka", "Lager") in names.
+    Stripping them ensures the same product matches across chains regardless.
+    """
+    words = variant.split()
+    if not words:
+        return ""
+    if all(w in _BASE_TYPE_WORDS for w in words):
+        return ""
+    while words and words[0] in _BASE_TYPE_WORDS:
+        words.pop(0)
+    while words and words[-1] in _BASE_TYPE_WORDS:
+        words.pop()
+    return " ".join(words)
+
 
 def _extract_variant(name: str, brand: str) -> str:
     """Extract the variant/flavour descriptor from a product name.
 
-    Strips brand, volume, pack count, ABV, and common noise words to
-    isolate what makes this product unique within the same brand+size.
+    Strips brand, volume, pack count, ABV, common noise words, and pure
+    base-type words to isolate what makes this product unique within the
+    same brand+size.
 
     Examples:
-        "Absolut Vodka Citron 700ml"  → "vodka citron"
+        "Absolut Vodka Citron 700ml"  → "citron"
         "Absolut Passionfruit 700mL"  → "passionfruit"
-        "Heineken Lager 330ml 12 Pack" → "lager"
-        "Jack Daniel's Tennessee Whiskey 700ml" → "tennessee whiskey"
+        "Heineken Lager 330ml 12 Pack" → ""
+        "Jack Daniel's Tennessee Whiskey 700ml" → "tennessee"
     """
     s = name.lower()
     # Strip brand (may appear as multi-word like "Jack Daniel's")
@@ -41,9 +69,9 @@ def _extract_variant(name: str, brand: str) -> str:
     s = _PACK_RE.sub("", s)
     s = _ABV_RE.sub("", s)
     s = _NOISE_RE.sub("", s)
-    # Collapse whitespace and trim
+    # Collapse whitespace, trim, then normalize away pure base-type variants
     s = _MULTI_SPACE.sub(" ", s).strip()
-    return s
+    return _normalize_variant(s)
 
 
 def compute_canonical_id(
