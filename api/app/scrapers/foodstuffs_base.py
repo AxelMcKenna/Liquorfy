@@ -429,6 +429,14 @@ class FoodstuffsAPIScraper(Scraper, APIAuthBase):
 
                 seen_store_ids.add(store.id)
 
+                # Deduplicate by source_id (same product can appear in
+                # overlapping categories like "Beer" and "Craft Beer").
+                # Last occurrence wins so later categories can refine data.
+                deduped: dict[str, dict] = {}
+                for p in store_products:
+                    deduped[p["source_id"]] = p
+                store_products = list(deduped.values())
+
                 # Process in batches
                 for batch_start in range(0, len(store_products), PERSIST_BATCH_SIZE):
                     batch = store_products[batch_start:batch_start + PERSIST_BATCH_SIZE]
@@ -594,7 +602,7 @@ class FoodstuffsAPIScraper(Scraper, APIAuthBase):
                             logger.error(f"Error parsing product: {e}")
 
                     # Fetch remaining pages if needed
-                    hits_per_page = 100
+                    hits_per_page = 50  # must match _fetch_category default
                     total_pages = (total_products + hits_per_page - 1) // hits_per_page
 
                     for page_num in range(1, total_pages):

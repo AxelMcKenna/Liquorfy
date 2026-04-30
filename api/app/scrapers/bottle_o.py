@@ -278,8 +278,11 @@ class BottleOScraper(Scraper):
 
     async def parse_products(self, payload: str) -> List[dict]:
         """
-        Parse products from tagged CityHive HTML (per-store or franchise).
+        Parse products from tagged CityHive HTML or franchise GTM JSON.
         """
+        stripped = payload.lstrip()
+        if stripped.startswith("{"):
+            return self._parse_franchise_products(payload)
         return self._parse_cityhive_products(payload)
 
     def _parse_cityhive_products(self, tagged_html: str) -> List[dict]:

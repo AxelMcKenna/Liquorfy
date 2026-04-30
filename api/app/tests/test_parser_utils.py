@@ -4,7 +4,7 @@ from app.services.parser_utils import ParsedVolume, extract_abv, parse_volume
 def test_parse_single_volume():
     volume = parse_volume("Gordon's Gin 1L")
     assert volume.total_volume_ml == 1000
-    assert volume.pack_count is None
+    assert volume.pack_count == 1
 
 
 def test_parse_multi_pack():

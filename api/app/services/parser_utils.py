@@ -33,8 +33,8 @@ class ParsedVolume:
 
 
 def parse_volume(text: str) -> ParsedVolume:
-    normalized = text.lower().replace("litre", "l").replace("litres", "l")
-    normalized = normalized.replace("liters", "l").replace("ltr", "l")
+    normalized = text.lower().replace("litres", "l").replace("liters", "l")
+    normalized = normalized.replace("litre", "l").replace("ltr", "l")
     match = VOLUME_PATTERN.search(normalized)
     if match:
         count = int(match.group("count"))

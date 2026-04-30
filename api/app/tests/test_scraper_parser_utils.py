@@ -82,7 +82,7 @@ class TestParseVolume:
         """Test parsing of single bottle volumes."""
         result = parse_volume(text)
 
-        assert result.pack_count is None, f"Pack count should be None for single '{text}'"
+        assert result.pack_count == 1, f"Pack count should be 1 for single '{text}'"
         assert result.unit_volume_ml == expected_unit, f"Unit volume mismatch for '{text}'"
         assert result.total_volume_ml == expected_total, f"Total volume mismatch for '{text}'"
 
@@ -91,7 +91,6 @@ class TestParseVolume:
         "Best Beer Ever",  # No volume
         "Premium Whisky",  # No volume
         "",  # Empty
-        "12 bottles",  # No ml/l
         "Pack of 6",  # No volume unit
     ])
     def test_no_volume_found(self, text):
@@ -101,6 +100,13 @@ class TestParseVolume:
         assert result.pack_count is None
         assert result.unit_volume_ml is None
         assert result.total_volume_ml is None
+
+    def test_pack_only_bottles(self):
+        """Test that '12 bottles' infers pack count with default 330ml."""
+        result = parse_volume("12 bottles")
+        assert result.pack_count == 12
+        assert result.unit_volume_ml == 330.0
+        assert result.total_volume_ml == 12 * 330.0
 
     def test_volume_case_insensitivity(self):
         """Test that volume parsing is case insensitive."""
@@ -543,7 +549,7 @@ class TestVolumeClParsing:
         result = parse_volume("Cognac 70cl")
         assert result.unit_volume_ml == 700.0
         assert result.total_volume_ml == 700.0
-        assert result.pack_count is None
+        assert result.pack_count == 1
 
     def test_pack_cl_volume(self):
         """'6x70cl' should parse to 6 × 700ml = 4200ml."""
