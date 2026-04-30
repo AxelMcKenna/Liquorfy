@@ -5,7 +5,7 @@ Improvements over the original:
 - Re-infers brand from name to normalize cross-chain brand inconsistencies
 - Applies standard volume inference (wine→750ml, spirits→700ml) for
   products with no volume in their name
-- Uses paginated queries to stay within container memory limits
+- Selects only needed columns to minimise memory within 256 MiB container
 
 Usage:
     cd api && python scripts/backfill_canonical_ids.py
@@ -24,7 +24,7 @@ from app.db.session import async_transaction, get_async_session
 from app.services.canonical import compute_canonical_id
 from app.services.parser_utils import infer_brand, infer_category
 
-PAGE_SIZE = 2000
+PAGE_SIZE = 5000
 
 _WINE_CATS = frozenset({
     "wine", "red_wine", "white_wine", "rose", "sparkling", "champagne", "fortified_wine",
@@ -36,7 +36,6 @@ _SPIRIT_CATS = frozenset({
 
 
 def _infer_standard_volume(category: str | None) -> tuple[float | None, int | None]:
-    """Return (total_volume_ml, pack_count) for single-unit products by category."""
     if not category:
         return None, None
     cat = category.lower()
@@ -48,7 +47,6 @@ def _infer_standard_volume(category: str | None) -> tuple[float | None, int | No
 
 
 async def backfill() -> None:
-    # Get total count
     async with get_async_session() as session:
         count_result = await session.execute(select(func.count()).select_from(Product))
         total = count_result.scalar_one()
@@ -60,34 +58,45 @@ async def backfill() -> None:
     unmatchable = 0
     offset = 0
 
+    # Select only the 7 columns we need — avoids loading large text/image fields
+    cols = (
+        Product.id,
+        Product.name,
+        Product.brand,
+        Product.total_volume_ml,
+        Product.pack_count,
+        Product.category,
+        Product.is_sugar_free,
+        Product.canonical_product_id,
+    )
+
     while offset < total:
-        # Load one page
         async with get_async_session() as session:
             result = await session.execute(
-                select(Product).order_by(Product.id).offset(offset).limit(PAGE_SIZE)
+                select(*cols).order_by(Product.id).offset(offset).limit(PAGE_SIZE)
             )
-            products = result.scalars().all()
+            rows = result.all()
 
-        if not products:
+        if not rows:
             break
 
-        batch_updates: list[tuple] = []  # (id, canonical_product_id)
+        batch_updates: list[tuple] = []
 
-        for product in products:
-            # Re-infer brand from name to normalize across chains.
-            brand = product.brand
-            if product.name:
-                inferred = infer_brand(product.name)
+        for row in rows:
+            (prod_id, name, brand, vol_ml, pack, category,
+             is_sugar_free, existing_cid) = row
+
+            # Re-infer brand from name to normalize across chains
+            if name:
+                inferred = infer_brand(name)
                 if inferred:
                     brand = inferred
 
-            # Resolve volume: use stored values, or infer from category.
-            vol_ml = product.total_volume_ml
-            pack = product.pack_count
+            # Apply standard volume inference when volume is missing
             if vol_ml is None or pack is None:
-                cat = product.category
-                if cat is None and product.name:
-                    cat = infer_category(product.name)
+                cat = category
+                if cat is None and name:
+                    cat = infer_category(name)
                 inf_vol, inf_pack = _infer_standard_volume(cat)
                 if vol_ml is None:
                     vol_ml = inf_vol
@@ -95,18 +104,18 @@ async def backfill() -> None:
                     pack = inf_pack
 
             canonical_id = compute_canonical_id(
-                name=product.name,
+                name=name,
                 brand=brand,
                 total_volume_ml=vol_ml,
                 pack_count=pack,
-                category=product.category,
-                is_sugar_free=product.is_sugar_free or False,
+                category=category,
+                is_sugar_free=is_sugar_free or False,
             )
 
             if canonical_id is None:
                 unmatchable += 1
-            elif canonical_id != product.canonical_product_id:
-                batch_updates.append((product.id, canonical_id))
+            elif canonical_id != existing_cid:
+                batch_updates.append((prod_id, canonical_id))
                 updated += 1
             else:
                 skipped += 1
@@ -120,7 +129,7 @@ async def backfill() -> None:
                         .values(canonical_product_id=cid)
                     )
 
-        offset += len(products)
+        offset += len(rows)
         print(
             f"  {offset}/{total} — "
             f"updated={updated}, skipped={skipped}, unmatchable={unmatchable}"
