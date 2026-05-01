@@ -283,6 +283,30 @@
   background: hsl(var(--primary) / 0.15);
 }
 
+/* Skeleton loading shimmer */
+@keyframes shimmer-wave {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.5) 50%,
+    transparent 100%
+  );
+  animation: shimmer-wave 1.5s ease-in-out infinite;
+}
+
 /* MapLibre popup styles */
 .maplibregl-popup-close-button {
   padding: 4px 8px;
