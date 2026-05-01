@@ -5,10 +5,10 @@ export const ProductSkeleton = () => {
   return (
     <Card className="h-full flex flex-col overflow-hidden border bg-card">
       {/* Animated pulse bar */}
-      <div className="h-1 bg-primary/20 animate-pulse" />
+      <div className="h-1 bg-primary/20 skeleton-shimmer" />
 
       {/* Image skeleton - Light background */}
-      <div className="w-full aspect-[4/3] sm:aspect-square bg-gray-200 animate-pulse" />
+      <div className="w-full aspect-[4/3] sm:aspect-square bg-gray-200 skeleton-shimmer" />
 
       <CardContent className="p-2 sm:p-4 flex-1 space-y-2 sm:space-y-3">
         {/* Title and brand */}
