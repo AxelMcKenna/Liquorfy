@@ -164,7 +164,7 @@ export const Explore = () => {
   };
 
   return (
-    <div className="min-h-screen bg-secondary overflow-x-hidden">
+    <div className="min-h-screen bg-secondary overflow-x-clip">
       <div className="sticky top-0 z-50 bg-secondary">
         <Header
           query={searchQuery}
