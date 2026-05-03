@@ -1,3 +1,6 @@
+# NOTE: `${VAR}` interpolation below reads from `.env` (compose default), NOT
+# from the per-service `env_file:` directive. On servers using `.env.production`
+# as the source of truth, symlink it: `ln -sf .env.production .env`.
 services:
   redis:
     image: redis:7-alpine

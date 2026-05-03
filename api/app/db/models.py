@@ -106,6 +106,11 @@ class Price(Base):
         Index("ix_price_product_id", "product_id"),  # FK index for JOINs
         Index("ix_price_store_id", "store_id"),  # FK index for JOINs
         Index("ix_price_last_seen", "last_seen_at"),  # For cleanup queries
+        Index(
+            "ix_price_promo_ends_at_partial",
+            "promo_ends_at",
+            postgresql_where=text("promo_ends_at IS NOT NULL"),
+        ),
     )
 
 
