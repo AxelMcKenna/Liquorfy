@@ -19,12 +19,19 @@ from app.db.models import Price, Store
 logger = logging.getLogger(__name__)
 
 
+_SWEEP_BATCH_SIZE = 1000
+
+
 async def sweep_chain_promos(
     session: AsyncSession,
     chain: str,
     run_started_at: datetime,
 ) -> int:
     """Clear promo fields on Price rows not seen in the current chain-wide run.
+
+    Paginated by ID to keep each UPDATE statement under Supabase's statement
+    timeout, even when many rows match (Supabase disk IO can be slow during
+    incidents).
 
     Args:
         session: Active async DB session (caller manages commit).
@@ -34,24 +41,38 @@ async def sweep_chain_promos(
     Returns:
         Number of rows updated.
     """
-    stmt = (
-        update(Price)
-        .where(
-            Price.store_id.in_(select(Store.id).where(Store.chain == chain)),
-            Price.last_seen_at < run_started_at,
-            Price.promo_price_nzd.is_not(None),
+    total = 0
+    while True:
+        ids = (
+            await session.execute(
+                select(Price.id)
+                .where(
+                    Price.store_id.in_(
+                        select(Store.id).where(Store.chain == chain)
+                    ),
+                    Price.last_seen_at < run_started_at,
+                    Price.promo_price_nzd.is_not(None),
+                )
+                .limit(_SWEEP_BATCH_SIZE)
+            )
+        ).scalars().all()
+        if not ids:
+            break
+        await session.execute(
+            update(Price)
+            .where(Price.id.in_(ids))
+            .values(
+                promo_price_nzd=None,
+                promo_text=None,
+                promo_ends_at=None,
+            )
         )
-        .values(
-            promo_price_nzd=None,
-            promo_text=None,
-            promo_ends_at=None,
-        )
-    )
-    result = await session.execute(stmt)
-    count = getattr(result, "rowcount", 0) or 0
-    if count:
-        logger.info(f"Swept {count} stale promo(s) for chain={chain}")
-    return count
+        total += len(ids)
+        if len(ids) < _SWEEP_BATCH_SIZE:
+            break
+    if total:
+        logger.info(f"Swept {total} stale promo(s) for chain={chain}")
+    return total
 
 
 async def sweep_store_promos(
@@ -61,6 +82,9 @@ async def sweep_store_promos(
 ) -> int:
     """Clear promo fields on Price rows not seen in the current per-store run.
 
+    Paginated by ID to keep each UPDATE statement under Supabase's statement
+    timeout, even when many rows match.
+
     Args:
         session: Active async DB session (caller manages commit).
         store_id: UUID of the store that was just scraped.
@@ -69,24 +93,36 @@ async def sweep_store_promos(
     Returns:
         Number of rows updated.
     """
-    stmt = (
-        update(Price)
-        .where(
-            Price.store_id == store_id,
-            Price.last_seen_at < run_started_at,
-            Price.promo_price_nzd.is_not(None),
+    total = 0
+    while True:
+        ids = (
+            await session.execute(
+                select(Price.id)
+                .where(
+                    Price.store_id == store_id,
+                    Price.last_seen_at < run_started_at,
+                    Price.promo_price_nzd.is_not(None),
+                )
+                .limit(_SWEEP_BATCH_SIZE)
+            )
+        ).scalars().all()
+        if not ids:
+            break
+        await session.execute(
+            update(Price)
+            .where(Price.id.in_(ids))
+            .values(
+                promo_price_nzd=None,
+                promo_text=None,
+                promo_ends_at=None,
+            )
         )
-        .values(
-            promo_price_nzd=None,
-            promo_text=None,
-            promo_ends_at=None,
-        )
-    )
-    result = await session.execute(stmt)
-    count = result.rowcount
-    if count:
-        logger.info(f"Swept {count} stale promo(s) for store_id={store_id}")
-    return count
+        total += len(ids)
+        if len(ids) < _SWEEP_BATCH_SIZE:
+            break
+    if total:
+        logger.info(f"Swept {total} stale promo(s) for store_id={store_id}")
+    return total
 
 
 __all__ = ["sweep_chain_promos", "sweep_store_promos"]

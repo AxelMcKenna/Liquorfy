@@ -123,46 +123,63 @@ class TestIsStale:
 # sweep_chain_promos
 # ---------------------------------------------------------------------------
 
+def _select_result(ids: list) -> MagicMock:
+    """Mock for `await session.execute(select(...))`: yields .scalars().all() = ids."""
+    result = MagicMock()
+    scalars = MagicMock()
+    scalars.all = MagicMock(return_value=list(ids))
+    result.scalars = MagicMock(return_value=scalars)
+    return result
+
+
+def _update_result() -> MagicMock:
+    """Mock for `await session.execute(update(...))`: opaque; we just need rowcount-ish."""
+    return MagicMock()
+
+
 class TestSweepChainPromos:
     """Tests for freshness.sweep_chain_promos."""
 
     @pytest.mark.asyncio
-    async def test_calls_update_with_correct_conditions(self):
-        """sweep_chain_promos should issue an UPDATE filtering by chain and last_seen_at."""
+    async def test_paginated_sweep_clears_all_rows(self):
+        """When matching rows exist, sweep loops until SELECT returns < batch_size."""
         from app.services.freshness import sweep_chain_promos
 
-        mock_result = MagicMock()
-        mock_result.rowcount = 3
+        # First SELECT returns 3 ids → UPDATE → loop exits because 3 < batch_size.
         mock_session = AsyncMock()
-        mock_session.execute = AsyncMock(return_value=mock_result)
+        mock_session.execute = AsyncMock(side_effect=[
+            _select_result([uuid.uuid4(), uuid.uuid4(), uuid.uuid4()]),
+            _update_result(),
+        ])
 
-        run_started_at = _now_utc()
-        count = await sweep_chain_promos(mock_session, "liquorland", run_started_at)
+        count = await sweep_chain_promos(mock_session, "liquorland", _now_utc())
 
         assert count == 3
-        mock_session.execute.assert_called_once()
+        # Exactly one SELECT and one UPDATE.
+        assert mock_session.execute.call_count == 2
 
     @pytest.mark.asyncio
-    async def test_returns_zero_when_no_rows_updated(self):
+    async def test_returns_zero_when_nothing_matches(self):
         from app.services.freshness import sweep_chain_promos
 
-        mock_result = MagicMock()
-        mock_result.rowcount = 0
         mock_session = AsyncMock()
-        mock_session.execute = AsyncMock(return_value=mock_result)
+        mock_session.execute = AsyncMock(side_effect=[_select_result([])])
 
         count = await sweep_chain_promos(mock_session, "liquorland", _now_utc())
         assert count == 0
+        # Just one SELECT, no UPDATE.
+        assert mock_session.execute.call_count == 1
 
     @pytest.mark.asyncio
     async def test_logs_when_rows_swept(self, caplog):
         import logging
         from app.services.freshness import sweep_chain_promos
 
-        mock_result = MagicMock()
-        mock_result.rowcount = 5
         mock_session = AsyncMock()
-        mock_session.execute = AsyncMock(return_value=mock_result)
+        mock_session.execute = AsyncMock(side_effect=[
+            _select_result([uuid.uuid4()] * 5),
+            _update_result(),
+        ])
 
         with caplog.at_level(logging.INFO, logger="app.services.freshness"):
             await sweep_chain_promos(mock_session, "countdown", _now_utc())
@@ -178,47 +195,47 @@ class TestSweepStorePromos:
     """Tests for freshness.sweep_store_promos."""
 
     @pytest.mark.asyncio
-    async def test_calls_update_scoped_to_store(self):
+    async def test_paginated_sweep_scoped_to_store(self):
         from app.services.freshness import sweep_store_promos
 
         store_id = uuid.uuid4()
-        mock_result = MagicMock()
-        mock_result.rowcount = 2
         mock_session = AsyncMock()
-        mock_session.execute = AsyncMock(return_value=mock_result)
+        mock_session.execute = AsyncMock(side_effect=[
+            _select_result([uuid.uuid4(), uuid.uuid4()]),
+            _update_result(),
+        ])
 
         count = await sweep_store_promos(mock_session, store_id, _now_utc())
 
         assert count == 2
-        mock_session.execute.assert_called_once()
+        assert mock_session.execute.call_count == 2
 
     @pytest.mark.asyncio
-    async def test_different_stores_get_separate_calls(self):
-        """Each store sweep should be an independent execute call."""
+    async def test_different_stores_get_separate_sweeps(self):
+        """Each store sweep should issue its own SELECT/UPDATE pair."""
         from app.services.freshness import sweep_store_promos
 
-        mock_result = MagicMock()
-        mock_result.rowcount = 1
         mock_session = AsyncMock()
-        mock_session.execute = AsyncMock(return_value=mock_result)
+        # First sweep: 1 row + UPDATE. Second sweep: 1 row + UPDATE.
+        mock_session.execute = AsyncMock(side_effect=[
+            _select_result([uuid.uuid4()]),
+            _update_result(),
+            _select_result([uuid.uuid4()]),
+            _update_result(),
+        ])
 
-        store_a = uuid.uuid4()
-        store_b = uuid.uuid4()
         run_started_at = _now_utc()
+        await sweep_store_promos(mock_session, uuid.uuid4(), run_started_at)
+        await sweep_store_promos(mock_session, uuid.uuid4(), run_started_at)
 
-        await sweep_store_promos(mock_session, store_a, run_started_at)
-        await sweep_store_promos(mock_session, store_b, run_started_at)
-
-        assert mock_session.execute.call_count == 2
+        assert mock_session.execute.call_count == 4
 
     @pytest.mark.asyncio
     async def test_returns_zero_when_nothing_to_sweep(self):
         from app.services.freshness import sweep_store_promos
 
-        mock_result = MagicMock()
-        mock_result.rowcount = 0
         mock_session = AsyncMock()
-        mock_session.execute = AsyncMock(return_value=mock_result)
+        mock_session.execute = AsyncMock(side_effect=[_select_result([])])
 
         count = await sweep_store_promos(mock_session, uuid.uuid4(), _now_utc())
         assert count == 0
@@ -232,13 +249,15 @@ class TestRunPromoExpiryCleanup:
     """Tests for workers.cleanup.run_promo_expiry_cleanup."""
 
     @pytest.mark.asyncio
-    async def test_issues_update_and_returns_count(self):
+    async def test_paginated_cleanup_returns_count(self):
         from app.workers.cleanup import run_promo_expiry_cleanup
 
-        mock_result = MagicMock()
-        mock_result.rowcount = 7
         mock_session = AsyncMock()
-        mock_session.execute = AsyncMock(return_value=mock_result)
+        # SELECT 7 ids → UPDATE → loop exits because 7 < batch_size.
+        mock_session.execute = AsyncMock(side_effect=[
+            _select_result([uuid.uuid4()] * 7),
+            _update_result(),
+        ])
 
         @asynccontextmanager
         async def mock_transaction():
@@ -248,16 +267,14 @@ class TestRunPromoExpiryCleanup:
             count = await run_promo_expiry_cleanup()
 
         assert count == 7
-        mock_session.execute.assert_called_once()
+        assert mock_session.execute.call_count == 2
 
     @pytest.mark.asyncio
     async def test_returns_zero_when_no_expired_promos(self):
         from app.workers.cleanup import run_promo_expiry_cleanup
 
-        mock_result = MagicMock()
-        mock_result.rowcount = 0
         mock_session = AsyncMock()
-        mock_session.execute = AsyncMock(return_value=mock_result)
+        mock_session.execute = AsyncMock(side_effect=[_select_result([])])
 
         @asynccontextmanager
         async def mock_transaction():
@@ -273,10 +290,11 @@ class TestRunPromoExpiryCleanup:
         import logging
         from app.workers.cleanup import run_promo_expiry_cleanup
 
-        mock_result = MagicMock()
-        mock_result.rowcount = 4
         mock_session = AsyncMock()
-        mock_session.execute = AsyncMock(return_value=mock_result)
+        mock_session.execute = AsyncMock(side_effect=[
+            _select_result([uuid.uuid4()] * 4),
+            _update_result(),
+        ])
 
         @asynccontextmanager
         async def mock_transaction():
