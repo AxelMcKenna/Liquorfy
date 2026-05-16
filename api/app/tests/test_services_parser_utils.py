@@ -24,14 +24,14 @@ class TestParseVolume:
         result = parse_volume("Gordon's Gin 1L")
         assert result.total_volume_ml == 1000
         assert result.unit_volume_ml == 1000
-        assert result.pack_count is None
+        assert result.pack_count == 1
 
     def test_parse_single_volume_ml(self):
         """Should parse single ml volumes."""
         result = parse_volume("Heineken 330ml")
         assert result.total_volume_ml == 330
         assert result.unit_volume_ml == 330
-        assert result.pack_count is None
+        assert result.pack_count == 1
 
     def test_parse_multipack_x(self):
         """Should parse multipack with x separator."""
