@@ -19,6 +19,8 @@ export function buildProductQueryParams(filters: ProductFilters): URLSearchParam
   if (filters.unique_products) params.append("unique_products", "true");
   if (filters.price_min !== undefined) params.append("price_min", filters.price_min.toString());
   if (filters.price_max !== undefined) params.append("price_max", filters.price_max.toString());
+  if (filters.std_drinks_min !== undefined) params.append("std_drinks_min", filters.std_drinks_min.toString());
+  if (filters.std_drinks_max !== undefined) params.append("std_drinks_max", filters.std_drinks_max.toString());
   if (filters.sort) params.append("sort", filters.sort);
   if (filters.lat !== undefined) params.append("lat", filters.lat.toString());
   if (filters.lon !== undefined) params.append("lon", filters.lon.toString());

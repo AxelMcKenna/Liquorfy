@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Header } from '@/components/layout/Header';
 import { FilterSidebar } from '@/components/filters/FilterSidebar';
 import { FilterChips } from '@/components/filters/FilterChips';
+import { ResultsBar } from '@/components/filters/ResultsBar';
 import { ProductGrid } from '@/components/products/ProductGrid';
 import { usePaginatedProducts } from '@/hooks/usePaginatedProducts';
 import { useFilters } from '@/hooks/useFilters';
@@ -257,6 +258,8 @@ export const Explore = () => {
                   : `${(currentPage - 1) * 24 + 1}–${Math.min(currentPage * 24, total)} of ${total} products`}
               </div>
             )}
+
+            <ResultsBar />
 
             <ProductGrid
               products={products}

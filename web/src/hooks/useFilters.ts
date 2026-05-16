@@ -18,6 +18,8 @@ export const useFilters = () => {
     const promo_only = searchParams.get('promo_only') === 'true' ? true : undefined;
     const price_min = searchParams.get('price_min') ? parseFloat(searchParams.get('price_min')!) : undefined;
     const price_max = searchParams.get('price_max') ? parseFloat(searchParams.get('price_max')!) : undefined;
+    const std_drinks_min = searchParams.get('std_drinks_min') ? parseFloat(searchParams.get('std_drinks_min')!) : undefined;
+    const std_drinks_max = searchParams.get('std_drinks_max') ? parseFloat(searchParams.get('std_drinks_max')!) : undefined;
     const sortParam = searchParams.get('sort') as SortOption | null;
     const sort = sortParam || (promo_only ? SortOption.DISCOUNT : SortOption.BEST_VALUE);
     const storeIdsParam = searchParams.get('store_ids');
@@ -30,6 +32,8 @@ export const useFilters = () => {
       promo_only,
       price_min,
       price_max,
+      std_drinks_min,
+      std_drinks_max,
       sort,
       store_ids,
     };
@@ -83,7 +87,9 @@ export const useFilters = () => {
       filters.chains?.length ||
       filters.promo_only ||
       filters.price_min ||
-      filters.price_max
+      filters.price_max ||
+      filters.std_drinks_min ||
+      filters.std_drinks_max
     );
   }, [filters]);
 
@@ -93,6 +99,7 @@ export const useFilters = () => {
     if (filters.chains?.length) count += filters.chains.length;
     if (filters.promo_only) count++;
     if (filters.price_min || filters.price_max) count++;
+    if (filters.std_drinks_min || filters.std_drinks_max) count++;
     return count;
   }, [filters]);
 

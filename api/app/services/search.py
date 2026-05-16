@@ -175,6 +175,16 @@ async def fetch_products(
         filters.append(Product.total_volume_ml >= params.vol_min_ml)
     if params.vol_max_ml is not None:
         filters.append(Product.total_volume_ml <= params.vol_max_ml)
+    if params.std_drinks_min is not None or params.std_drinks_max is not None:
+        std_drinks_filter_expr = (
+            (Product.total_volume_ml / 1000.0)
+            * (Product.abv_percent / 100.0)
+            * STANDARD_DRINK_FACTOR
+        )
+        if params.std_drinks_min is not None:
+            filters.append(std_drinks_filter_expr >= params.std_drinks_min)
+        if params.std_drinks_max is not None:
+            filters.append(std_drinks_filter_expr <= params.std_drinks_max)
     # Only count a promo as valid if promo_ends_at is NULL or in the future
     now_ts = func.now()
     valid_promo = case(

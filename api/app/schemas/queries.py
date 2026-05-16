@@ -28,6 +28,8 @@ class ProductQueryParams(BaseModel):
     pack_max: Optional[int] = None
     vol_min_ml: Optional[float] = None
     vol_max_ml: Optional[float] = None
+    std_drinks_min: Optional[float] = None
+    std_drinks_max: Optional[float] = None
     price_min: Optional[float] = None
     price_max: Optional[float] = None
     sugar_free: Optional[bool] = None

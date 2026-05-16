@@ -134,6 +134,8 @@ export interface ProductFilters {
   unique_products?: boolean;
   price_min?: number;
   price_max?: number;
+  std_drinks_min?: number;
+  std_drinks_max?: number;
   sort?: SortOption;
   store_ids?: string[];
   lat?: number;
