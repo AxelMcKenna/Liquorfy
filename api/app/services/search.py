@@ -110,7 +110,47 @@ async def fetch_products(
 
     filters = []
     user_point_geog = None
-    if params.lat is not None and params.lon is not None and params.radius_km is not None:
+    has_location = (
+        params.lat is not None and params.lon is not None and params.radius_km is not None
+    )
+    if has_location:
+        user_point = func.ST_SetSRID(func.ST_MakePoint(params.lon, params.lat), 4326)
+        user_point_geog = cast(user_point, Geography)
+
+    text_similarity = None
+    if params.q:
+        # Two-CTE pattern: forces the planner to use ix_products_name_trgm (GIN on
+        # lower(name)) and ix_prices_product_store. Without MATERIALIZED the CTEs
+        # get inlined and the planner reverts to a slow geo-first plan.
+        q_lower = params.q.lower().strip()
+        pattern = f"%{q_lower}%"
+
+        matching_products_cte = (
+            select(Product.id.label("id"))
+            .where(func.lower(Product.name).like(pattern))
+            .cte(name="matching_products")
+            .prefix_with("MATERIALIZED")
+        )
+        filters.append(Product.id.in_(select(matching_products_cte.c.id)))
+
+        if has_location:
+            radius_m = params.radius_km * 1000
+            nearby_stores_cte = (
+                select(Store.id.label("id"))
+                .where(Store.geog.is_not(None))
+                .where(func.ST_DWithin(Store.geog, user_point_geog, radius_m))
+                .cte(name="nearby_stores")
+                .prefix_with("MATERIALIZED")
+            )
+            filters.append(Store.id.in_(select(nearby_stores_cte.c.id)))
+
+        # Similarity is computed only in SELECT for relevance sort, never as a
+        # predicate — predicate use bypasses the trigram index.
+        name_sim = func.similarity(func.lower(Product.name), q_lower)
+        brand_sim = func.coalesce(func.similarity(func.lower(Product.brand), q_lower), literal(0))
+        text_similarity = func.greatest(name_sim, brand_sim).label("text_similarity")
+    elif has_location:
+        # No text search: use the cached store-IDs fast path.
         nearby_store_ids = await _get_store_ids_within_radius(
             session,
             lat=params.lat,
@@ -119,36 +159,7 @@ async def fetch_products(
         )
         if not nearby_store_ids:
             return ProductListResponse(items=[], total=0, page=page, page_size=page_size)
-
-        user_point = func.ST_SetSRID(func.ST_MakePoint(params.lon, params.lat), 4326)
-        user_point_geog = cast(user_point, Geography)
         filters.append(Store.id.in_(nearby_store_ids))
-
-    # Trigram similarity threshold for fuzzy text search (0 = no match, 1 = exact)
-    _TRGM_THRESHOLD = 0.15
-
-    text_similarity = None
-    if params.q:
-        q_lower = params.q.lower().strip()
-        # Use trigram similarity for fuzzy matching (leverages GIN trgm indexes)
-        name_sim = func.similarity(func.lower(Product.name), q_lower)
-        brand_sim = func.coalesce(func.similarity(func.lower(Product.brand), q_lower), literal(0))
-        # Also keep LIKE for substring matches that similarity might miss
-        # (e.g. "12pk" inside "Steinlager Classic 12pk 330ml Bottles")
-        pattern = f"%{q_lower}%"
-        like_match = or_(
-            func.lower(Product.name).like(pattern),
-            func.lower(Product.brand).like(pattern),
-        )
-        filters.append(
-            or_(
-                name_sim >= _TRGM_THRESHOLD,
-                brand_sim >= _TRGM_THRESHOLD,
-                like_match,
-            )
-        )
-        # Best similarity score across name and brand — used for relevance sorting
-        text_similarity = func.greatest(name_sim, brand_sim).label("text_similarity")
     if params.chain:
         filters.append(Product.chain.in_(params.chain))
     if params.store:
