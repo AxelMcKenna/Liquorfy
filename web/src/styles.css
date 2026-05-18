@@ -255,30 +255,6 @@
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
 }
 
-/* Hero diagonal clip for asymmetric split — uses pseudo-element to avoid clipping dropdown */
-.hero-clip {
-  position: relative;
-}
-
-.hero-clip::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 7%;
-  background: hsl(var(--background));
-  clip-path: polygon(0 100%, 100% 0, 100% 100%);
-  pointer-events: none;
-  z-index: 5;
-}
-
-@media (min-width: 768px) {
-  .hero-clip::after {
-    height: 12%;
-  }
-}
-
 ::selection {
   background: hsl(var(--primary) / 0.15);
 }

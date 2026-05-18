@@ -141,12 +141,12 @@ export const Landing = () => {
     <div className="min-h-screen bg-background overflow-x-hidden flex flex-col">
 
       {/* ===== HERO — Split tension: left text, right search ===== */}
-      <section className="bg-primary hero-clip relative">
+      <section className="bg-primary relative">
         {/* Layered gradients for depth */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_15%_25%,rgba(255,255,255,0.08),transparent_50%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_85%_75%,rgba(0,0,0,0.15),transparent_50%)]" />
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 pt-6 pb-28 md:pb-44">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 pt-6 pb-16 md:pb-24">
           {/* Top nav — logo left, account right */}
           <div className="flex items-center justify-between mb-10 md:mb-20 animate-fade-up">
             <Link to="/" className="text-xl font-semibold text-white tracking-[0.15em] font-sans">
