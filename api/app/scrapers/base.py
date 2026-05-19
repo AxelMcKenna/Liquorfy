@@ -245,12 +245,18 @@ class Scraper(abc.ABC):
         if not products_data:
             return 0
 
+        from app.services.canonical import attach_canonical_id
+
         now = datetime.now(timezone.utc)
         changed_count = 0
 
         # Step 1: Bulk upsert all products
         product_values = []
         for product_data in products_data:
+            # Ensure the cross-chain matcher runs regardless of whether the
+            # scraper built this dict via `build_product_dict` (which already
+            # populates canonical_product_id) or as a raw dict.
+            attach_canonical_id(product_data)
             product_values.append({
                 "chain": product_data["chain"],
                 "source_product_id": product_data["source_id"],
@@ -399,8 +405,13 @@ class Scraper(abc.ABC):
         Upsert product and its prices.
         Returns True if any changes were made, False otherwise.
         """
+        from app.services.canonical import attach_canonical_id
+
         now = datetime.now(timezone.utc)
         changed = False
+
+        # Ensure the cross-chain matcher runs on every product write.
+        attach_canonical_id(product_data)
 
         # Upsert product
         stmt = insert(Product).values(

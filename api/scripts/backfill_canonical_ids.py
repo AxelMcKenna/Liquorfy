@@ -103,12 +103,14 @@ async def backfill() -> None:
                 if pack is None:
                     pack = inf_pack
 
+            # category is intentionally NOT passed: it was removed from the
+            # hash inputs because chains use incompatible category
+            # vocabularies and including it fragments matches.
             canonical_id = compute_canonical_id(
                 name=name,
                 brand=brand,
                 total_volume_ml=vol_ml,
                 pack_count=pack,
-                category=category,
                 is_sugar_free=is_sugar_free or False,
             )
 

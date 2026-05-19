@@ -89,25 +89,62 @@ def compute_canonical_id(
     Products with the same canonical ID are considered the same physical
     product across different retail chains.
 
-    Returns None if any required field (brand, total_volume_ml, pack_count)
-    is missing — those products cannot be reliably matched.
+    Returns None if total_volume_ml or pack_count is missing, or if no
+    usable brand can be derived from either the caller or the name.
+
+    Hash inputs: brand | variant | total_volume_ml | pack_count | is_sugar_free.
+    `category` is intentionally excluded — chains use incompatible category
+    vocabularies (e.g. "Wine / Red Wine" vs "red_wine") and including it
+    fragments otherwise-identical SKUs into different canonical IDs.
+    `abv_percent` is excluded for the same reason — retailers inconsistently
+    embed ABV in product names.
+
+    The `category` and `abv_percent` parameters are kept for call-site
+    compatibility but ignored.
     """
-    if brand is None or total_volume_ml is None or pack_count is None:
+    del abv_percent, category  # accepted for compat; never hashed
+
+    if total_volume_ml is None or pack_count is None:
         return None
 
-    variant = _extract_variant(name, brand) if name else ""
+    # Re-infer brand from name so the runtime matcher produces the same
+    # canonical ID as the backfill (which always re-infers). Chains often
+    # store brand inconsistently in the brand column.
+    resolved_brand = brand
+    if name:
+        from app.services.parser_utils import infer_brand
+        inferred = infer_brand(name)
+        if inferred:
+            resolved_brand = inferred
 
-    # ABV is intentionally excluded from the key because retailers
-    # inconsistently include it in product names, causing the same product
-    # to get different canonical IDs across chains.  Genuine ABV-based
-    # variants (e.g. "5%" vs "7%") are rare for otherwise-identical names;
-    # the variant descriptor handles meaningful differences.
+    if not resolved_brand:
+        return None
+
+    variant = _extract_variant(name, resolved_brand) if name else ""
+
     key = "|".join([
-        brand.strip().lower(),
+        resolved_brand.strip().lower(),
         variant,
         str(total_volume_ml),
         str(pack_count),
-        category.strip().lower() if category else "NO_CAT",
-        str(is_sugar_free),
+        str(bool(is_sugar_free)),
     ])
     return uuid.uuid5(_NAMESPACE, key)
+
+
+def attach_canonical_id(product_data: dict) -> dict:
+    """Populate `canonical_product_id` on a scraper product dict in place.
+
+    Use this from scraper upsert paths that build raw product dicts directly
+    (instead of going through `Scraper.build_product_dict`). Idempotent —
+    safe to call on dicts that already carry a canonical id; it will be
+    overwritten with the freshly-computed value so the matcher always runs.
+    """
+    product_data["canonical_product_id"] = compute_canonical_id(
+        name=product_data.get("name"),
+        brand=product_data.get("brand"),
+        total_volume_ml=product_data.get("total_volume_ml"),
+        pack_count=product_data.get("pack_count"),
+        is_sugar_free=bool(product_data.get("is_sugar_free", False)),
+    )
+    return product_data

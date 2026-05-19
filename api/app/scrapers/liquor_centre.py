@@ -589,6 +589,12 @@ class LiquorCentreScraper(Scraper):
                     session.add(target_store)
                     await session.flush()
 
+            # Cross-chain matcher: must run before insert. Liquor Centre
+            # builds raw dicts and never passes through build_product_dict.
+            from app.services.canonical import attach_canonical_id
+            for product_data in store_products:
+                attach_canonical_id(product_data)
+
             # Bulk upsert products
             product_values = []
             for product_data in store_products:
@@ -719,8 +725,13 @@ class LiquorCentreScraper(Scraper):
         Liquor Centre has different prices at different stores, so we only
         create/update the price for the specific store that was scraped.
         """
+        from app.services.canonical import attach_canonical_id
+
         now = datetime.now(timezone.utc)
         changed = False
+
+        # Cross-chain matcher: must run before insert.
+        attach_canonical_id(product_data)
 
         # Find the specific store for this product
         store_identifier = product_data.get("store_identifier")

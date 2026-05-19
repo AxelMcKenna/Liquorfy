@@ -455,8 +455,13 @@ class BrowserScraper(Scraper):
         Upsert product and its prices.
         Returns True if any changes were made, False otherwise.
         """
+        from app.services.canonical import attach_canonical_id
+
         now = datetime.now(timezone.utc)
         changed = False
+
+        # Cross-chain matcher: must run before insert.
+        attach_canonical_id(product_data)
 
         # Upsert product
         stmt = insert(Product).values(

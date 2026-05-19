@@ -815,6 +815,13 @@ class BottleOScraper(Scraper):
                 session.add(target_store)
                 await session.flush()
 
+        # Cross-chain matcher: must run before insert so every product row
+        # gets a canonical_product_id. Bottle-O builds raw dicts and never
+        # passes through Scraper.build_product_dict.
+        from app.services.canonical import attach_canonical_id
+        for p in products_data:
+            attach_canonical_id(p)
+
         # Bulk upsert products
         product_values = [self._product_values(p) for p in products_data]
         stmt = insert(Product).values(product_values)
