@@ -850,12 +850,16 @@ class TestCountdownScraper:
         assert scraper.chain == "countdown"
 
     def test_parse_product_basic(self):
-        """Test parsing basic product from API response."""
+        """Test parsing basic product from API response.
+
+        Note: the Woolworths API's `name` field already includes the brand
+        and variety prefix, so the scraper must not re-concatenate them.
+        """
         scraper = CountdownAPIScraper()
 
         product_data = {
             "sku": "1234567",
-            "name": "Pale Ale 330ml",
+            "name": "Garage Project Day of the Dead Pale Ale",
             "brand": "Garage Project",
             "variety": "Day of the Dead",
             "price": {
@@ -864,7 +868,8 @@ class TestCountdownScraper:
                 "isClubPrice": False
             },
             "images": {"big": "https://example.com/image.jpg"},
-            "slug": "garage-project-day-of-the-dead"
+            "slug": "garage-project-day-of-the-dead",
+            "size": {"volumeSize": "330ml"}
         }
 
         result = scraper._parse_product(product_data)
@@ -879,7 +884,7 @@ class TestCountdownScraper:
 
         product_data = {
             "sku": "7654321",
-            "name": "Lager 12x330ml",
+            "name": "Steinlager Pure Lager",
             "brand": "Steinlager",
             "variety": "Pure",
             "price": {
@@ -890,13 +895,100 @@ class TestCountdownScraper:
                 "isClubPrice": False
             },
             "images": {},
-            "slug": "steinlager-pure"
+            "slug": "steinlager-pure",
+            "size": {"volumeSize": "12x330ml"}
         }
 
         result = scraper._parse_product(product_data)
 
         assert result["price_nzd"] == 29.99
         assert result["promo_price_nzd"] == 24.99
+
+    def test_parse_product_does_not_duplicate_brand(self):
+        """Regression test for the brand-tripling bug.
+
+        Production data: ~80% of Countdown products had names like
+        "kim crawford  kim crawford chardonnay 750mL" because the scraper
+        was concatenating `brand + variety + name`, all three of which
+        already contained the brand prefix in the upstream API.
+
+        The corrected name must contain each token exactly once and must
+        not contain a double-space.
+        """
+        scraper = CountdownAPIScraper()
+
+        product_data = {
+            "sku": "abc123",
+            "name": "Kim Crawford Chardonnay",
+            "brand": "Kim Crawford",
+            "variety": "",
+            "price": {"originalPrice": 18.99, "isSpecial": False, "isClubPrice": False},
+            "images": {},
+            "slug": "kim-crawford-chardonnay",
+            "size": {"volumeSize": "750mL"},
+        }
+
+        result = scraper._parse_product(product_data)
+        name = result["name"]
+
+        assert "  " not in name, f"name should not contain double-spaces: {name!r}"
+        # "Kim Crawford" appears exactly once.
+        assert name.lower().count("kim crawford") == 1, name
+        # Volume suffix is appended.
+        assert "750mL" in name
+
+    def test_parse_product_complex_variety_no_duplication(self):
+        """Regression test for the complex multi-field corruption.
+
+        Pattern observed in production:
+        "speights summit lime speights summit beer lager lime 12x330mL"
+        — both `name` and `brand` already contained the brand+subbrand,
+        plus `variety` contained the descriptor.
+        """
+        scraper = CountdownAPIScraper()
+
+        product_data = {
+            "sku": "def456",
+            "name": "Speights Summit Beer Lager Lime",
+            "brand": "Speights",
+            "variety": "Summit Lime",
+            "price": {"originalPrice": 24.99, "isSpecial": False, "isClubPrice": False},
+            "images": {},
+            "slug": "speights-summit-lime",
+            "size": {"volumeSize": "12x330mL"},
+        }
+
+        result = scraper._parse_product(product_data)
+        name = result["name"]
+
+        assert "  " not in name
+        # "Speights" should appear once, not twice.
+        assert name.lower().count("speights") == 1, name
+        # "Summit" should appear once, not twice.
+        assert name.lower().count("summit") == 1, name
+
+    def test_parse_product_falls_back_when_name_missing(self):
+        """If the API returns an empty `name`, fall back to brand + variety
+        so we still produce a usable record instead of silently dropping it.
+        """
+        scraper = CountdownAPIScraper()
+
+        product_data = {
+            "sku": "xyz789",
+            "name": "",
+            "brand": "Heineken",
+            "variety": "Lager",
+            "price": {"originalPrice": 5.99, "isSpecial": False, "isClubPrice": False},
+            "images": {},
+            "slug": "heineken-lager",
+            "size": {"volumeSize": "330ml"},
+        }
+
+        result = scraper._parse_product(product_data)
+        name = result["name"]
+
+        assert "Heineken" in name
+        assert "Lager" in name
 
 
 # ============================================================================

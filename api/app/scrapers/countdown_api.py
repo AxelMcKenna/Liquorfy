@@ -128,8 +128,16 @@ class CountdownAPIScraper(Scraper):
         brand = product_data.get("brand") or ""
         variety = product_data.get("variety") or ""
 
-        # Full product name
-        full_name = f"{brand} {variety} {name}".strip()
+        # The Woolworths API's `name` field already contains the brand and
+        # variety prefix (e.g. "Kim Crawford Chardonnay 750mL"), so use it
+        # verbatim. Earlier code concatenated `brand + variety + name`, which
+        # tripled the prefix and produced strings like
+        # "kim crawford  kim crawford chardonnay 750mL" — corrupting ~80% of
+        # Countdown products and breaking cross-chain canonical matching.
+        full_name = name.strip()
+        if not full_name:
+            # Defensive fallback for the rare item where `name` is missing.
+            full_name = " ".join(p for p in (brand, variety) if p).strip()
 
         # Price info
         price_info = product_data.get("price", {})
