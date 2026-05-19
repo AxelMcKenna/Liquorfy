@@ -380,11 +380,14 @@ class TestBottleOScraper:
         products = await scraper.parse_products(tagged_html)
 
         assert len(products) == 2
-        assert products[0]["source_id"] == "abc123def456"
+        # source_id is derived from the chain-wide product URL slug so the
+        # same SKU at different stores collapses to one product row.
+        assert products[0]["source_id"] == "test-beer"
         assert products[0]["name"] == "Test Beer 6 x 330ml"
         assert products[0]["price_nzd"] == 24.99
         assert products[0]["chain"] == "bottle_o"
         assert products[0]["store_identifier"] == "test-store"
+        assert products[1]["source_id"] == "test-wine"
 
     @pytest.mark.asyncio
     async def test_parse_products_from_gtm_data(self):
@@ -462,6 +465,224 @@ class TestBottleOScraper:
         assert scraper._normalize_name("Test Beer 12 x 330ml") == "test beer 12x330ml"
         assert scraper._normalize_name("Test  Beer") == "test beer"
         assert scraper._normalize_name("TEST BEER") == "test beer"
+
+    @pytest.mark.asyncio
+    async def test_same_sku_different_stores_shares_source_id(self):
+        """Two stores returning the same SKU must yield the same source_id.
+
+        This is the regression test for the per-store duplicate-product bug:
+        previously source_id came from id="line_<hex>" (per-store inventory ID)
+        so the same Corona at 200 stores became 200 product rows. The fix is
+        to derive source_id from the chain-wide product URL slug instead.
+        """
+        scraper = BottleOScraper()
+
+        # Same product (/product/corona-extra-6x355ml) at two different stores,
+        # with different per-store line_<hex> IDs and different prices.
+        store_a_html = (
+            '<!--METADATA:store=albany,category=beer,page=1-->'
+            '<html><body>'
+            '<div class="talker" id="line_aaaaaaaaaaaa">'
+            '  <a href="/product/corona-extra-6x355ml">'
+            '    <div class="talker__name">'
+            '      <span>Corona Extra</span>'
+            '      <span class="talker__name__size">6 x 355ml</span>'
+            '    </div>'
+            '    <div class="price"><span class="price__sell">$17.99</span></div>'
+            '  </a>'
+            '</div>'
+            '</body></html>'
+        )
+        store_b_html = (
+            '<!--METADATA:store=botany,category=beer,page=1-->'
+            '<html><body>'
+            '<div class="talker" id="line_bbbbbbbbbbbb">'
+            '  <a href="/product/corona-extra-6x355ml">'
+            '    <div class="talker__name">'
+            '      <span>Corona Extra</span>'
+            '      <span class="talker__name__size">6 x 355ml</span>'
+            '    </div>'
+            '    <div class="price"><span class="price__sell">$19.49</span></div>'
+            '  </a>'
+            '</div>'
+            '</body></html>'
+        )
+
+        store_a = await scraper.parse_products(store_a_html)
+        store_b = await scraper.parse_products(store_b_html)
+
+        assert len(store_a) == 1
+        assert len(store_b) == 1
+
+        assert store_a[0]["source_id"] == store_b[0]["source_id"] == "corona-extra-6x355ml"
+        assert store_a[0]["store_identifier"] == "albany"
+        assert store_b[0]["store_identifier"] == "botany"
+        # Prices vary per store but the product identity does not.
+        assert store_a[0]["price_nzd"] == 17.99
+        assert store_b[0]["price_nzd"] == 19.49
+
+    @pytest.mark.asyncio
+    async def test_skips_talker_without_usable_href(self):
+        """A talker with no usable href must be skipped, not faked into a row."""
+        scraper = BottleOScraper()
+
+        html = (
+            '<!--METADATA:store=test-store,category=beer,page=1-->'
+            '<html><body>'
+            '<div class="talker" id="line_xxxxxxxx">'
+            '  <div class="talker__name"><span>Orphan Beer</span></div>'
+            '  <div class="price"><span class="price__sell">$9.99</span></div>'
+            '</div>'
+            '</body></html>'
+        )
+
+        products = await scraper.parse_products(html)
+        assert products == []
+
+
+# ============================================================================
+# Liquor Centre Scraper Tests
+# ============================================================================
+
+
+class TestLiquorCentreScraper:
+    """Tests for the Liquor Centre scraper (CityHive platform)."""
+
+    @pytest.mark.asyncio
+    async def test_parse_uses_url_slug_as_source_id(self):
+        """source_id must come from the product URL slug, not id=line_<hex>."""
+        from app.scrapers.liquor_centre import LiquorCentreScraper
+
+        scraper = LiquorCentreScraper(scrape_all_stores=False)
+
+        tagged_html = (
+            '<!--METADATA:store=beerescourt,category=beer,page=1-->'
+            '<html><body>'
+            '<div class="talker" id="line_a1b2c3d4e5f6">'
+            '  <a href="/product/speights-gold-medal-ale-12pk">'
+            '    <div class="talker__name">'
+            '      <span>Speight\'s Gold Medal Ale</span>'
+            '      <span class="talker__name__size">12 x 330ml</span>'
+            '    </div>'
+            '    <div class="price"><span class="price__sell">$25.99</span></div>'
+            '  </a>'
+            '</div>'
+            '</body></html>'
+        )
+
+        products = await scraper.parse_products(tagged_html)
+
+        assert len(products) == 1
+        assert products[0]["source_id"] == "speights-gold-medal-ale-12pk"
+        assert products[0]["chain"] == "liquor_centre"
+        assert products[0]["store_identifier"] == "beerescourt"
+        assert products[0]["price_nzd"] == 25.99
+
+    @pytest.mark.asyncio
+    async def test_same_sku_different_stores_shares_source_id(self):
+        """Regression test for the per-store duplicate-product bug."""
+        from app.scrapers.liquor_centre import LiquorCentreScraper
+
+        scraper = LiquorCentreScraper(scrape_all_stores=False)
+
+        store_a_html = (
+            '<!--METADATA:store=beerescourt,category=beer,page=1-->'
+            '<html><body>'
+            '<div class="talker" id="line_aaaa1111">'
+            '  <a href="/product/heineken-12pk">'
+            '    <div class="talker__name">'
+            '      <span>Heineken Lager</span>'
+            '      <span class="talker__name__size">12 x 330ml</span>'
+            '    </div>'
+            '    <div class="price"><span class="price__sell">$28.99</span></div>'
+            '  </a>'
+            '</div></body></html>'
+        )
+        store_b_html = (
+            '<!--METADATA:store=greenhithe,category=beer,page=1-->'
+            '<html><body>'
+            '<div class="talker" id="line_bbbb2222">'
+            '  <a href="/product/heineken-12pk">'
+            '    <div class="talker__name">'
+            '      <span>Heineken Lager</span>'
+            '      <span class="talker__name__size">12 x 330ml</span>'
+            '    </div>'
+            '    <div class="price"><span class="price__sell">$30.49</span></div>'
+            '  </a>'
+            '</div></body></html>'
+        )
+
+        a = await scraper.parse_products(store_a_html)
+        b = await scraper.parse_products(store_b_html)
+
+        assert a[0]["source_id"] == b[0]["source_id"] == "heineken-12pk"
+        assert a[0]["store_identifier"] == "beerescourt"
+        assert b[0]["store_identifier"] == "greenhithe"
+        assert a[0]["price_nzd"] == 28.99
+        assert b[0]["price_nzd"] == 30.49
+
+    @pytest.mark.asyncio
+    async def test_skips_talker_without_usable_href(self):
+        from app.scrapers.liquor_centre import LiquorCentreScraper
+
+        scraper = LiquorCentreScraper(scrape_all_stores=False)
+        html = (
+            '<!--METADATA:store=test-store,category=beer,page=1-->'
+            '<html><body>'
+            '<div class="talker" id="line_xxxxxxxx">'
+            '  <div class="talker__name"><span>Orphan Beer</span></div>'
+            '  <div class="price"><span class="price__sell">$9.99</span></div>'
+            '</div>'
+            '</body></html>'
+        )
+
+        products = await scraper.parse_products(html)
+        assert products == []
+
+
+# ============================================================================
+# Source-ID dedup DB integration tests
+# ============================================================================
+
+
+class TestCityHiveDedupOnUpsert:
+    """End-to-end-ish tests: with stable source_id, the DB upsert collapses
+    duplicates to one product row and N price rows.
+
+    These tests bypass the Postgres-specific ON CONFLICT path (SQLite test DB)
+    by exercising the parse + (chain, source_product_id) identity invariant
+    directly. The DB-layer collapse is then guaranteed by the existing
+    `uq_product_source` unique constraint plus the existing
+    on_conflict_do_update wiring in `_upsert_products_batch`.
+    """
+
+    @pytest.mark.asyncio
+    async def test_bottle_o_two_stores_one_product_identity(self):
+        scraper = BottleOScraper()
+        products = []
+        for store in ("albany", "botany", "napier"):
+            html = (
+                f'<!--METADATA:store={store},category=beer,page=1-->'
+                '<html><body>'
+                f'<div class="talker" id="line_{store}xxxx">'
+                '  <a href="/product/steinlager-pure-12x330ml">'
+                '    <div class="talker__name">'
+                '      <span>Steinlager Pure</span>'
+                '      <span class="talker__name__size">12 x 330ml</span>'
+                '    </div>'
+                '    <div class="price"><span class="price__sell">$29.99</span></div>'
+                '  </a>'
+                '</div></body></html>'
+            )
+            products.extend(await scraper.parse_products(html))
+
+        assert len(products) == 3
+        # All three rows would target the SAME product row at the DB layer.
+        source_ids = {p["source_id"] for p in products}
+        assert source_ids == {"steinlager-pure-12x330ml"}
+        # But each carries its own store_identifier so the per-store price
+        # upsert produces three Price rows.
+        assert {p["store_identifier"] for p in products} == {"albany", "botany", "napier"}
 
 
 # ============================================================================

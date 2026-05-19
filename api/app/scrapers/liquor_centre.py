@@ -40,6 +40,22 @@ from sqlalchemy.dialects.postgresql import insert
 logger = logging.getLogger(__name__)
 STORE_SLUG_PATTERN = re.compile(r"https?://([a-z0-9-]+)\.shop\.liquor-centre\.co\.nz", re.IGNORECASE)
 
+
+def _source_id_from_href(href: str) -> Optional[str]:
+    """Extract a chain-wide product slug from a CityHive product href.
+
+    CityHive product hrefs look like '/product/<slug>' (or absolute variants).
+    The trailing path segment is the same regardless of which store subdomain
+    served the page, so it is safe to use as `source_product_id`.
+    """
+    if not href:
+        return None
+    trimmed = href.split("?", 1)[0].split("#", 1)[0].rstrip("/")
+    if not trimmed:
+        return None
+    tail = trimmed.rsplit("/", 1)[-1].strip()
+    return tail or None
+
 # Rate limiting
 DELAY_BETWEEN_REQUESTS = 1.0
 DELAY_BETWEEN_CATEGORIES = 1.0
@@ -271,13 +287,21 @@ class LiquorCentreScraper(Scraper):
     def _parse_talker_element(self, talker, store_slug: str) -> Optional[dict]:
         """Parse a single product from a .talker element"""
 
-        # Extract product ID from parent element
-        product_id_attr = talker.attributes.get("id", "")
-        source_id_match = re.search(r"line_([a-f0-9]+)", product_id_attr)
-        if not source_id_match:
-            logger.debug(f"Could not extract product ID from: {product_id_attr}")
+        # The chain-wide product slug lives in the <a href>. The element's
+        # id="line_<hex>" is a per-store inventory line ID and MUST NOT be
+        # used as source_product_id — that caused the duplicate-product bug
+        # where the same SKU was inserted once per store.
+        link_elem = talker.css_first("a[href]")
+        href = link_elem.attributes.get("href", "") if link_elem else ""
+
+        source_id = _source_id_from_href(href)
+        if not source_id:
+            logger.warning(
+                "Skipping talker element with no usable href at store=%s (id=%s)",
+                store_slug,
+                talker.attributes.get("id", ""),
+            )
             return None
-        source_id = source_id_match.group(1)
 
         # Product name (contains name + size)
         name_elem = talker.css_first(".talker__name")
@@ -319,14 +343,12 @@ class LiquorCentreScraper(Scraper):
             logger.debug(f"Invalid price: {price_text}")
             return None
 
-        # Product URL
+        # Product URL (absolute)
         url = None
-        link_elem = talker.css_first("a[href]")
-        if link_elem:
-            href = link_elem.attributes.get("href", "")
-            if href and not href.startswith("http"):
+        if href:
+            if not href.startswith("http"):
                 url = f"https://{store_slug}.shop.liquor-centre.co.nz{href}"
-            elif href:
+            else:
                 url = href
 
         # Image URL
