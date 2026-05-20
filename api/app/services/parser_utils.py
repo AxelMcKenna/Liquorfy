@@ -24,6 +24,31 @@ PACK_ONLY_PATTERN = re.compile(
 )
 ABV_PATTERN = re.compile(r"(?<!\d)(?P<abv>\d{1,2}(?:\.\d+)?)\s*%")
 
+# CityHive (Bottle-O / Liquor Centre) product names truncate the volume
+# suffix to a single letter — "330c" = 330ml can, "330b" = 330ml bottle,
+# "700m" = 700ml (truncated mL). The volume parser doesn't recognise
+# these, which leaves ~7k products with NULL total_volume_ml.
+#
+# This pattern matches the truncated suffixes only at a word boundary and
+# only when preceded by a digit, which avoids touching ABV percentages
+# ("3.6%"), year-old whisky markers ("16yo"), or genuine "ml"/"cl" forms
+# (which carry trailing characters that block the boundary).
+_CITYHIVE_TRUNCATED_UNIT = re.compile(r"(\d)(?:[cbm])\b", re.IGNORECASE)
+
+
+def expand_cityhive_size_codes(text: str) -> str:
+    """Translate CityHive's truncated volume codes into standard ml.
+
+    "Carlsberg 330c"          -> "Carlsberg 330ml"
+    "Cruiser Cool Lime 1x275b" -> "Cruiser Cool Lime 1x275ml"
+    "Deanston 700m"            -> "Deanston 700ml"
+
+    Only the trailing letter is expanded; numeric values are untouched.
+    """
+    if not text:
+        return text
+    return _CITYHIVE_TRUNCATED_UNIT.sub(r"\1ml", text)
+
 
 @dataclass(frozen=True)
 class ParsedVolume:
@@ -658,6 +683,7 @@ __all__ = [
     "parse_volume",
     "ParsedVolume",
     "extract_abv",
+    "expand_cityhive_size_codes",
     "infer_brand",
     "infer_category",
     "CATEGORY_HIERARCHY",

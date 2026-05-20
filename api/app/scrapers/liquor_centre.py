@@ -26,6 +26,7 @@ from app.db.session import get_async_session
 from app.services.parser_utils import (
     parse_volume,
     extract_abv,
+    expand_cityhive_size_codes,
     infer_brand,
     infer_category,
 )
@@ -369,7 +370,12 @@ class LiquorCentreScraper(Scraper):
             image_url = None
 
         # Parse volume information from size text and name
-        volume_info = parse_volume(size_text) or parse_volume(full_name)
+        # CityHive truncates volume suffixes ("330c" / "330b" / "700m"),
+        # so expand them before parsing.
+        volume_info = (
+            parse_volume(expand_cityhive_size_codes(size_text))
+            or parse_volume(expand_cityhive_size_codes(full_name))
+        )
         pack_count = volume_info.pack_count if volume_info else None
         unit_volume_ml = volume_info.unit_volume_ml if volume_info else None
         total_volume_ml = volume_info.total_volume_ml if volume_info else None
