@@ -1,5 +1,4 @@
 import SwiftUI
-import AuthenticationServices
 
 struct LoginView: View {
     @Environment(AuthManager.self) private var authManager
@@ -40,22 +39,6 @@ struct LoginView: View {
                 .buttonStyle(.bordered)
                 .disabled(isLoading)
 
-                // Apple Sign-In
-                SignInWithAppleButton(.signIn) { request in
-                    request.requestedScopes = [.email, .fullName]
-                } onCompletion: { result in
-                    switch result {
-                    case .success(let authorization):
-                        Task {
-                            try? await authManager.signInWithApple(authorization: authorization)
-                        }
-                    case .failure:
-                        break
-                    }
-                }
-                .signInWithAppleButtonStyle(.black)
-                .frame(height: 50)
-                .cornerRadius(8)
             }
             .padding(.horizontal, 32)
 
