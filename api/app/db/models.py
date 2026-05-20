@@ -40,6 +40,14 @@ class Store(Base):
     region: Mapped[Optional[str]] = mapped_column(String(64))
     url: Mapped[Optional[str]] = mapped_column(String(255))
 
+    # West Auckland licensing trust monopoly (Sale and Supply of Alcohol Act 2012).
+    # If False, the store is geographically inside a Trust district AND not a
+    # Trust-operated brand, so it cannot legally sell alcohol.
+    sells_alcohol: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="true"
+    )
+    licensing_trust_area: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+
     prices: Mapped[list["Price"]] = relationship(back_populates="store")
 
     __table_args__ = (

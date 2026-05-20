@@ -398,13 +398,29 @@ class FoodstuffsAPIScraper(Scraper, APIAuthBase):
             missing_api_ids = set(products_by_store.keys()) - set(store_map.keys())
             if missing_api_ids:
                 logger.info(f"Auto-creating {len(missing_api_ids)} new {self.chain} stores")
+                from app.services.licensing_trusts import classify_store
                 async with async_transaction() as session:
                     for api_id in missing_api_ids:
+                        store_name = f"{self.chain} #{api_id}"
+                        # No lat/lon at creation; classifier falls back to override
+                        # table by (chain, api_id) — which covers the known West
+                        # Auckland supermarkets. Stores not in the override and
+                        # without coordinates default to sells_alcohol=True.
+                        classification = classify_store(
+                            chain=self.chain, name=store_name, api_id=str(api_id)
+                        )
                         new_store = Store(
                             chain=self.chain,
                             api_id=str(api_id),
-                            name=f"{self.chain} #{api_id}",
+                            name=store_name,
+                            sells_alcohol=classification.sells_alcohol,
+                            licensing_trust_area=classification.licensing_trust_area,
                         )
+                        if not classification.sells_alcohol:
+                            logger.warning(
+                                f"Auto-created {self.chain} store {api_id} flagged "
+                                f"as sells_alcohol=False ({classification.reason})"
+                            )
                         session.add(new_store)
                     await session.flush()
                     # Reload into store_map

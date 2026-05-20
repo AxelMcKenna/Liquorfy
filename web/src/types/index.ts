@@ -7,6 +7,10 @@ export interface Store {
   address?: string | null;
   region?: string | null;
   distance_km?: number | null;
+  // West Auckland Licensing Trust monopoly. When false, the store is inside
+  // the Portage or Waitakere Trust district and legally cannot sell alcohol.
+  sells_alcohol?: boolean;
+  licensing_trust_area?: "portage" | "waitakere" | null;
 }
 
 export interface StoreListResponse {

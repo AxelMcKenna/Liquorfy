@@ -108,7 +108,10 @@ async def fetch_products(
     page = max(params.page, 1)
     page_size = max(min(params.page_size, 100), 1)
 
-    filters = []
+    # Every product in this DB is an alcoholic beverage, so any store with
+    # sells_alcohol=False must be excluded unconditionally — those stores cannot
+    # legally sell alcohol under the West Auckland Trust monopoly.
+    filters: list[Any] = [Store.sells_alcohol.is_(True)]
     user_point_geog = None
     has_location = (
         params.lat is not None and params.lon is not None and params.radius_km is not None
@@ -393,6 +396,7 @@ async def fetch_products_by_ids(
         .join(Price, Price.product_id == Product.id)
         .join(Store, Store.id == Price.store_id)
         .where(Product.id.in_(product_ids))
+        .where(Store.sells_alcohol.is_(True))
         .order_by(Price.price_nzd.asc())
     )
 
@@ -475,7 +479,11 @@ async def fetch_product_detail(
             select(Product, Price, Store, distance_m.label("distance_m"))
             .join(Price, Price.product_id == Product.id)
             .join(Store, Store.id == Price.store_id)
-            .where(Product.id == product_id, distance_m <= radius_km * 1000)
+            .where(
+                Product.id == product_id,
+                distance_m <= radius_km * 1000,
+                Store.sells_alcohol.is_(True),
+            )
             .order_by(Price.price_nzd.asc())
         )
     else:
@@ -483,7 +491,7 @@ async def fetch_product_detail(
             select(Product, Price, Store, literal(None).label("distance_m"))
             .join(Price, Price.product_id == Product.id)
             .join(Store, Store.id == Price.store_id)
-            .where(Product.id == product_id)
+            .where(Product.id == product_id, Store.sells_alcohol.is_(True))
             .order_by(Price.price_nzd.asc())
         )
 
@@ -540,6 +548,7 @@ async def fetch_product_detail(
                     Product.canonical_product_id == product.canonical_product_id,
                     Product.id != product.id,
                     distance_m <= radius_km * 1000,
+                    Store.sells_alcohol.is_(True),
                 )
                 .order_by(Price.price_nzd.asc())
             )
@@ -551,6 +560,7 @@ async def fetch_product_detail(
                 .where(
                     Product.canonical_product_id == product.canonical_product_id,
                     Product.id != product.id,
+                    Store.sells_alcohol.is_(True),
                 )
                 .order_by(Price.price_nzd.asc())
             )
@@ -661,6 +671,7 @@ async def fetch_stores_nearby(
     query = (
         select(Store, distance_m)
         .where(Store.id.in_(store_ids))
+        .where(Store.sells_alcohol.is_(True))
         .order_by(distance_m)
     )
     result = await session.execute(query)
@@ -674,6 +685,8 @@ async def fetch_stores_nearby(
             address=store.address,
             region=store.region,
             distance_km=round(distance / 1000, 2),
+            sells_alcohol=store.sells_alcohol,
+            licensing_trust_area=store.licensing_trust_area,
         )
         for store, distance in result.all()
     ]

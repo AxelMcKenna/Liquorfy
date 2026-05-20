@@ -90,6 +90,8 @@ class StoreSchema(BaseModel):
     address: Optional[str]
     region: Optional[str]
     distance_km: Optional[float]
+    sells_alcohol: bool = True
+    licensing_trust_area: Optional[str] = None
 
 
 class StoreListResponse(BaseModel):
