@@ -24,7 +24,6 @@
 		61343CB9FA4564F4A4F03301 /* StoreMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF34DEAD194C28F3E731DE0E /* StoreMapView.swift */; };
 		630079499D908838C6A12464 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FCB8953AE57039F8C975994A /* Assets.xcassets */; };
 		6AA50B829F5CBEFEABE2EF96 /* AsyncProductImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25BDC684664AAFEE835D048B /* AsyncProductImageView.swift */; };
-		7764655CD9B0F6EF2C8FA264 /* GeocodingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F97BBDE514C18F182521119B /* GeocodingService.swift */; };
 		7896E68B839B1DB5E33597B4 /* Price.swift in Sources */ = {isa = PBXBuildFile; fileRef = 595C40FC1B46581F592F416F /* Price.swift */; };
 		78EA75075B08C0C175AC7785 /* StatsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E5B6071686AADAE0BB2156E /* StatsSection.swift */; };
 		7A877D7759AE1826168F065F /* ProductDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E936F022C1368463A98860B4 /* ProductDetailViewModel.swift */; };
@@ -151,7 +150,6 @@
 		EE033AB464F49E3ADEC3C5DE /* ChainConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChainConstants.swift; sourceTree = "<group>"; };
 		EF9E0BAF951643A093E09DD7 /* Category.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Category.swift; sourceTree = "<group>"; };
 		F620708BAE0F07430204FB28 /* ChainBadgeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChainBadgeView.swift; sourceTree = "<group>"; };
-		F97BBDE514C18F182521119B /* GeocodingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeocodingService.swift; sourceTree = "<group>"; };
 		FCB8953AE57039F8C975994A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		FF34DEAD194C28F3E731DE0E /* StoreMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreMapView.swift; sourceTree = "<group>"; };
 		PP00000000000000000PRIV1 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
@@ -273,7 +271,6 @@
 			children = (
 				D60FD2DF499784992A51DA92 /* APIClient.swift */,
 				440B59F0CC5D9F9A5B3F4E3B /* APIEndpoint.swift */,
-				F97BBDE514C18F182521119B /* GeocodingService.swift */,
 				D22B6AEA17DA73F8809F61F9 /* LocationManager.swift */,
 			);
 			path = Services;
@@ -527,7 +524,6 @@
 				61343CB9FA4564F4A4F03301 /* StoreMapView.swift in Sources */,
 				B909221EAE2F59594245E73D /* APIClient.swift in Sources */,
 				9FEFD5998190BF9E2DB2913F /* APIEndpoint.swift in Sources */,
-				7764655CD9B0F6EF2C8FA264 /* GeocodingService.swift in Sources */,
 				B40090B8C9E62D9BE5BC7733 /* LocationManager.swift in Sources */,
 				AA00000000000000000000AC /* AppColors.swift in Sources */,
 				BB00000000000000000001AC /* CardStyle.swift in Sources */,

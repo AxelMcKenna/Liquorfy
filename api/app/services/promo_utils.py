@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, time
+from datetime import datetime
 from typing import Optional
 
 import pytz

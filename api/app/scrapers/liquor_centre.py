@@ -487,16 +487,6 @@ class LiquorCentreScraper(Scraper):
             return f"{base_url}?page={page}"
         return base_url
 
-    async def _has_next_page(self, page) -> bool:
-        """Check if there's a next page available"""
-        try:
-            # Look for "Next" link with rel="next"
-            next_link = await page.locator('a[rel="next"]').count()
-            return next_link > 0
-        except Exception as e:
-            logger.debug(f"Error checking pagination: {e}")
-            return False
-
     def _tag_html(self, html: str, store: str, category: str, page: int) -> str:
         """Tag HTML with metadata for parsing"""
         metadata = f"<!--METADATA:store={store},category={category},page={page}-->"

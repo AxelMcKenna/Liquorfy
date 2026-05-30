@@ -4,7 +4,7 @@ import json
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import BaseModel, Field, ValidationError
 
 from app.core.config import get_settings

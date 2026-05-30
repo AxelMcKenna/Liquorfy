@@ -24,15 +24,6 @@ export const formatDistance = (distanceKm: number | null | undefined): string | 
 };
 
 /**
- * Format distance with "away" suffix for fuller context
- */
-export const formatDistanceAway = (distanceKm: number | null | undefined): string | null => {
-  const formatted = formatDistance(distanceKm);
-  if (!formatted) return null;
-  return `${formatted} away`;
-};
-
-/**
  * Get distance color class based on thresholds
  * Returns semantic CSS class names
  */
@@ -84,11 +75,4 @@ export const calculateSavingsPercent = (
  */
 export const formatPrice = (price: number): string => {
   return `$${price.toFixed(2)}`;
-};
-
-/**
- * Format price per unit
- */
-export const formatPricePerUnit = (price: number, unit: string): string => {
-  return `${formatPrice(price)} per ${unit}`;
 };
