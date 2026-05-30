@@ -390,24 +390,34 @@ export const Landing = () => {
       <section className="py-14 md:py-20 border-t">
         <div className="max-w-7xl mx-auto px-4">
           {!location && (
-            <div className="max-w-md mx-auto text-center py-8">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-secondary mb-4">
-                <MapPin className="h-6 w-6 text-primary" />
+            <Reveal>
+              <div className="bg-secondary rounded-2xl border shadow-[inset_0_2px_8px_rgba(0,0,0,0.06)] px-6 py-12 md:py-16 text-center">
+                <div className="max-w-md mx-auto">
+                  <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-primary/10 text-primary mb-5">
+                    <MapPin className="h-7 w-7" />
+                  </div>
+                  <h3 className="text-xl md:text-2xl font-semibold text-foreground tracking-tight mb-2">
+                    Enable Location
+                  </h3>
+                  <p className="text-sm md:text-[15px] text-muted-foreground leading-relaxed mb-7 max-w-sm mx-auto">
+                    Share your location to see live deals from stores near you and sort
+                    by distance — your spot never leaves your device.
+                  </p>
+                  <Button
+                    onClick={requestLocation}
+                    disabled={locationLoading}
+                    size="lg"
+                    className="font-semibold shadow-sm"
+                  >
+                    <MapPin className="h-5 w-5 mr-2" />
+                    {locationLoading ? 'Getting location…' : 'Enable Location'}
+                  </Button>
+                  {locationError && (
+                    <p className="text-destructive text-sm mt-4">{locationError}</p>
+                  )}
+                </div>
               </div>
-              <h3 className="text-lg font-medium mb-2">Enable Location</h3>
-              <p className="text-sm text-muted-foreground mb-6">
-                See deals from stores in your area
-              </p>
-              <Button
-                onClick={requestLocation}
-                disabled={locationLoading}
-              >
-                {locationLoading ? 'Getting location...' : 'Enable Location'}
-              </Button>
-              {locationError && (
-                <p className="text-destructive text-sm mt-4">{locationError}</p>
-              )}
-            </div>
+            </Reveal>
           )}
 
           {location && (
