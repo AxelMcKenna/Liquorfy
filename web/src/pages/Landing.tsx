@@ -13,7 +13,7 @@ import { useLocationContext } from '@/contexts/LocationContext';
 import { useStores } from '@/hooks/useStores';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserMenu } from '@/components/auth/UserMenu';
-import { Search, ArrowRight, MapPin, User } from 'lucide-react';
+import { Search, ArrowRight, MapPin, User, Store, RefreshCw, Wallet } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { RecentlyViewed } from '@/components/products/RecentlyViewed';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
@@ -52,10 +52,35 @@ const Reveal = ({
   );
 };
 
+/* Value proposition cards — why use Liquorfy */
+const valueProps = [
+  {
+    icon: Store,
+    title: '10+ retailers, one search',
+    description: 'Compare every major NZ liquor chain side by side — no more tab-hopping.',
+  },
+  {
+    icon: RefreshCw,
+    title: 'Prices updated daily',
+    description: 'Fresh prices and promos scraped every day, so deals are never stale.',
+  },
+  {
+    icon: MapPin,
+    title: 'Best price near you',
+    description: 'Sort by distance and find the lowest price at stores in your area.',
+  },
+  {
+    icon: Wallet,
+    title: 'Free to use',
+    description: 'No account required, no fees. Just the cheapest drinks, full stop.',
+  },
+];
+
 export const Landing = () => {
   const [query, setQuery] = useState('');
   const navigate = useNavigate();
   const { products, loading, fetchProducts } = useProducts();
+  const { products: valueProducts, loading: valueLoading, fetchProducts: fetchValueProducts } = useProducts();
   const { recentlyViewed } = useRecentlyViewed();
   const { location, radiusKm, setRadiusKm, requestAutoLocation: requestLocation, loading: locationLoading, error: locationError } = useLocationContext();
   const { stores, loading: storesLoading, fetchNearbyStores } = useStores();
@@ -97,6 +122,25 @@ export const Landing = () => {
   }, [location, radiusKm, fetchProducts]);
 
   useEffect(() => {
+    const baseFilters = {
+      limit: promoFetchLimit,
+      sort: SortOption.BEST_PER_DRINK,
+      unique_products: true,
+    };
+    if (location) {
+      fetchValueProducts({
+        ...baseFilters,
+        promo_only: true,
+        lat: location.lat,
+        lon: location.lon,
+        radius_km: radiusKm,
+      });
+    } else {
+      fetchValueProducts({ ...baseFilters, promo_only: true });
+    }
+  }, [location, radiusKm, fetchValueProducts]);
+
+  useEffect(() => {
     setTempRadius(radiusKm);
   }, [radiusKm]);
 
@@ -127,6 +171,7 @@ export const Landing = () => {
   };
 
   const topDiscountedProducts = getTopDiscountedProducts();
+  const bestValueProducts = (valueProducts?.items ?? []).slice(0, 10);
 
   const handleSearch = () => {
     const trimmedQuery = query.trim();
@@ -265,6 +310,81 @@ export const Landing = () => {
       <div className="max-w-7xl mx-auto px-4">
         <RecentlyViewed products={recentlyViewed} />
       </div>
+
+      {/* ===== VALUE PROP — Why Liquorfy ===== */}
+      <section className="py-14 md:py-20 border-t bg-secondary/40">
+        <div className="max-w-7xl mx-auto px-4">
+          <Reveal className="mb-10 md:mb-12">
+            <hr className="accent-rule mb-4" />
+            <h2 className="text-2xl md:text-3xl font-semibold text-foreground tracking-tight">
+              Why Liquorfy
+            </h2>
+            <p className="text-sm text-muted-foreground mt-2 max-w-md">
+              One search across every major NZ retailer — so you never overpay for a drink.
+            </p>
+          </Reveal>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {valueProps.map((vp, i) => (
+              <Reveal key={vp.title} delay={i * 0.08}>
+                <div className="h-full bg-background rounded-xl p-6 border card-lift">
+                  <div className="inline-flex items-center justify-center w-11 h-11 rounded-lg bg-primary/10 text-primary mb-4">
+                    <vp.icon className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-base font-semibold text-foreground mb-1.5">
+                    {vp.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {vp.description}
+                  </p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ===== BEST VALUE — second product showcase ===== */}
+      <section className="py-14 md:py-20 border-t">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-10">
+            <Reveal className="md:col-span-8">
+              <hr className="accent-rule mb-4" />
+              <h2 className="text-2xl md:text-3xl font-semibold text-foreground tracking-tight">
+                Best Value Right Now
+              </h2>
+              <p className="text-sm text-muted-foreground mt-2">
+                Lowest price per standard drink across every retailer
+              </p>
+            </Reveal>
+            <Reveal className="md:col-span-4 flex md:justify-end items-end" delay={0.08}>
+              <Button
+                onClick={() => navigate(`/explore?promo_only=true&sort=${SortOption.BEST_PER_DRINK}`)}
+                variant="ghost"
+                size="sm"
+                className="text-primary -ml-3 md:ml-0"
+              >
+                View all
+                <ArrowRight className="ml-1 h-4 w-4" />
+              </Button>
+            </Reveal>
+          </div>
+
+          <ProductGrid
+            products={bestValueProducts}
+            loading={valueLoading}
+            sort={SortOption.BEST_PER_DRINK}
+          />
+
+          {!valueLoading && bestValueProducts.length === 0 && (
+            <div className="text-center py-16">
+              <Wallet className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+              <p className="text-muted-foreground">No products to show right now</p>
+              <p className="text-sm text-muted-foreground/70 mt-1">Check back soon for fresh value picks</p>
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* ===== MAP ===== */}
       <section className="py-14 md:py-20 border-t">
