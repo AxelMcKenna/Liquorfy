@@ -254,6 +254,10 @@ async def fetch_products(
 
     if params.unique_products:
         name_key = func.lower(func.trim(Product.name)).label("name_key")
+        # Partition groups all nearby store-listings of the same product. We reuse
+        # it for the row_number dedup and to derive the cheapest-nearby signal
+        # (min effective price + store count) at no extra sort cost.
+        dedup_partition = (name_key, Product.pack_count, Product.total_volume_ml)
         inner = (
             select(
                 Product.id.label("product_id"),
@@ -261,9 +265,12 @@ async def fetch_products(
                 Store.id.label("store_id"),
                 discount_ratio,
                 distance_m_or_null,
+                effective_price.label("eff_price"),
+                func.min(effective_price).over(partition_by=dedup_partition).label("min_eff_price"),
+                func.count().over(partition_by=dedup_partition).label("store_count"),
                 func.row_number()
                 .over(
-                    partition_by=(name_key, Product.pack_count, Product.total_volume_ml),
+                    partition_by=dedup_partition,
                     order_by=tuple(sort_order),
                 )
                 .label("rn"),
@@ -277,7 +284,16 @@ async def fetch_products(
 
         inner_subq = inner.subquery()
         query = (
-            select(Product, Price, Store, inner_subq.c.discount_ratio, inner_subq.c.distance_m)
+            select(
+                Product,
+                Price,
+                Store,
+                inner_subq.c.discount_ratio,
+                inner_subq.c.distance_m,
+                inner_subq.c.eff_price,
+                inner_subq.c.min_eff_price,
+                inner_subq.c.store_count,
+            )
             .select_from(inner_subq)
             .join(Product, Product.id == inner_subq.c.product_id)
             .join(Price, Price.id == inner_subq.c.price_id)
@@ -318,8 +334,20 @@ async def fetch_products(
     items: list[ProductSchema] = []
 
     for row in rows:
+        is_cheapest_nearby = False
         if params.unique_products:
-            product, price, store, _, distance_m_value = row
+            product, price, store, _, distance_m_value, eff_price, min_eff_price, store_count = row
+            # "Cheapest nearby" only when there's something to compare against
+            # (more than one nearby store) and this listing matches the lowest
+            # effective price. Requires a location to mean "nearby".
+            if (
+                has_location
+                and store_count
+                and store_count > 1
+                and min_eff_price is not None
+                and eff_price is not None
+            ):
+                is_cheapest_nearby = eff_price <= min_eff_price + 0.001
         else:
             product, price, store, distance_m_value = row
         effective = _effective_price(price)
@@ -365,6 +393,7 @@ async def fetch_products(
                     is_stale=_is_stale(price),
                     distance_km=distance,
                 ),
+                is_cheapest_nearby=is_cheapest_nearby,
                 last_updated=price.last_seen_at,
             )
         )

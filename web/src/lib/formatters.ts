@@ -71,6 +71,17 @@ export const calculateSavingsPercent = (
 };
 
 /**
+ * Calculate dollar amount saved (original − promo)
+ */
+export const calculateSavingsAmount = (
+  originalPrice: number,
+  promoPrice: number | null | undefined
+): number => {
+  if (!promoPrice || promoPrice >= originalPrice) return 0;
+  return originalPrice - promoPrice;
+};
+
+/**
  * Format price for display
  */
 export const formatPrice = (price: number): string => {

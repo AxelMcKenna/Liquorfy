@@ -44,4 +44,10 @@ struct Price: Codable, Hashable, Sendable {
         guard hasPromo, let promo = promoPriceNzd else { return 0 }
         return Int(((priceNzd - promo) / priceNzd) * 100)
     }
+
+    /// Dollar amount saved versus the regular price.
+    var savingsAmount: Double {
+        guard hasPromo, let promo = promoPriceNzd else { return 0 }
+        return priceNzd - promo
+    }
 }

@@ -1,7 +1,7 @@
 import { memo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Store, Clock, Crown, Wine, MapPin } from "lucide-react";
-import { Product } from "@/types";
+import { Store, Clock, Crown, Wine, MapPin, TrendingDown } from "lucide-react";
+import { Product, SortOption } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -11,11 +11,13 @@ import {
   formatDistance,
   getDistanceColorClass,
   calculateSavingsPercent,
+  calculateSavingsAmount,
 } from "@/lib/formatters";
 
 interface ProductCardProps {
   product: Product;
   index: number;
+  sort?: SortOption;
   isFavourite?: boolean;
   onToggleFavourite?: () => void;
   onView?: () => void;
@@ -24,6 +26,7 @@ interface ProductCardProps {
 const ProductCardComponent = ({
   product,
   index,
+  sort = SortOption.BEST_VALUE,
   isFavourite = false,
   onToggleFavourite,
   onView,
@@ -37,6 +40,7 @@ const ProductCardComponent = ({
     (Date.now() - new Date(product.last_updated).getTime()) < 24 * 60 * 60 * 1000;
   const promoEndText = formatPromoEndDate(product.price.promo_ends_at);
   const savingsPercent = calculateSavingsPercent(product.price.price_nzd, product.price.promo_price_nzd);
+  const savingsAmount = calculateSavingsAmount(product.price.price_nzd, product.price.promo_price_nzd);
   const distanceText = formatDistance(product.price.distance_km);
   const distanceColorClass = getDistanceColorClass(product.price.distance_km);
 
@@ -53,7 +57,7 @@ const ProductCardComponent = ({
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleCardClick(); } }}
       tabIndex={0}
       role="button"
-      aria-label={`View details for ${product.name}, $${(product.price.promo_price_nzd ?? product.price.price_nzd).toFixed(2)} at ${product.price.store_name}`}
+      aria-label={`View details for ${product.name}, $${(product.price.promo_price_nzd ?? product.price.price_nzd).toFixed(2)}${product.is_cheapest_nearby ? ', cheapest nearby' : ''} at ${product.price.store_name}`}
     >
       {/* Product Image */}
       <div className="w-full aspect-[4/3] sm:aspect-square relative overflow-hidden border-b">
@@ -116,12 +120,23 @@ const ProductCardComponent = ({
             <span className="truncate">{product.price.store_name}</span>
           </span>
           {distanceText && (
-            <span className={cn("flex items-center gap-1 flex-shrink-0", distanceColorClass)}>
+            <span className={cn(
+              "flex items-center gap-0.5 flex-shrink-0 rounded-full bg-secondary px-1.5 py-0.5 font-medium",
+              distanceColorClass
+            )}>
               <MapPin className="h-3 w-3" />
               {distanceText}
             </span>
           )}
         </div>
+
+        {/* Cheapest-nearby trust signal */}
+        {product.is_cheapest_nearby && (
+          <div className="flex items-center gap-1 text-[11px] sm:text-xs font-semibold text-primary mb-1">
+            <TrendingDown className="h-3 w-3 flex-shrink-0" />
+            Cheapest nearby
+          </div>
+        )}
 
         {/* Price */}
         <div className="flex items-baseline gap-1.5 sm:gap-2">
@@ -134,6 +149,13 @@ const ProductCardComponent = ({
             </span>
           )}
         </div>
+
+        {/* Savings — the tangible value, in dollars */}
+        {hasPromo && savingsAmount > 0 && (
+          <p className="text-[11px] sm:text-xs font-semibold text-primary mt-0.5">
+            Save ${savingsAmount.toFixed(2)}
+          </p>
+        )}
 
         {/* Badges */}
         {hasPromo && (
@@ -160,12 +182,18 @@ const ProductCardComponent = ({
           </div>
         )}
 
-        {/* Per unit price */}
-        {product.price.price_per_100ml && (
-          <p className="text-xs text-muted-foreground mt-1.5 sm:mt-2">
-            ${product.price.price_per_100ml.toFixed(2)} / 100ml
-          </p>
-        )}
+        {/* Per-unit price matching the active sort */}
+        {sort === SortOption.BEST_PER_DRINK
+          ? product.price.price_per_standard_drink != null && (
+              <p className="text-xs text-muted-foreground mt-1.5 sm:mt-2">
+                ${product.price.price_per_standard_drink.toFixed(2)} / std drink
+              </p>
+            )
+          : product.price.price_per_100ml != null && (
+              <p className="text-xs text-muted-foreground mt-1.5 sm:mt-2">
+                ${product.price.price_per_100ml.toFixed(2)} / 100ml
+              </p>
+            )}
       </CardContent>
     </Card>
   );
