@@ -50,6 +50,7 @@ export interface Product {
   image_url?: string | null;
   product_url?: string | null;
   price: Price;
+  is_cheapest_nearby?: boolean;
   last_updated: string;
 }
 

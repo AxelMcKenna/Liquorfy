@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ProductCardView: View {
     let product: Product
+    var sort: SortOption = .bestValue
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -18,6 +19,24 @@ struct ProductCardView: View {
                     PromoBadgeView(percent: product.price.savingsPercent)
                         .padding(.top, 6)
                         .padding(.leading, 6)
+                }
+            }
+            .overlay(alignment: .bottomLeading) {
+                if product.isCheapestNearby {
+                    HStack(spacing: 3) {
+                        Image(systemName: "arrow.down.right.circle.fill")
+                            .font(.system(size: 9))
+                        Text("Cheapest nearby")
+                    }
+                    .font(.appBadge)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(.white)
+                    .foregroundStyle(Color.appPrimary)
+                    .clipShape(Capsule())
+                    .overlay(Capsule().stroke(Color.appPrimary.opacity(0.25), lineWidth: 1))
+                    .padding(.bottom, 6)
+                    .padding(.leading, 6)
                 }
             }
 
@@ -54,7 +73,12 @@ struct ProductCardView: View {
                             Text(distanceText)
                                 .lineLimit(1)
                         }
+                        .fontWeight(.medium)
                         .foregroundStyle(Formatters.distanceColor(distanceKm))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.appTertiaryBackground)
+                        .clipShape(Capsule())
                     }
                 }
                 .font(.appCaption)
@@ -75,6 +99,20 @@ struct ProductCardView: View {
                     Spacer()
                 }
                 .frame(minHeight: 24)
+
+                // Savings — the tangible value, in dollars (always reserves 1 line)
+                Text(product.price.hasPromo && product.price.savingsAmount > 0
+                     ? "Save \(Formatters.formatPrice(product.price.savingsAmount))"
+                     : " ")
+                    .font(.appBadge)
+                    .foregroundStyle(Color.appPrimary)
+                    .lineLimit(1)
+
+                // Per-unit value matching the active sort (always reserves 1 line)
+                Text(perUnitText ?? " ")
+                    .font(.appCaption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
         }
         .padding(12)
@@ -84,10 +122,22 @@ struct ProductCardView: View {
         .accessibilityLabel(productAccessibilityLabel)
     }
 
+    private var perUnitText: String? {
+        if sort == .bestPerDrink {
+            guard let perDrink = product.price.pricePerStandardDrink else { return nil }
+            return "\(Formatters.formatPrice(perDrink)) / std drink"
+        }
+        guard let per100ml = product.price.pricePer100ml else { return nil }
+        return "\(Formatters.formatPrice(per100ml)) / 100ml"
+    }
+
     private var productAccessibilityLabel: String {
         var parts = [product.name, Formatters.formatPrice(product.price.currentPrice)]
         if product.price.hasPromo {
             parts.append("\(product.price.savingsPercent)% off")
+        }
+        if product.isCheapestNearby {
+            parts.append("cheapest nearby")
         }
         parts.append("at \(product.price.storeName)")
         if let distance = Formatters.formatDistance(product.price.distanceKm) {

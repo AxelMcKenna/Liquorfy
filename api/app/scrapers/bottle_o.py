@@ -672,14 +672,6 @@ class BottleOScraper(Scraper):
             return f"{base}?page={page}"
         return base
 
-    async def _has_next_page(self, page) -> bool:
-        """Legacy Playwright method — kept for compatibility."""
-        try:
-            next_link = await page.locator('a[rel="next"]').count()
-            return next_link > 0
-        except Exception:
-            return False
-
     @staticmethod
     def _has_next_page_html(html: str) -> bool:
         """Check for a next-page link in raw HTML."""

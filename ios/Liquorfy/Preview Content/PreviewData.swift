@@ -46,6 +46,7 @@ enum PreviewData {
         imageUrl: nil,
         productUrl: "https://www.superliquor.co.nz",
         price: price,
+        isCheapestNearby: true,
         lastUpdated: Date()
     )
 
@@ -62,6 +63,7 @@ enum PreviewData {
         imageUrl: nil,
         productUrl: nil,
         price: priceNoPromo,
+        isCheapestNearby: false,
         lastUpdated: Date()
     )
 

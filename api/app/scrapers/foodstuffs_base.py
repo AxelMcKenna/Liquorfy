@@ -241,19 +241,6 @@ class FoodstuffsAPIScraper(Scraper, APIAuthBase):
             response.raise_for_status()
             return response.json()
 
-    async def _probe_cookie_only_access(self) -> bool:
-        """Check whether API access works without bearer token using session cookies only."""
-        if not self.categories:
-            return False
-
-        level0, level1 = self.categories[0]
-        try:
-            await self._fetch_category(level0, level1, page=0, hits_per_page=1)
-            return True
-        except Exception as e:
-            logger.warning(f"Cookie-only API probe failed for {self.chain}: {e}")
-            return False
-
     def _parse_product(self, product_data: dict) -> dict:
         """
         Parse a product from API response into our standard format.

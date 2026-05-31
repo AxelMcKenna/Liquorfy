@@ -37,6 +37,7 @@ class ProductSchema(BaseModel):
     product_url: Optional[str]
     is_sugar_free: bool = False
     price: PriceSchema
+    is_cheapest_nearby: bool = False
     last_updated: datetime
 
 

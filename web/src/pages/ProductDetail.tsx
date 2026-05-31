@@ -17,6 +17,9 @@ import { cn } from '@/lib/utils';
 import {
   formatPromoEndDate,
   calculateSavingsPercent,
+  calculateSavingsAmount,
+  formatDistance,
+  getDistanceColorClass,
 } from '@/lib/formatters';
 import {
   ArrowLeft,
@@ -30,11 +33,26 @@ import {
   ArrowRight,
   ChevronRight,
   Home,
+  MapPin,
 } from 'lucide-react';
 import { Price, CrossChainPrice } from '@/types';
 import { Link } from 'react-router-dom';
 import { RecentlyViewed } from '@/components/products/RecentlyViewed';
 import { Skeleton } from '@/components/ui/skeleton';
+
+const DistanceChip = ({ distanceKm }: { distanceKm?: number | null }) => {
+  const text = formatDistance(distanceKm);
+  if (!text) return null;
+  return (
+    <span className={cn(
+      "inline-flex items-center gap-0.5 rounded-full bg-secondary px-1.5 py-0.5 text-[11px] font-medium",
+      getDistanceColorClass(distanceKm)
+    )}>
+      <MapPin className="h-3 w-3" />
+      {text}
+    </span>
+  );
+};
 
 const PriceRow = ({ price, isBest }: { price: Price; isBest?: boolean }) => {
   const effective = price.promo_price_nzd ?? price.price_nzd;
@@ -56,10 +74,12 @@ const PriceRow = ({ price, isBest }: { price: Price; isBest?: boolean }) => {
           <p className="text-sm font-medium text-[hsl(var(--foreground))] truncate">
             {price.store_name}
           </p>
-          <p className="text-xs text-[hsl(var(--foreground-secondary))] capitalize">
-            {price.chain.replace('_', ' ')}
-            {price.distance_km != null && ` · ${price.distance_km} km`}
-          </p>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className="text-xs text-[hsl(var(--foreground-secondary))] capitalize">
+              {price.chain.replace('_', ' ')}
+            </span>
+            <DistanceChip distanceKm={price.distance_km} />
+          </div>
         </div>
       </div>
       <div className="text-right flex-shrink-0">
@@ -99,10 +119,12 @@ const CrossChainRow = ({ item }: { item: CrossChainPrice }) => {
           <p className="text-sm font-medium text-[hsl(var(--foreground))] truncate">
             {item.store_name}
           </p>
-          <p className="text-xs text-[hsl(var(--foreground-secondary))] capitalize">
-            {item.chain.replace('_', ' ')}
-            {item.distance_km != null && ` · ${item.distance_km} km`}
-          </p>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className="text-xs text-[hsl(var(--foreground-secondary))] capitalize">
+              {item.chain.replace('_', ' ')}
+            </span>
+            <DistanceChip distanceKm={item.distance_km} />
+          </div>
         </div>
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
@@ -244,6 +266,7 @@ export const ProductDetailPage = () => {
   const hasPromo = product.price.promo_price_nzd != null && product.price.promo_price_nzd < product.price.price_nzd;
   const currentPrice = product.price.promo_price_nzd ?? product.price.price_nzd;
   const savingsPercent = calculateSavingsPercent(product.price.price_nzd, product.price.promo_price_nzd);
+  const savingsAmount = calculateSavingsAmount(product.price.price_nzd, product.price.promo_price_nzd);
   const promoEndText = formatPromoEndDate(product.price.promo_ends_at);
   const isNewPromo = hasPromo && product.last_updated &&
     (Date.now() - new Date(product.last_updated).getTime()) < 24 * 60 * 60 * 1000;
@@ -349,6 +372,12 @@ export const ProductDetailPage = () => {
                   </span>
                 )}
               </div>
+              {hasPromo && savingsAmount > 0 && (
+                <p className="text-sm font-semibold text-primary mt-1.5">
+                  You save ${savingsAmount.toFixed(2)}
+                  {savingsPercent > 0 && ` · ${savingsPercent}% off`}
+                </p>
+              )}
               <div className="flex flex-wrap gap-x-4 text-sm text-[hsl(var(--foreground-secondary))] mt-1">
                 {product.price.price_per_100ml && (
                   <span>${product.price.price_per_100ml.toFixed(2)} / 100ml</span>

@@ -70,6 +70,13 @@ struct ProductDetailView: View {
                         }
                     }
 
+                    // Savings — the tangible value, in dollars
+                    if product.price.hasPromo && product.price.savingsAmount > 0 {
+                        Text("You save \(Formatters.formatPrice(product.price.savingsAmount)) · \(product.price.savingsPercent)% off")
+                            .font(.appSansSemiBold(size: 14, relativeTo: .subheadline))
+                            .foregroundStyle(Color.appPrimary)
+                    }
+
                     // Price metrics
                     PriceMetricsView(price: product.price)
 
