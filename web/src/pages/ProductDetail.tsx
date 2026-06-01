@@ -35,7 +35,7 @@ import {
   Home,
   MapPin,
 } from 'lucide-react';
-import { Price, CrossChainPrice } from '@/types';
+import { ProductDetail } from '@/types';
 import { Link } from 'react-router-dom';
 import { RecentlyViewed } from '@/components/products/RecentlyViewed';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -54,15 +54,35 @@ const DistanceChip = ({ distanceKm }: { distanceKm?: number | null }) => {
   );
 };
 
-const PriceRow = ({ price, isBest }: { price: Price; isBest?: boolean }) => {
-  const effective = price.promo_price_nzd ?? price.price_nzd;
-  const hasPromo = price.promo_price_nzd != null && price.promo_price_nzd < price.price_nzd;
+// One unified, store-or-chain agnostic price entry so we can rank the viewed
+// product, its other stores, and other chains together — cheapest first.
+interface CompareEntry {
+  key: string;
+  storeName: string;
+  chain: string;
+  priceNzd: number;
+  promoPriceNzd?: number | null;
+  distanceKm?: number | null;
+  productId?: string; // set => row navigates to a different (cheaper) listing
+}
 
-  return (
-    <div className={cn(
-      "flex items-center justify-between gap-4 p-3 rounded-lg border",
-      isBest ? "border-primary/30 bg-primary/5" : "border-[hsl(var(--border))] bg-white"
-    )}>
+const compareEffective = (e: CompareEntry) =>
+  e.promoPriceNzd != null && e.promoPriceNzd < e.priceNzd ? e.promoPriceNzd : e.priceNzd;
+
+const CompareRow = ({ entry, isBest }: { entry: CompareEntry; isBest?: boolean }) => {
+  const navigate = useNavigate();
+  const effective = compareEffective(entry);
+  const hasPromo = entry.promoPriceNzd != null && entry.promoPriceNzd < entry.priceNzd;
+  const navigable = !!entry.productId;
+
+  const className = cn(
+    "flex items-center justify-between gap-4 p-3 rounded-lg border w-full text-left",
+    isBest ? "border-primary/30 bg-primary/5" : "border-[hsl(var(--border))] bg-white",
+    navigable && "hover:border-primary/30 hover:bg-primary/5 transition-colors"
+  );
+
+  const inner = (
+    <>
       <div className="flex items-center gap-3 min-w-0">
         <div className={cn(
           "h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0",
@@ -72,96 +92,118 @@ const PriceRow = ({ price, isBest }: { price: Price; isBest?: boolean }) => {
         </div>
         <div className="min-w-0">
           <p className="text-sm font-medium text-[hsl(var(--foreground))] truncate">
-            {price.store_name}
+            {entry.storeName}
           </p>
           <div className="flex items-center gap-1.5 mt-0.5">
             <span className="text-xs text-[hsl(var(--foreground-secondary))] capitalize">
-              {price.chain.replace('_', ' ')}
+              {entry.chain.replace('_', ' ')}
             </span>
-            <DistanceChip distanceKm={price.distance_km} />
-          </div>
-        </div>
-      </div>
-      <div className="text-right flex-shrink-0">
-        <div className="flex items-baseline gap-1.5">
-          {isBest && (
-            <Badge className="bg-primary text-white text-[10px] px-1.5 py-0">Best</Badge>
-          )}
-          <span className={cn("font-bold", isBest ? "text-primary text-base" : "text-[hsl(var(--foreground))] text-sm")}>
-            ${effective.toFixed(2)}
-          </span>
-        </div>
-        {hasPromo && (
-          <span className="text-xs line-through text-[hsl(var(--foreground-tertiary))]">
-            ${price.price_nzd.toFixed(2)}
-          </span>
-        )}
-      </div>
-    </div>
-  );
-};
-
-const CrossChainRow = ({ item }: { item: CrossChainPrice }) => {
-  const navigate = useNavigate();
-  const effective = item.promo_price_nzd ?? item.price_nzd;
-  const hasPromo = item.promo_price_nzd != null && item.promo_price_nzd < item.price_nzd;
-
-  return (
-    <button
-      onClick={() => navigate(`/product/${item.product_id}`)}
-      className="flex items-center justify-between gap-4 p-3 rounded-lg border border-[hsl(var(--border))] bg-white hover:border-primary/30 hover:bg-primary/5 transition-colors text-left w-full"
-    >
-      <div className="flex items-center gap-3 min-w-0">
-        <div className="h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 bg-secondary">
-          <StoreIcon className="h-4 w-4 text-muted-foreground" />
-        </div>
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-[hsl(var(--foreground))] truncate">
-            {item.store_name}
-          </p>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="text-xs text-[hsl(var(--foreground-secondary))] capitalize">
-              {item.chain.replace('_', ' ')}
-            </span>
-            <DistanceChip distanceKm={item.distance_km} />
+            <DistanceChip distanceKm={entry.distanceKm} />
           </div>
         </div>
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
         <div className="text-right">
-          <span className="font-bold text-sm text-[hsl(var(--foreground))]">
-            ${effective.toFixed(2)}
-          </span>
+          <div className="flex items-baseline gap-1.5 justify-end">
+            {isBest && (
+              <Badge className="bg-primary text-white text-[10px] px-1.5 py-0">Best</Badge>
+            )}
+            <span className={cn("font-bold", isBest ? "text-primary text-base" : "text-[hsl(var(--foreground))] text-sm")}>
+              ${effective.toFixed(2)}
+            </span>
+          </div>
           {hasPromo && (
-            <span className="text-xs line-through text-[hsl(var(--foreground-tertiary))] ml-1">
-              ${item.price_nzd.toFixed(2)}
+            <span className="text-xs line-through text-[hsl(var(--foreground-tertiary))]">
+              ${entry.priceNzd.toFixed(2)}
             </span>
           )}
         </div>
-        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+        {navigable && <ArrowRight className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />}
       </div>
-    </button>
+    </>
+  );
+
+  return navigable ? (
+    <button onClick={() => navigate(`/product/${entry.productId}`)} className={className}>{inner}</button>
+  ) : (
+    <div className={className}>{inner}</div>
   );
 };
 
-const CROSS_CHAIN_INITIAL = 5;
+const COMPARE_INITIAL = 6;
 
-const CrossChainSection = ({ prices }: { prices: CrossChainPrice[] }) => {
+const CompareSection = ({ product }: { product: ProductDetail }) => {
   const [expanded, setExpanded] = useState(false);
-  const visible = expanded ? prices : prices.slice(0, CROSS_CHAIN_INITIAL);
-  const remaining = prices.length - CROSS_CHAIN_INITIAL;
+  const { isLocationSet, requestLocationWithFallback, loading } = useLocationContext();
+
+  // Merge the viewed product, its other stores, and other chains into one
+  // ranked list so the genuinely cheapest deal is always the "Best" row.
+  const entries: CompareEntry[] = [
+    {
+      key: `self-${product.price.store_id}`,
+      storeName: product.price.store_name,
+      chain: product.price.chain,
+      priceNzd: product.price.price_nzd,
+      promoPriceNzd: product.price.promo_price_nzd,
+      distanceKm: product.price.distance_km,
+    },
+    ...product.other_prices.map((p) => ({
+      key: `store-${p.store_id}`,
+      storeName: p.store_name,
+      chain: p.chain,
+      priceNzd: p.price_nzd,
+      promoPriceNzd: p.promo_price_nzd,
+      distanceKm: p.distance_km,
+    })),
+    ...product.cross_chain_prices.map((c) => ({
+      key: `chain-${c.product_id}-${c.store_id}`,
+      storeName: c.store_name,
+      chain: c.chain,
+      priceNzd: c.price_nzd,
+      promoPriceNzd: c.promo_price_nzd,
+      distanceKm: c.distance_km,
+      productId: c.product_id,
+    })),
+  ].sort((a, b) => compareEffective(a) - compareEffective(b));
+
+  if (entries.length <= 1) return null;
+
+  const visible = expanded ? entries : entries.slice(0, COMPARE_INITIAL);
+  const remaining = entries.length - COMPARE_INITIAL;
 
   return (
     <section className="mt-10 md:mt-14">
       <h2 className="text-lg font-semibold text-[hsl(var(--foreground))] mb-1">
-        Compare across chains
+        Compare prices
+        <span className="text-sm font-normal text-[hsl(var(--foreground-secondary))] ml-2">
+          {entries.length} options
+        </span>
       </h2>
       <p className="text-sm text-[hsl(var(--foreground-secondary))] mb-4">
-        Same product at other retailers
+        Across stores and chains — cheapest first
       </p>
+
+      {!isLocationSet && (
+        <button
+          onClick={() => { void requestLocationWithFallback(); }}
+          disabled={loading}
+          className="w-full mb-3 flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-left hover:bg-primary/10 transition-colors disabled:opacity-60"
+        >
+          <span className="flex items-center gap-2 min-w-0">
+            <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
+            <span className="text-sm text-[hsl(var(--foreground))]">
+              Set your location to see distances and what's cheapest nearby
+            </span>
+          </span>
+          <span className="text-sm font-medium text-primary flex-shrink-0">
+            {loading ? 'Locating…' : 'Enable'}
+          </span>
+        </button>
+      )}
+
       <div className="flex flex-col gap-2">
-        {visible.map((item) => (
-          <CrossChainRow key={item.product_id} item={item} />
+        {visible.map((entry, idx) => (
+          <CompareRow key={entry.key} entry={entry} isBest={idx === 0} />
         ))}
       </div>
       {!expanded && remaining > 0 && (
@@ -169,7 +211,7 @@ const CrossChainSection = ({ prices }: { prices: CrossChainPrice[] }) => {
           onClick={() => setExpanded(true)}
           className="mt-3 text-sm text-primary font-medium hover:underline"
         >
-          Show {remaining} more {remaining === 1 ? 'store' : 'stores'}
+          Show {remaining} more {remaining === 1 ? 'option' : 'options'}
         </button>
       )}
     </section>
@@ -278,9 +320,6 @@ export const ProductDetailPage = () => {
     product.total_volume_ml && { label: "Volume", value: `${product.total_volume_ml}ml` },
     product.pack_count && product.pack_count > 1 && { label: "Pack", value: `${product.pack_count} units` },
   ].filter(Boolean) as { label: string; value: string }[];
-
-  const allPrices = [product.price, ...product.other_prices].slice(0, 5);
-  const hasMultipleStores = allPrices.length > 1;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -445,22 +484,8 @@ export const ProductDetailPage = () => {
           </div>
         </div>
 
-        {/* Compare prices section */}
-        {hasMultipleStores && (
-          <section className="mt-10 md:mt-14">
-            <h2 className="text-lg font-semibold text-[hsl(var(--foreground))] mb-4">
-              Compare prices
-              <span className="text-sm font-normal text-[hsl(var(--foreground-secondary))] ml-2">
-                {allPrices.length} stores
-              </span>
-            </h2>
-            <div className="flex flex-col gap-2">
-              {allPrices.map((price, idx) => (
-                <PriceRow key={price.store_id} price={price} isBest={idx === 0} />
-              ))}
-            </div>
-          </section>
-        )}
+        {/* Compare prices — viewed product, its other stores, and other chains, cheapest first */}
+        <CompareSection product={product} />
 
         {/* Price history chart */}
         <section className="mt-10 md:mt-14">
@@ -480,11 +505,6 @@ export const ProductDetailPage = () => {
             </p>
           )}
         </section>
-
-        {/* Cross-chain comparison */}
-        {product.cross_chain_prices.length > 0 && (
-          <CrossChainSection prices={product.cross_chain_prices} />
-        )}
 
         {/* Recently Viewed (excluding current product) */}
         <RecentlyViewed products={recentlyViewed.filter(p => p.id !== product.id)} />
