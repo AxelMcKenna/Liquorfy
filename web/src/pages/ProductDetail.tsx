@@ -134,7 +134,7 @@ const COMPARE_INITIAL = 6;
 
 const CompareSection = ({ product }: { product: ProductDetail }) => {
   const [expanded, setExpanded] = useState(false);
-  const { isLocationSet, requestLocationWithFallback, loading } = useLocationContext();
+  const { isLocationSet, openLocationModal } = useLocationContext();
 
   // Merge the viewed product, its other stores, and other chains into one
   // ranked list so the genuinely cheapest deal is always the "Best" row.
@@ -185,9 +185,8 @@ const CompareSection = ({ product }: { product: ProductDetail }) => {
 
       {!isLocationSet && (
         <button
-          onClick={() => { void requestLocationWithFallback(); }}
-          disabled={loading}
-          className="w-full mb-3 flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-left hover:bg-primary/10 transition-colors disabled:opacity-60"
+          onClick={() => openLocationModal()}
+          className="w-full mb-3 flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-left hover:bg-primary/10 transition-colors"
         >
           <span className="flex items-center gap-2 min-w-0">
             <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
@@ -196,7 +195,7 @@ const CompareSection = ({ product }: { product: ProductDetail }) => {
             </span>
           </span>
           <span className="text-sm font-medium text-primary flex-shrink-0">
-            {loading ? 'Locating…' : 'Enable'}
+            Enable
           </span>
         </button>
       )}
