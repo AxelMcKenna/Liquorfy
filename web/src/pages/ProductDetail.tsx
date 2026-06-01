@@ -34,7 +34,6 @@ import {
   ChevronRight,
   Home,
   MapPin,
-  TrendingDown,
 } from 'lucide-react';
 import { ProductDetail } from '@/types';
 import { Link } from 'react-router-dom';
@@ -358,12 +357,12 @@ export const ProductDetailPage = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
 
           {/* Left: Image */}
-          <div className="relative flex items-center justify-center rounded-2xl border border-[hsl(var(--border))] bg-gradient-to-br from-white via-white to-secondary/60 p-8 min-h-[320px] md:min-h-[420px] shadow-sm overflow-hidden">
+          <div className="relative flex items-center justify-center bg-white rounded-xl border border-[hsl(var(--border))] p-8 min-h-[320px] md:min-h-[420px]">
             {product.image_url ? (
               <img
                 src={product.image_url}
                 alt={product.name}
-                className="w-full h-72 md:h-96 object-contain drop-shadow-xl"
+                className="w-full h-72 md:h-96 object-contain drop-shadow-sm"
               />
             ) : (
               <Wine className="h-24 w-24 text-[hsl(var(--foreground-tertiary))]/30" />
@@ -371,15 +370,14 @@ export const ProductDetailPage = () => {
 
             {/* Badges */}
             {hasPromo && (
-              <div className="absolute top-4 left-4 flex flex-col items-start gap-2">
+              <div className="absolute top-4 left-4 flex flex-col gap-1.5">
                 {savingsPercent > 0 && (
-                  <div className="flex h-14 w-14 md:h-16 md:w-16 flex-col items-center justify-center rounded-full bg-primary text-white shadow-lg ring-2 ring-white/40 leading-none">
-                    <span className="text-base md:text-lg font-extrabold">-{savingsPercent}%</span>
-                    <span className="text-[9px] md:text-[10px] font-semibold uppercase tracking-wide">off</span>
-                  </div>
+                  <Badge className="bg-primary text-white font-semibold text-xs shadow-sm">
+                    {savingsPercent}% off
+                  </Badge>
                 )}
                 {isNewPromo && (
-                  <Badge className="bg-amber-500 text-white text-xs gap-1 shadow-md">
+                  <Badge className="bg-amber-500 text-white text-xs gap-1 shadow-sm">
                     <Sparkles className="h-3 w-3" />
                     New
                   </Badge>
@@ -400,28 +398,25 @@ export const ProductDetailPage = () => {
               )}
             </div>
 
-            {/* Price block — savings as the hero */}
+            {/* Price block */}
             <div>
-              <div className="flex flex-wrap items-end gap-x-3 gap-y-1">
-                <span className="text-4xl md:text-5xl font-bold text-primary tracking-tight leading-none">
+              <div className="flex items-baseline gap-2.5">
+                <span className="text-3xl font-bold text-primary tracking-tight">
                   ${currentPrice.toFixed(2)}
                 </span>
                 {hasPromo && (
-                  <span className="text-lg line-through text-[hsl(var(--foreground-tertiary))] leading-none pb-0.5">
+                  <span className="text-base line-through text-[hsl(var(--foreground-tertiary))]">
                     ${product.price.price_nzd.toFixed(2)}
                   </span>
                 )}
               </div>
               {hasPromo && savingsAmount > 0 && (
-                <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-white shadow-sm">
-                  <TrendingDown className="h-4 w-4" />
-                  <span className="text-sm font-bold">Save ${savingsAmount.toFixed(2)}</span>
-                  {savingsPercent > 0 && (
-                    <span className="text-sm font-medium text-white/85">· {savingsPercent}% off</span>
-                  )}
-                </div>
+                <p className="text-sm font-semibold text-primary mt-1.5">
+                  You save ${savingsAmount.toFixed(2)}
+                  {savingsPercent > 0 && ` · ${savingsPercent}% off`}
+                </p>
               )}
-              <div className="flex flex-wrap gap-x-4 text-sm text-[hsl(var(--foreground-secondary))] mt-3">
+              <div className="flex flex-wrap gap-x-4 text-sm text-[hsl(var(--foreground-secondary))] mt-1">
                 {product.price.price_per_100ml && (
                   <span>${product.price.price_per_100ml.toFixed(2)} / 100ml</span>
                 )}
