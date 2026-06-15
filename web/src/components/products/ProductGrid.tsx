@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { Product } from "@/types";
+import { Product, SortOption } from "@/types";
 import { ProductCard } from "./ProductCard";
 import { ProductSkeleton } from "./ProductSkeleton";
 import { useFavourites } from "@/hooks/useFavourites";
@@ -8,11 +8,13 @@ import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
 interface ProductGridProps {
   products: Product[];
   loading: boolean;
+  sort?: SortOption;
 }
 
 const ProductGridComponent = ({
   products,
   loading,
+  sort,
 }: ProductGridProps) => {
   const { isFavourite, toggleFavourite } = useFavourites();
   const { addProduct } = useRecentlyViewed();
@@ -34,6 +36,7 @@ const ProductGridComponent = ({
           key={product.id}
           product={product}
           index={index}
+          sort={sort}
           isFavourite={isFavourite(product.id)}
           onToggleFavourite={() => toggleFavourite(product.id)}
           onView={() => addProduct(product)}

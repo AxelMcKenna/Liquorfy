@@ -3,6 +3,7 @@ import SwiftUI
 enum AppDestination: Hashable {
     case explore(query: String? = nil, promoOnly: Bool = false)
     case productDetail(id: UUID)
+    case watchlist
     case account
     case login
 }
@@ -23,6 +24,8 @@ struct LiquorfyApp: App {
                             ExploreView(initialQuery: query, initialPromoOnly: promoOnly)
                         case .productDetail(let id):
                             ProductDetailView(productId: id)
+                        case .watchlist:
+                            WatchlistView()
                         case .account:
                             AccountView()
                         case .login:

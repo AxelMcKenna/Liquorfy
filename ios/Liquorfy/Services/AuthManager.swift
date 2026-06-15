@@ -36,12 +36,38 @@ final class AuthManager {
         }
     }
 
+    // MARK: - Email / Password
+
+    func signInWithPassword(email: String, password: String) async throws {
+        try await supabase.auth.signIn(email: email, password: password)
+    }
+
+    /// Returns true when the session is active immediately (email confirmation disabled),
+    /// false when a confirmation email was sent and the user must verify before signing in.
+    @discardableResult
+    func signUp(email: String, password: String, name: String?) async throws -> Bool {
+        let response = try await supabase.auth.signUp(
+            email: email,
+            password: password,
+            data: name.map { ["full_name": AnyJSON.string($0)] }
+        )
+        return response.session != nil
+    }
+
+    func sendPasswordReset(email: String) async throws {
+        try await supabase.auth.resetPasswordForEmail(email)
+    }
+
     // MARK: - Google
 
     func signInWithGoogle() async throws {
-        try await supabase.auth.signInWithOAuth(provider: .google) { url in
-            await UIApplication.shared.open(url)
-        }
+        // Uses Supabase's built-in ASWebAuthenticationSession flow. The callback
+        // scheme below must be declared in Info.plist and allow-listed in the
+        // Supabase dashboard's redirect URLs.
+        try await supabase.auth.signInWithOAuth(
+            provider: .google,
+            redirectTo: URL(string: "nz.co.liquorfy://auth/callback")
+        )
     }
 
     // MARK: - Apple
@@ -73,17 +99,8 @@ final class AuthManager {
     // MARK: - Delete Account
 
     func deleteAccount() async throws {
-        guard let token = session?.accessToken else { return }
-
-        var request = URLRequest(url: URL(string: Constants.apiBaseURL + "/user/account")!)
-        request.httpMethod = "DELETE"
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-
-        let (_, response) = try await URLSession.shared.data(for: request)
-        if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
-            throw APIError.httpError(http.statusCode)
-        }
-
+        guard session?.accessToken != nil else { return }
+        try await APIClient.shared.deleteAccount()
         try await signOut()
     }
 }

@@ -206,6 +206,25 @@ class TestParsePromoEndDate:
         assert result.tzinfo is not None
         assert "Pacific/Auckland" in str(result.tzinfo) or result.tzinfo == NZ_TZ
 
+    @pytest.mark.parametrize("text", [
+        # Multi-buy badges: the dollar amount must NOT be read as a year
+        # (regression: "2 for $36" was parsed as ending in 2036).
+        "2 for $36",
+        "2 for $32",
+        "2 for $50",
+        "2 for $40",
+        "3 for $25",
+        "save $40.00",
+        "$19.99",
+    ])
+    def test_price_text_not_parsed_as_date(self, text):
+        """Price/multi-buy text contains no date and must return None."""
+        assert parse_promo_end_date(text) is None
+
+    def test_far_future_date_rejected(self):
+        """A parsed date more than a year out is treated as a misparse."""
+        assert parse_promo_end_date("Ends 25/12/2099") is None
+
 
 # ============================================================================
 # Member-Only Detection Tests

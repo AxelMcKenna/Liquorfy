@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 
 import pytz
@@ -163,10 +163,28 @@ def parse_promo_end_date(text: str) -> Optional[datetime]:
         # Fallback if dateutil not installed yet
         return None
 
+    def _finalize(dt: datetime) -> Optional[datetime]:
+        """End-of-day, NZ-localize, and reject implausible far-future dates.
+
+        A scraped promo end date more than a year out is almost certainly a
+        misparse (e.g. a dollar amount read as a year), so discard it.
+        """
+        dt = dt.replace(hour=23, minute=59, second=59, microsecond=0)
+        if dt.tzinfo is None:
+            dt = NZ_TZ.localize(dt)
+        now = datetime.now(NZ_TZ)
+        if dt > now + timedelta(days=366):
+            return None
+        return dt
+
+    # Strip currency amounts (e.g. "$36", "$40.00") before parsing so the
+    # fuzzy parser can't mistake a price for a year.
+    cleaned = re.sub(r'\$\s*\d+(?:\.\d+)?', ' ', text)
+
     # Common NZ date patterns
     # DD/MM/YYYY, DD/MM/YY
     pattern1 = r'(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})'
-    match1 = re.search(pattern1, text)
+    match1 = re.search(pattern1, cleaned)
 
     if match1:
         day = int(match1.group(1))
@@ -179,8 +197,7 @@ def parse_promo_end_date(text: str) -> Optional[datetime]:
 
         try:
             # End of day for end dates
-            dt = datetime(year, month, day, 23, 59, 59)
-            return NZ_TZ.localize(dt)
+            return _finalize(datetime(year, month, day))
         except ValueError:
             pass
 
@@ -189,9 +206,9 @@ def parse_promo_end_date(text: str) -> Optional[datetime]:
     date_keywords = ['end', 'until', 'expires', 'valid', 'offer']
 
     for keyword in date_keywords:
-        if keyword in text.lower():
+        if keyword in cleaned.lower():
             # Extract text after the keyword
-            parts = text.lower().split(keyword)
+            parts = cleaned.lower().split(keyword)
             if len(parts) > 1:
                 date_text = parts[1].strip()
 
@@ -199,29 +216,26 @@ def parse_promo_end_date(text: str) -> Optional[datetime]:
                     # Use dateutil's flexible parser
                     # dayfirst=True for NZ date format (DD/MM not MM/DD)
                     dt = date_parser.parse(date_text, dayfirst=True, fuzzy=True)
-
-                    # Set to end of day
-                    dt = dt.replace(hour=23, minute=59, second=59)
-
-                    # Add NZ timezone if naive
-                    if dt.tzinfo is None:
-                        dt = NZ_TZ.localize(dt)
-
-                    return dt
-                except (ValueError, TypeError):
+                    return _finalize(dt)
+                except (ValueError, TypeError, OverflowError):
                     continue
 
-    # Last attempt: Try parsing the whole text
-    try:
-        dt = date_parser.parse(text, dayfirst=True, fuzzy=True)
-        dt = dt.replace(hour=23, minute=59, second=59)
+    # Last attempt: only fall back to whole-string fuzzy parsing when the text
+    # actually contains a month name or a numeric date pattern. Without this
+    # guard, fuzzy=True scavenges stray numbers (e.g. "2 for $36") into dates.
+    has_month_name = re.search(
+        r'\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)',
+        cleaned, re.IGNORECASE,
+    )
+    has_numeric_date = re.search(r'\d{1,2}[/-]\d{1,2}', cleaned)
+    if has_month_name or has_numeric_date:
+        try:
+            dt = date_parser.parse(cleaned, dayfirst=True, fuzzy=True)
+            return _finalize(dt)
+        except (ValueError, TypeError, OverflowError):
+            return None
 
-        if dt.tzinfo is None:
-            dt = NZ_TZ.localize(dt)
-
-        return dt
-    except (ValueError, TypeError):
-        return None
+    return None
 
 
 def detect_member_only(text: str) -> bool:

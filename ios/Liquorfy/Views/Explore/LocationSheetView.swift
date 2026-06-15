@@ -100,6 +100,28 @@ struct LocationSheetView: View {
                             .multilineTextAlignment(.center)
                     }
 
+                    // Drop a pin on the map
+                    NavigationLink {
+                        MapLocationPickerView(onConfirmed: onLocationChanged)
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "mappin.and.ellipse")
+                                .font(.system(size: 16))
+                            Text("Drop a pin on the map")
+                                .font(.appSansSemiBold(size: 16, relativeTo: .body))
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                        }
+                        .foregroundStyle(.primary)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 48)
+                        .padding(.horizontal, 16)
+                        .background(Color.appTertiaryBackground)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+
                     // Manual city selection
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Or select a city")

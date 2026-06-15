@@ -4,6 +4,8 @@ struct ProductCardView: View {
     let product: Product
     var sort: SortOption = .bestValue
 
+    private let favourites = FavouritesManager.shared
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Image — fixed height so all cards match
@@ -20,6 +22,22 @@ struct ProductCardView: View {
                         .padding(.top, 6)
                         .padding(.leading, 6)
                 }
+            }
+            .overlay(alignment: .topTrailing) {
+                Button {
+                    favourites.toggle(product.id)
+                } label: {
+                    Image(systemName: favourites.isFavourite(product.id) ? "heart.fill" : "heart")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(favourites.isFavourite(product.id) ? .red : .secondary)
+                        .padding(6)
+                        .background(.white.opacity(0.9))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 6)
+                .padding(.trailing, 6)
+                .accessibilityLabel(favourites.isFavourite(product.id) ? "Remove from favourites" : "Add to favourites")
             }
             .overlay(alignment: .bottomLeading) {
                 if product.isCheapestNearby {

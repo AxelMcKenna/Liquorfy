@@ -1,6 +1,7 @@
 import Foundation
 
 enum SortOption: String, CaseIterable, Identifiable, Sendable {
+    case relevance = "relevance"
     case discount = "discount"
     case bestValue = "price_per_100ml"
     case cheapest = "total_price"
@@ -12,10 +13,11 @@ enum SortOption: String, CaseIterable, Identifiable, Sendable {
 
     var displayName: String {
         switch self {
+        case .relevance: "Most Relevant"
         case .discount: "Biggest Discount"
         case .bestValue: "Best Value (per 100ml)"
         case .cheapest: "Cheapest"
-        case .bestPerDrink: "Best per Std Drink"
+        case .bestPerDrink: "Best per Std. Drink"
         case .distance: "Nearest"
         case .newest: "Newest"
         }
@@ -23,6 +25,7 @@ enum SortOption: String, CaseIterable, Identifiable, Sendable {
 
     var iconName: String {
         switch self {
+        case .relevance: "sparkles"
         case .discount: "percent"
         case .bestValue: "drop.fill"
         case .cheapest: "dollarsign.circle"

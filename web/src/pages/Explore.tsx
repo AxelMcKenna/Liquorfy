@@ -29,7 +29,7 @@ export const Explore = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 1024);
   const [bannerDismissed, setBannerDismissed] = useState(false);
-  const { location, radiusKm, isLocationSet, openLocationModal, requestAutoLocation, loading: locationLoading, error: locationError } = useLocationContext();
+  const { location, radiusKm, isLocationSet, openLocationModal, requestLocationWithFallback, loading: locationLoading, error: locationError } = useLocationContext();
   const { user } = useAuth();
   const { filters, updateFilters } = useFilters();
   const { products, total, loading, error, currentPage, totalPages, fetchProducts, goToPage, clearProducts } = usePaginatedProducts();
@@ -192,7 +192,7 @@ export const Explore = () => {
                       <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
                       <p className="text-sm text-foreground">
                         <button
-                          onClick={requestAutoLocation}
+                          onClick={requestLocationWithFallback}
                           disabled={locationLoading}
                           className="font-medium text-primary hover:underline"
                         >
@@ -201,7 +201,7 @@ export const Explore = () => {
                         {' '}to see nearby store prices.
                         {' '}
                         <button
-                          onClick={openLocationModal}
+                          onClick={() => openLocationModal()}
                           className="text-primary/70 hover:underline text-xs"
                         >
                           Set manually
@@ -264,6 +264,7 @@ export const Explore = () => {
             <ProductGrid
               products={products}
               loading={loading}
+              sort={filters.sort}
             />
 
             {/* Pagination — only when location is set (locationless queries are page-1 only) */}
@@ -311,7 +312,7 @@ export const Explore = () => {
               <div className="mt-6 text-center">
                 <p className="text-sm text-muted-foreground">
                   <button
-                    onClick={openLocationModal}
+                    onClick={() => openLocationModal()}
                     className="text-primary font-medium hover:underline"
                   >
                     Enable location

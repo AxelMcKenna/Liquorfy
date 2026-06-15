@@ -5,72 +5,82 @@ struct ExploreView: View {
     var initialPromoOnly: Bool = false
 
     @Environment(LocationManager.self) private var locationManager
+    @Environment(AuthManager.self) private var authManager
     @Environment(\.navigate) private var navigate
     @Environment(\.dismiss) private var dismiss
 
     @State private var viewModel = ExploreViewModel()
     @State private var filterState = FilterState()
+    @State private var autocompleteVM = AutocompleteViewModel()
     @State private var showFilters = false
     @State private var showLocation = false
     @State private var quickViewProduct: Product?
+    @State private var bannerDismissed = false
+    @State private var didInit = false
     @FocusState private var isSearchFocused: Bool
 
+    // Browsing is allowed without a location (matching web): locationless queries
+    // are forced to promo-only when there's no search term and pinned to page 1.
+    private var needsLocation: Bool { !locationManager.isLocationSet }
+    private var needsSignIn: Bool { !authManager.isAuthenticated }
+    private var showBanner: Bool { !bannerDismissed && (needsLocation || needsSignIn) }
+
     var body: some View {
-        Group {
-            if !locationManager.isLocationSet {
-                locationGate
-            } else {
-                content
+        content
+            .navigationBarHidden(true)
+            .sheet(isPresented: $showFilters) {
+                FilterSheetView(filterState: filterState) {
+                    filterState.currentPage = 1
+                    Task { await fetchProducts() }
+                }
             }
-        }
-        .navigationBarHidden(true)
-        .sheet(isPresented: $showFilters) {
-            FilterSheetView(filterState: filterState) {
-                filterState.currentPage = 1
-                Task { await fetchProducts() }
+            .sheet(isPresented: $showLocation) {
+                LocationSheetView {
+                    filterState.currentPage = 1
+                    Task { await fetchProducts() }
+                }
             }
-        }
-        .sheet(isPresented: $showLocation) {
-            LocationSheetView {
-                filterState.currentPage = 1
-                Task { await fetchProducts() }
+            .sheet(item: $quickViewProduct) { product in
+                QuickViewSheet(product: product)
+                    .presentationDetents([.large])
             }
-        }
-        .sheet(item: $quickViewProduct) { product in
-            QuickViewSheet(product: product)
-                .presentationDetents([.large])
-        }
-        .onAppear {
-            if let initialQuery, !initialQuery.isEmpty {
-                filterState.query = initialQuery
-            }
-            if initialPromoOnly {
-                filterState.promoOnly = true
-            }
-        }
-        .task {
-            if locationManager.isLocationSet {
+            .task {
+                applyInitialState()
                 await fetchProducts()
             }
-        }
-        .onChange(of: locationManager.isLocationSet) {
-            if locationManager.isLocationSet {
+            .onChange(of: locationManager.isLocationSet) {
+                filterState.currentPage = 1
                 Task { await fetchProducts() }
             }
-        }
-        .onChange(of: filterState.sort) {
-            filterState.currentPage = 1
-            Task { await fetchProducts() }
-        }
+            .onChange(of: locationManager.radiusKm) {
+                Task { await fetchProducts() }
+            }
+            .onChange(of: filterState.sort) {
+                filterState.currentPage = 1
+                Task { await fetchProducts() }
+            }
+            .onChange(of: filterState.query) {
+                autocompleteVM.updateQuery(filterState.query)
+            }
+            .onChange(of: isSearchFocused) {
+                if isSearchFocused {
+                    Task { await autocompleteVM.loadPopular() }
+                }
+            }
     }
 
-    // MARK: - Location Gate
-
-    private var locationGate: some View {
-        VStack {
-            Spacer()
-            LocationRequestView()
-            Spacer()
+    private func applyInitialState() {
+        guard !didInit else { return }
+        didInit = true
+        if let initialQuery, !initialQuery.isEmpty {
+            filterState.query = initialQuery
+        }
+        if initialPromoOnly {
+            filterState.promoOnly = true
+        }
+        // Apply saved defaults only on a clean entry (no incoming query/promo).
+        if (initialQuery?.isEmpty ?? true) && !initialPromoOnly {
+            filterState.applySavedFilters()
         }
     }
 
@@ -137,6 +147,11 @@ struct ExploreView: View {
                     .focused($isSearchFocused)
                     .submitLabel(.search)
                     .onSubmit {
+                        let trimmed = filterState.query.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !trimmed.isEmpty {
+                            RecentSearchesManager.shared.add(trimmed)
+                        }
+                        isSearchFocused = false
                         filterState.currentPage = 1
                         Task { await fetchProducts() }
                     }
@@ -170,6 +185,45 @@ struct ExploreView: View {
         VStack(spacing: 0) {
             headerBar
 
+            if showBanner {
+                promptBanner
+            }
+
+            ZStack(alignment: .top) {
+                resultsView
+
+                if isSearchFocused {
+                    SearchSuggestionsView(
+                        query: filterState.query,
+                        viewModel: autocompleteVM,
+                        onSelectSuggestion: { suggestion in
+                            isSearchFocused = false
+                            navigate(.productDetail(id: suggestion.id))
+                        },
+                        onSelectPopular: { popular in
+                            isSearchFocused = false
+                            navigate(.productDetail(id: popular.id))
+                        },
+                        onRunSearch: { term in
+                            filterState.query = term
+                            RecentSearchesManager.shared.add(term)
+                            isSearchFocused = false
+                            filterState.currentPage = 1
+                            Task { await fetchProducts() }
+                        }
+                    )
+                    .padding(.horizontal, 12)
+                    .padding(.top, 8)
+                    .zIndex(1)
+                }
+            }
+        }
+        .background(Color.appBackground)
+    }
+
+    @ViewBuilder
+    private var resultsView: some View {
+        VStack(spacing: 0) {
             if viewModel.isLoading {
                 ScrollView {
                     SkeletonGridView(count: 6)
@@ -212,12 +266,14 @@ struct ExploreView: View {
 
                         ProductGridView(
                             products: viewModel.products,
+                            sort: filterState.sort,
                             onTapProduct: { product in
                                 quickViewProduct = product
                             }
                         )
 
-                        if viewModel.totalPages > 1 {
+                        // Pagination only when location is set (locationless queries are page-1 only).
+                        if locationManager.isLocationSet && viewModel.totalPages > 1 {
                             PaginationView(
                                 currentPage: viewModel.currentPage,
                                 totalPages: viewModel.totalPages,
@@ -238,15 +294,72 @@ struct ExploreView: View {
         .background(Color.appBackground)
     }
 
+    // MARK: - Prompt Banner
+
+    private var promptBanner: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "info.circle.fill")
+                .foregroundStyle(Color.appPrimary)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(needsLocation ? "See what's cheapest nearby" : "Save your watchlist")
+                    .font(.appSansSemiBold(size: 14, relativeTo: .subheadline))
+                Text(needsLocation
+                     ? "Set your location for distances and local deals."
+                     : "Sign in to track prices and favourites.")
+                    .font(.appCaption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 8)
+
+            if needsLocation {
+                Button("Enable") { showLocation = true }
+                    .font(.appSansSemiBold(size: 13, relativeTo: .footnote))
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+            } else if needsSignIn {
+                Button("Sign in") { navigate(.login) }
+                    .font(.appSansSemiBold(size: 13, relativeTo: .footnote))
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+            }
+
+            Button {
+                bannerDismissed = true
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(Color.appPrimary.opacity(0.06))
+    }
+
     // MARK: - Fetch
 
     private func fetchProducts() async {
-        guard let location = locationManager.location else { return }
-        let filters = filterState.buildFilters(
-            lat: location.latitude,
-            lon: location.longitude,
-            radiusKm: locationManager.radiusKm
+        let hasLocation = locationManager.isLocationSet
+        let location = locationManager.location
+
+        var filters = filterState.buildFilters(
+            lat: hasLocation ? location?.latitude : nil,
+            lon: hasLocation ? location?.longitude : nil,
+            radiusKm: hasLocation ? locationManager.radiusKm : nil
         )
+        filters.uniqueProducts = true
+
+        if !hasLocation {
+            // Locationless queries are pinned to page 1, and the API requires either
+            // promo_only or a search query — so force promo_only when there's no query.
+            filters.page = 1
+            if filters.query?.isEmpty ?? true {
+                filters.promoOnly = true
+            }
+        }
+
         await viewModel.fetchProducts(filters: filters)
     }
 }
@@ -256,4 +369,5 @@ struct ExploreView: View {
         ExploreView()
     }
     .environment(LocationManager())
+    .environment(AuthManager())
 }

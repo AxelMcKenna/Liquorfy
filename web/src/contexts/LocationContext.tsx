@@ -10,6 +10,8 @@ interface LocationData {
   radiusKm: number;
 }
 
+export type LocationModalStep = 'initial' | 'auto-success' | 'manual-map';
+
 interface LocationContextType {
   location: Location | null;
   locationSource: 'auto' | 'manual' | null;
@@ -19,11 +21,13 @@ interface LocationContextType {
   error: string | null;
   setRadiusKm: (radius: number) => void;
   requestAutoLocation: () => Promise<void>;
+  requestLocationWithFallback: () => Promise<void>;
   setManualLocation: (lat: number, lon: number, radius?: number) => void;
   clearLocation: () => void;
-  openLocationModal: () => void;
+  openLocationModal: (step?: LocationModalStep) => void;
   closeLocationModal: () => void;
   isLocationModalOpen: boolean;
+  requestedModalStep: LocationModalStep | null;
 }
 
 const LocationContext = createContext<LocationContextType | undefined>(undefined);
@@ -55,6 +59,7 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+  const [requestedModalStep, setRequestedModalStep] = useState<LocationModalStep | null>(null);
 
   // Persist to localStorage whenever locationData changes
   useEffect(() => {
@@ -134,6 +139,18 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  // Used by page-level "Enable location" buttons (outside the modal). If the
+  // browser blocks or denies geolocation, fall straight into the manual map
+  // entry flow instead of leaving the user stuck on an error message.
+  const requestLocationWithFallback = async (): Promise<void> => {
+    try {
+      await requestAutoLocation();
+    } catch {
+      // Error message is already set in requestAutoLocation.
+      openLocationModal('manual-map');
+    }
+  };
+
   const setManualLocation = (lat: number, lon: number, radius?: number) => {
     // Validate location is within New Zealand bounds
     const isInNZ = lat >= -47 && lat <= -34 && lon >= 165 && lon <= 179;
@@ -170,12 +187,14 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
     setError(null);
   };
 
-  const openLocationModal = () => {
+  const openLocationModal = (step?: LocationModalStep) => {
+    setRequestedModalStep(step ?? null);
     setIsLocationModalOpen(true);
   };
 
   const closeLocationModal = () => {
     setIsLocationModalOpen(false);
+    setRequestedModalStep(null);
   };
 
   const value: LocationContextType = {
@@ -187,11 +206,13 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
     error,
     setRadiusKm,
     requestAutoLocation,
+    requestLocationWithFallback,
     setManualLocation,
     clearLocation,
     openLocationModal,
     closeLocationModal,
     isLocationModalOpen,
+    requestedModalStep,
   };
 
   return (

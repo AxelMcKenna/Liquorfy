@@ -77,7 +77,9 @@ enum PreviewData {
         lon: 174.7791,
         address: "200 Riddiford St, Newtown",
         region: "Wellington",
-        distanceKm: 1.2
+        distanceKm: 1.2,
+        sellsAlcohol: true,
+        licensingTrustArea: nil
     )
 
     static let stores = [
@@ -90,7 +92,9 @@ enum PreviewData {
             lon: 174.7732,
             address: "240 Cuba St, Te Aro",
             region: "Wellington",
-            distanceKm: 3.5
+            distanceKm: 3.5,
+            sellsAlcohol: true,
+            licensingTrustArea: nil
         ),
         Store(
             id: UUID(),
@@ -100,7 +104,9 @@ enum PreviewData {
             lon: 174.8720,
             address: "2 Tawa St, Petone",
             region: "Lower Hutt",
-            distanceKm: 8.2
+            distanceKm: 8.2,
+            sellsAlcohol: true,
+            licensingTrustArea: nil
         ),
     ]
 

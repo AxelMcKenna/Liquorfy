@@ -72,7 +72,7 @@ export const Header = ({
             <Button
               variant="ghost"
               size="icon"
-              onClick={openLocationModal}
+              onClick={() => openLocationModal()}
               className="text-white hover:bg-white/10 h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0"
             >
               <MapPin className="h-4 w-4" />
@@ -123,7 +123,7 @@ export const Header = ({
             <Button
               variant="ghost"
               size="sm"
-              onClick={openLocationModal}
+              onClick={() => openLocationModal()}
               className="text-white hover:bg-white/10 gap-2 focus-visible:ring-0 focus-visible:ring-offset-0"
             >
               <MapPin className="h-4 w-4" />
