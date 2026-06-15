@@ -191,7 +191,7 @@ class TestAPIResponseParsing:
                 "items": [
                     {
                         "sku": "123456",
-                        "name": "Premium Lager 6x330ml",
+                        "name": "Steinlager Pure Premium Lager 6x330ml",
                         "brand": "Steinlager",
                         "variety": "Pure",
                         "price": {

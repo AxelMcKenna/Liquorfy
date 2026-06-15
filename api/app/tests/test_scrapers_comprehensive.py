@@ -39,7 +39,7 @@ def countdown_api_response():
             "items": [
                 {
                     "sku": "1234567",
-                    "name": "Pale Ale 330ml",
+                    "name": "Garage Project Day of the Dead Pale Ale 330ml",
                     "brand": "Garage Project",
                     "variety": "Day of the Dead",
                     "price": {
