@@ -28,6 +28,7 @@ export const LocationModal = () => {
     setManualLocation,
     setRadiusKm,
     isLocationSet,
+    requestedModalStep,
   } = useLocationContext();
 
   const [step, setStep] = useState<Step>('initial');
@@ -38,18 +39,22 @@ export const LocationModal = () => {
   // Reset state when modal opens
   useEffect(() => {
     if (isLocationModalOpen) {
-      if (isLocationSet && location) {
+      setTempRadius(radiusKm);
+      if (requestedModalStep) {
+        // Caller requested a specific step (e.g. geolocation was blocked and
+        // we want to land directly on the manual map entry screen).
+        setStep(requestedModalStep);
+        setTempLocation(location ?? { lat: -41.2924, lon: 174.7787 });
+      } else if (isLocationSet && location) {
         // User is changing existing location
         setStep('auto-success');
         setTempLocation(location);
-        setTempRadius(radiusKm);
       } else {
         // First time setting location
         setStep('initial');
-        setTempRadius(radiusKm);
       }
     }
-  }, [isLocationModalOpen, isLocationSet, location, radiusKm]);
+  }, [isLocationModalOpen, isLocationSet, location, radiusKm, requestedModalStep]);
 
   // Fetch address when location changes
   useEffect(() => {

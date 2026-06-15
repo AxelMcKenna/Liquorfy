@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ProductGridView: View {
     let products: [Product]
+    var sort: SortOption = .bestValue
     var onTapProduct: ((Product) -> Void)?
 
     private let columns = [
@@ -15,7 +16,7 @@ struct ProductGridView: View {
                 Button {
                     onTapProduct?(product)
                 } label: {
-                    ProductCardView(product: product)
+                    ProductCardView(product: product, sort: sort)
                 }
                 .buttonStyle(.pressableCard)
                 .opacity(appeared.contains(product.id) ? 1 : 0)

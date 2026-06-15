@@ -4,9 +4,6 @@ import SwiftUI
 // Matches the web app's design system (web/src/styles.css)
 
 extension Color {
-    /// Primary green — HSL 158° 55% 23% (#1a5a43)
-    static let appPrimary = Color(hex: "#1a5a43")
-
     /// Warm off-white page background (#f8f4f1 in light, system in dark)
     static let appBackground = Color("AppBackground")
 
@@ -23,6 +20,14 @@ extension Color {
     static let distanceMedium = Color(hex: "#e7af08")
     /// Far (>5 km) — gray hsl(0, 0%, 45%)
     static let distanceFar = Color(hex: "#727272")
+}
+
+// Declared on the ShapeStyle/Color constraint so leading-dot syntax resolves in
+// both Color contexts (`.tint(.appPrimary)`) and ShapeStyle contexts
+// (`.foregroundStyle(.appPrimary)`), as well as explicit `Color.appPrimary`.
+extension ShapeStyle where Self == Color {
+    /// Primary green — HSL 158° 55% 23% (#1a5a43)
+    static var appPrimary: Color { Color(hex: "#1a5a43") }
 }
 
 // MARK: - Typography

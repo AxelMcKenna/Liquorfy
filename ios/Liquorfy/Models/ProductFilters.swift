@@ -4,8 +4,8 @@ struct ProductFilters: Sendable {
     var query: String?
     var category: Category?
     var chains: Set<ChainType> = []
+    var storeIds: [UUID] = []
     var promoOnly: Bool = false
-    var sugarFree: Bool = false
     var uniqueProducts: Bool = false
     var priceMin: Double?
     var priceMax: Double?
@@ -32,11 +32,14 @@ struct ProductFilters: Sendable {
                 .joined(separator: ",")
             items.append(URLQueryItem(name: "chain", value: joinedChains))
         }
+        if !storeIds.isEmpty {
+            let joinedStores = storeIds
+                .map(\.uuidString)
+                .joined(separator: ",")
+            items.append(URLQueryItem(name: "store", value: joinedStores))
+        }
         if promoOnly {
             items.append(URLQueryItem(name: "promo_only", value: "true"))
-        }
-        if sugarFree {
-            items.append(URLQueryItem(name: "sugar_free", value: "true"))
         }
         if uniqueProducts {
             items.append(URLQueryItem(name: "unique_products", value: "true"))

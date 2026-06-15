@@ -75,10 +75,6 @@ struct FilterSheetView: View {
                                     isOn: $filterState.promoOnly
                                 )
                                 checkboxRow(
-                                    label: "Zero sugar",
-                                    isOn: $filterState.sugarFree
-                                )
-                                checkboxRow(
                                     label: "Unique products",
                                     isOn: $filterState.uniqueProducts
                                 )

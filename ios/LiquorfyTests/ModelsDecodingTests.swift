@@ -133,8 +133,8 @@ final class ModelsDecodingTests: XCTestCase {
 
         let store = try decoder.decode(Store.self, from: json)
         XCTAssertEqual(store.name, "Super Liquor Newtown")
-        XCTAssertNotNil(store.coordinate)
-        XCTAssertEqual(store.coordinate?.latitude, -41.3101, accuracy: 0.001)
+        let coordinate = try XCTUnwrap(store.coordinate)
+        XCTAssertEqual(coordinate.latitude, -41.3101, accuracy: 0.001)
     }
 
     func testDecodeProductListResponse() throws {

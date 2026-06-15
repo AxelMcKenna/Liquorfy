@@ -57,7 +57,7 @@ export const Landing = () => {
   const navigate = useNavigate();
   const { products, loading, fetchProducts } = useProducts();
   const { recentlyViewed } = useRecentlyViewed();
-  const { location, radiusKm, setRadiusKm, requestAutoLocation: requestLocation, loading: locationLoading, error: locationError } = useLocationContext();
+  const { location, radiusKm, setRadiusKm, requestLocationWithFallback: requestLocation, loading: locationLoading, error: locationError } = useLocationContext();
   const { stores, loading: storesLoading, fetchNearbyStores } = useStores();
   const { user } = useAuth();
   const [tempRadius, setTempRadius] = useState(radiusKm);

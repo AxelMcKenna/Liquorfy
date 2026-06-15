@@ -2,6 +2,7 @@ import SwiftUI
 
 struct LandingView: View {
     @Environment(LocationManager.self) private var locationManager
+    @Environment(AuthManager.self) private var authManager
     @Environment(\.navigate) private var navigate
 
     @State private var viewModel = LandingViewModel()
@@ -45,6 +46,27 @@ struct LandingView: View {
 
     private var heroSection: some View {
         VStack(spacing: 20) {
+            HStack(spacing: 16) {
+                Spacer()
+                Button {
+                    navigate(.watchlist)
+                } label: {
+                    Image(systemName: "heart")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(.white)
+                }
+                .accessibilityLabel("Watchlist")
+
+                Button {
+                    navigate(authManager.isAuthenticated ? .account : .login)
+                } label: {
+                    Image(systemName: "person.circle")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundStyle(.white)
+                }
+                .accessibilityLabel(authManager.isAuthenticated ? "Account" : "Sign in")
+            }
+
             Text("Compare liquor prices across NZ")
                 .font(.appTitle)
                 .foregroundStyle(.white)
@@ -195,4 +217,5 @@ struct LandingView: View {
         LandingView()
     }
     .environment(LocationManager())
+    .environment(AuthManager())
 }
