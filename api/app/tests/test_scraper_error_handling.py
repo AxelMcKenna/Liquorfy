@@ -479,12 +479,19 @@ class TestRateLimitingConfig:
     """Tests for rate limiting configuration."""
 
     def test_liquorland_has_rate_limits(self):
-        """Test Liquorland has rate limiting constants defined."""
-        from app.scrapers.liquorland import DELAY_BETWEEN_REQUESTS, DELAY_BETWEEN_CATEGORIES
+        """Test Liquorland has rate limiting / concurrency constants defined."""
+        from app.scrapers.liquorland import (
+            CATALOG_CONCURRENCY,
+            DELAY_BETWEEN_CATEGORIES,
+            MAX_PAGES_PER_CATEGORY,
+        )
 
-        assert DELAY_BETWEEN_REQUESTS > 0
+        # Catalog pages are fetched over HTTP in bounded concurrent chunks
+        # rather than serially, so politeness is expressed via a concurrency
+        # cap plus a per-category delay.
+        assert CATALOG_CONCURRENCY > 0
         assert DELAY_BETWEEN_CATEGORIES > 0
-        assert DELAY_BETWEEN_CATEGORIES >= DELAY_BETWEEN_REQUESTS
+        assert MAX_PAGES_PER_CATEGORY > 0
 
     def test_bottle_o_has_rate_limits(self):
         """Test Bottle O has rate limiting constants defined."""

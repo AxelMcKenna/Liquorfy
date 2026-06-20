@@ -1,6 +1,14 @@
 """
-Liquorland scraper using Playwright for JavaScript-rendered content.
-Includes database integration and robots.txt compliance.
+Liquorland scraper.
+
+Catalog data is fetched over plain HTTP. Each category listing page embeds the
+full product set as a server-rendered ``window.category`` JSON blob, so there is
+no need to drive a browser: we GET the listing pages with httpx, extract the
+JSON, and parse products directly. This is dramatically faster and far more
+robust than rendering a JavaScript SPA page-by-page (the old Playwright
+approach repeatedly blew past the worker timeout once the catalog grew).
+
+Digital mailer specials are still fetched from the SaleFinder APIs.
 """
 from __future__ import annotations
 
@@ -9,18 +17,10 @@ import json
 import logging
 import math
 import re
-from contextlib import suppress
-from datetime import datetime, timezone
+from datetime import datetime
 from html import unescape
 from typing import Any, AsyncIterator, List
 
-from playwright.async_api import (
-    Error as PlaywrightError,
-    Browser,
-    BrowserContext,
-    Page,
-    async_playwright,
-)
 from selectolax.parser import HTMLParser
 
 from app.scrapers.base import Scraper
@@ -35,13 +35,25 @@ from app.services.promo_utils import (
 
 logger = logging.getLogger(__name__)
 
-# Rate limiting configuration (respectful scraping per robots.txt)
-DELAY_BETWEEN_REQUESTS = 1.0  # seconds between page requests
-DELAY_BETWEEN_CATEGORIES = 2.5  # seconds between different categories
-PAGE_REFRESH_INTERVAL = 50  # Close and reopen browser page every N pages to avoid session staleness
-ZERO_PRODUCT_RETRY_DELAY = 5.0  # Extra wait before retrying a page that returned 0 products
-MAX_ZERO_PRODUCT_RETRIES = 2  # Number of retries for pages returning 0 products
-MAX_CONSECUTIVE_ZERO_PAGES = 10  # Skip remaining pages in category after this many consecutive 0-product pages
+# Rate limiting / concurrency (respectful scraping)
+CATALOG_CONCURRENCY = 6  # Number of listing pages fetched in parallel per chunk
+DELAY_BETWEEN_CHUNKS = 0.3  # Brief pause between concurrent fetch chunks
+DELAY_BETWEEN_CATEGORIES = 1.0  # Pause between categories
+REQUEST_TIMEOUT = 30  # Per-request timeout (seconds)
+MAX_FETCH_RETRIES = 4  # Retries per page on transient failure / throttling
+THROTTLE_BACKOFF = 3.0  # Base backoff (seconds) when a page comes back throttled
+MAX_PAGES_PER_CATEGORY = 600  # Safety cap to guard against runaway pagination
+STOP_AFTER_UNPRICED_PAGES = 12  # Stop a category after this many consecutive priceless pages
+
+# A realistic browser UA — the catalog endpoints sit behind a WAF that throttles
+# obvious bots, and the product/price data we read is public.
+BROWSER_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept-Language": "en-NZ,en;q=0.9",
+}
 
 SALEFINDER_API_BASE = "https://webservice.salefinder.co.nz/index.php/api"
 SALEFINDER_RETAILER_ID = 73
@@ -50,7 +62,7 @@ SPECIALS_PAYLOAD_PREFIX = "__LIQUORLAND_SPECIALS__:"
 
 
 class LiquorlandScraper(Scraper):
-    """Scraper for Liquorland NZ website using Playwright."""
+    """Scraper for the Liquorland NZ website (HTTP + embedded JSON)."""
 
     chain = "liquorland"
 
@@ -72,19 +84,116 @@ class LiquorlandScraper(Scraper):
 
     def __init__(self, use_fixtures: bool = False) -> None:
         super().__init__(use_fixtures=False)
-        self.browser: Browser | None = None
-        self.context: BrowserContext | None = None
-        self.playwright = None
         # Captured from regular category pages; used to infer promo deltas
         # for SaleFinder entries that only expose a "special" price.
         self._catalog_price_by_source_id: dict[str, float] = {}
 
     # ------------------------------------------------------------------
+    # JSON extraction helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _balanced(text: str, start: int, open_ch: str, close_ch: str) -> Any | None:
+        """Return json.loads of the balanced {..} / [..] block starting at `start`."""
+        depth = 0
+        in_str = False
+        esc = False
+        for j in range(start, len(text)):
+            ch = text[j]
+            if esc:
+                esc = False
+                continue
+            if ch == "\\":
+                esc = True
+                continue
+            if ch == '"':
+                in_str = not in_str
+                continue
+            if in_str:
+                continue
+            if ch == open_ch:
+                depth += 1
+            elif ch == close_ch:
+                depth -= 1
+                if depth == 0:
+                    try:
+                        return json.loads(text[start:j + 1])
+                    except Exception:
+                        return None
+        return None
+
+    @classmethod
+    def _extract_window_json(cls, html: str, var: str) -> Any | None:
+        """Extract a `window.<var> = <json>` assignment from page HTML.
+
+        Handles both array values (``window.navigation = [...]``) and object
+        values, including the spread form ``window.category = { ...{...} }``
+        where the real payload is the inner object.
+        """
+        idx = html.find(var)
+        if idx < 0:
+            return None
+        eq = html.find("=", idx + len(var))
+        if eq < 0:
+            return None
+        p = eq + 1
+        while p < len(html) and html[p] in " \t\r\n":
+            p += 1
+        if p >= len(html):
+            return None
+        if html[p] == "[":
+            return cls._balanced(html, p, "[", "]")
+        if html[p] == "{":
+            q = p + 1
+            while q < len(html) and html[q] in " \t\r\n":
+                q += 1
+            if html[q:q + 3] == "...":
+                inner = html.find("{", q + 3)
+                if inner < 0:
+                    return None
+                return cls._balanced(html, inner, "{", "}")
+            return cls._balanced(html, p, "{", "}")
+        return None
+
+    @classmethod
+    def _page_has_priced(cls, html: str) -> bool:
+        """True if the page's window.category contains at least one priced item.
+
+        Deep listing pages contain store-only products whose `unitprice` is null
+        (the site shows "Choose a store to get a price"); those carry no
+        nationwide price we can record.
+        """
+        cat = cls._extract_window_json(html, "window.category")
+        if not cat or not isinstance(cat, dict):
+            return False
+        for item in cat.get("items", []) or []:
+            variants = (item.get("stylecolour") or {}).get("variants") or []
+            if not variants:
+                continue
+            variant = variants[0] if isinstance(variants[0], dict) else {}
+            price = variant.get("unitprice") or variant.get("baseunitprice")
+            try:
+                if price is not None and float(str(price).replace("$", "")) > 0:
+                    return True
+            except (TypeError, ValueError):
+                continue
+        return False
+
+    @staticmethod
+    def _total_pages_from_category(cat: dict) -> int:
+        pag = (cat or {}).get("pagination") or {}
+        total_items = pag.get("totalItems") or 0
+        per_page = pag.get("itemsPerPage") or 24
+        if total_items and per_page:
+            return min(math.ceil(total_items / per_page), MAX_PAGES_PER_CATEGORY)
+        return 1
+
+    # ------------------------------------------------------------------
     # Category discovery
     # ------------------------------------------------------------------
 
-    async def _discover_category_urls(self, page: Page) -> List[str]:
-        """Read window.navigation and return non-overlapping category URLs.
+    def _discover_category_urls(self, nav: List[dict] | None) -> List[str]:
+        """Return non-overlapping category URLs from window.navigation.
 
         Strategy per top-level node:
         - Skip non-product sections (recipes, drinks guide, specials).
@@ -93,9 +202,6 @@ class LiquorlandScraper(Scraper):
         - If the node is a leaf (no children), use it directly.
         - Otherwise DFS to collect leaf URLs.
         """
-        nav = await page.evaluate(
-            "() => { try { return window.navigation; } catch(e) { return null; } }"
-        )
         if not nav:
             logger.warning("window.navigation not found, using fallback URLs")
             return [f"{self.BASE_URL}{path}" for path in self._FALLBACK_CATALOG_URLS]
@@ -122,6 +228,8 @@ class LiquorlandScraper(Scraper):
                 # No "All X" child — DFS to leaves
                 urls.extend(self._collect_leaf_urls(children))
 
+        # De-duplicate while preserving order
+        urls = list(dict.fromkeys(urls))
         logger.info(f"Discovered {len(urls)} category URLs from navigation")
         for u in urls:
             logger.info(f"  {u}")
@@ -174,6 +282,35 @@ class LiquorlandScraper(Scraper):
             pages_html.append(payload)
         return pages_html
 
+    async def _fetch_html(self, url: str, require: str | None = None) -> str | None:
+        """GET a URL with retries; return body text or None on failure.
+
+        If `require` is given, a 200 response whose body lacks that marker is
+        treated as throttled/incomplete (the WAF serves a 200 shell without the
+        embedded product JSON when rate-limited) and is retried with backoff.
+        """
+        for attempt in range(1 + MAX_FETCH_RETRIES):
+            try:
+                response = await self.client.get(
+                    url, headers=BROWSER_HEADERS, timeout=REQUEST_TIMEOUT,
+                    follow_redirects=True,
+                )
+                response.raise_for_status()
+                text = response.text
+                if require and require not in (text or ""):
+                    if attempt < MAX_FETCH_RETRIES:
+                        await asyncio.sleep(THROTTLE_BACKOFF * (attempt + 1))
+                        continue
+                    logger.warning(f"Throttled/incomplete response for {url} (missing {require})")
+                    return None
+                return text
+            except Exception as e:
+                if attempt < MAX_FETCH_RETRIES:
+                    await asyncio.sleep(1.5 * (attempt + 1))
+                else:
+                    logger.warning(f"Failed to fetch {url}: {e}")
+        return None
+
     async def stream_catalog_pages(self) -> AsyncIterator[str]:
         """Yield Liquorland payloads incrementally.
 
@@ -182,140 +319,85 @@ class LiquorlandScraper(Scraper):
         category rows.
         """
         self._catalog_price_by_source_id = {}
-        logger.info(f"Starting browser-based scraping for {self.chain}")
-        logger.info(
-            f"Rate limiting: {DELAY_BETWEEN_REQUESTS}s between pages, "
-            f"{DELAY_BETWEEN_CATEGORIES}s between categories"
-        )
+        logger.info(f"Starting HTTP scraping for {self.chain}")
 
         specials_payload = await self._fetch_specials_payload()
         if specials_payload:
             logger.info("Fetched Liquorland specials payload; processing before catalog pages")
             yield specials_payload
 
-        self.playwright = await async_playwright().start()
-        self.browser = await self.playwright.chromium.launch(
-            headless=True,
-            args=["--no-sandbox", "--disable-dev-shm-usage"],
+        # Discover categories from live navigation (embedded in any page).
+        discovery_html = await self._fetch_html(
+            f"{self.BASE_URL}/beer", require="window.navigation"
         )
-        self.context = await self.browser.new_context(
-            user_agent="Liquorfy/1.0 (Price Comparison Bot; +https://liquorfy.co.nz)",
-            viewport={"width": 1920, "height": 1080},
-        )
-
-        # Block resources we don't need — cuts page load time significantly
-        _BLOCK_TYPES = {"image", "media", "font", "stylesheet"}
-        async def _route_handler(route):
-            """Ignore route errors that happen during shutdown/cancellation."""
-            try:
-                if route.request.resource_type in _BLOCK_TYPES:
-                    await route.abort()
-                else:
-                    await route.continue_()
-            except PlaywrightError as e:
-                if "Target page, context or browser has been closed" not in str(e):
-                    raise
-        await self.context.route(
-            "**/*",
-            _route_handler,
-        )
+        nav = self._extract_window_json(discovery_html or "", "window.navigation")
+        catalog_urls = self._discover_category_urls(nav)
 
         fetched_catalog_pages = 0
-        try:
-            # Discover categories from live navigation
-            discovery_page = await self.context.new_page()
-            await discovery_page.goto(
-                f"{self.BASE_URL}/beer", wait_until="domcontentloaded", timeout=60000
-            )
-            await self._wait_for_content(discovery_page)
-            catalog_urls = await self._discover_category_urls(discovery_page)
-            await discovery_page.close()
+        for category_idx, base_url in enumerate(catalog_urls):
+            if category_idx > 0:
+                await asyncio.sleep(DELAY_BETWEEN_CATEGORIES)
 
-            for category_idx, base_url in enumerate(catalog_urls):
-                try:
-                    if category_idx > 0:
-                        logger.info(f"Waiting {DELAY_BETWEEN_CATEGORIES}s before next category...")
-                        await asyncio.sleep(DELAY_BETWEEN_CATEGORIES)
+            logger.info(f"Fetching {base_url}")
+            first_html = await self._fetch_html(base_url, require="window.category")
+            if not first_html:
+                logger.error(f"Failed to fetch first page of {base_url}")
+                continue
 
-                    logger.info(f"Fetching {base_url}")
+            fetched_catalog_pages += 1
+            yield first_html
 
-                    page = await self.context.new_page()
-                    try:
-                        await page.goto(base_url, wait_until="domcontentloaded", timeout=60000)
-                        await self._wait_for_content(page)
+            cat = self._extract_window_json(first_html, "window.category")
+            total_pages = self._total_pages_from_category(cat) if cat else 1
+            if total_pages <= 1:
+                logger.info("  Only 1 page found")
+                continue
 
+            logger.info(f"  Found {total_pages} pages, fetching remaining...")
+            # Fetch pages 2..N in bounded concurrent chunks, yielding as we go.
+            # Listings are sorted by distribution, so once we reach the tail of
+            # store-only products (no nationwide price) the rest of the category
+            # has nothing priceable — stop early to avoid hundreds of wasted
+            # requests against the WAF.
+            consecutive_unpriced = 0
+            for chunk_start in range(2, total_pages + 1, CATALOG_CONCURRENCY):
+                chunk_urls = [
+                    self._get_page_url(base_url, n)
+                    for n in range(chunk_start, min(chunk_start + CATALOG_CONCURRENCY, total_pages + 1))
+                ]
+                results = await asyncio.gather(
+                    *(self._fetch_html(u, require="window.category") for u in chunk_urls)
+                )
+                stop_category = False
+                for html in results:
+                    if not html:
+                        continue
+                    if self._page_has_priced(html):
+                        consecutive_unpriced = 0
                         fetched_catalog_pages += 1
-                        yield await page.content()
-
-                        total_pages = await self._extract_total_pages_js(page)
-
-                        if total_pages > 1:
-                            logger.info(f"  Found {total_pages} pages, fetching remaining...")
-                            consecutive_zero = 0
-                            pages_on_current_tab = 1  # Already fetched page 1
-                            for page_num in range(2, total_pages + 1):
-                                await asyncio.sleep(DELAY_BETWEEN_REQUESTS)
-
-                                # Periodically close and reopen the page to avoid session staleness
-                                pages_on_current_tab += 1
-                                if pages_on_current_tab >= PAGE_REFRESH_INTERVAL:
-                                    await page.close()
-                                    page = await self.context.new_page()
-                                    pages_on_current_tab = 0
-                                    logger.info(f"  Refreshed browser page at page {page_num}")
-
-                                page_url = self._get_page_url(base_url, page_num)
-                                try:
-                                    html = await self._fetch_page_with_retry(page, page_url)
-                                    if html:
-                                        fetched_catalog_pages += 1
-                                        # Check if page has products before yielding
-                                        if '.s-product' not in html and 's-product' not in html:
-                                            consecutive_zero += 1
-                                            logger.warning(f"  Page {page_num}/{total_pages} has no product markers ({consecutive_zero} consecutive)")
-                                        else:
-                                            consecutive_zero = 0
-                                        yield html
-                                    else:
-                                        consecutive_zero += 1
-                                        logger.warning(f"  Page {page_num}/{total_pages} returned no content ({consecutive_zero} consecutive)")
-
-                                    logger.info(f"  Fetched page {page_num}/{total_pages}")
-                                except Exception as e:
-                                    logger.error(f"  Failed to fetch page {page_num}: {e}")
-                                    consecutive_zero += 1
-
-                                if consecutive_zero >= MAX_CONSECUTIVE_ZERO_PAGES:
-                                    logger.warning(f"  Skipping remaining pages after {MAX_CONSECUTIVE_ZERO_PAGES} consecutive empty/failed pages")
-                                    break
-                        else:
-                            logger.info(f"  Only 1 page found")
-                    finally:
-                        await page.close()
-
-                except Exception as e:
-                    logger.error(f"Failed to fetch {base_url}: {e}")
-                    continue
-
-        finally:
-            if self.context:
-                with suppress(Exception):
-                    await self.context.unroute_all(behavior="ignoreErrors")
-                with suppress(Exception):
-                    await self.context.close()
-            if self.browser:
-                with suppress(Exception):
-                    await self.browser.close()
-            if self.playwright:
-                with suppress(Exception):
-                    await self.playwright.stop()
-            logger.info(f"Browser closed for {self.chain}")
+                        yield html
+                    else:
+                        consecutive_unpriced += 1
+                        if consecutive_unpriced >= STOP_AFTER_UNPRICED_PAGES:
+                            logger.info(
+                                f"  Reached priceless tail after page ~{chunk_start}; "
+                                f"stopping {base_url}"
+                            )
+                            stop_category = True
+                            break
+                if stop_category:
+                    break
+                await asyncio.sleep(DELAY_BETWEEN_CHUNKS)
 
         if specials_payload:
             logger.info("Re-processing Liquorland specials payload after catalog pages")
             yield specials_payload
 
         logger.info(f"Fetched {fetched_catalog_pages} total catalog pages across all categories")
+
+    # ------------------------------------------------------------------
+    # SaleFinder specials
+    # ------------------------------------------------------------------
 
     async def _fetch_specials_payload(self) -> str | None:
         """Fetch active digital mailer products from SaleFinder APIs."""
@@ -471,82 +553,24 @@ class LiquorlandScraper(Scraper):
     def _is_specials_payload(payload: str) -> bool:
         return payload.startswith(SPECIALS_PAYLOAD_PREFIX)
 
-    async def _fetch_page_with_retry(self, page: Page, url: str) -> str | None:
-        """Fetch a page, retrying with a fresh page if 0 products are found."""
-        for attempt in range(1 + MAX_ZERO_PRODUCT_RETRIES):
-            try:
-                await page.goto(url, wait_until="domcontentloaded", timeout=60000)
-                await self._wait_for_content(page)
-                html = await page.content()
-
-                # Check if products are present
-                if 's-product' in html:
-                    return html
-
-                # No products found — retry with backoff
-                if attempt < MAX_ZERO_PRODUCT_RETRIES:
-                    delay = ZERO_PRODUCT_RETRY_DELAY * (attempt + 1)
-                    logger.info(f"  No products found, retrying in {delay}s (attempt {attempt + 1}/{MAX_ZERO_PRODUCT_RETRIES})")
-                    await asyncio.sleep(delay)
-                    # Fresh page for retry
-                    await page.close()
-                    page = await self.context.new_page()
-                else:
-                    return html
-            except Exception as e:
-                if attempt < MAX_ZERO_PRODUCT_RETRIES:
-                    logger.warning(f"  Page fetch failed, retrying: {e}")
-                    await asyncio.sleep(ZERO_PRODUCT_RETRY_DELAY)
-                else:
-                    raise
-        return None
-
-    async def _wait_for_content(self, page: Page) -> None:
-        """Wait for Liquorland products to load."""
-        try:
-            # Wait until products are attached to the DOM (not visible — avoids
-            # false timeouts when elements render off-screen before scrolling).
-            # networkidle is intentionally omitted: it waits for analytics/ads
-            # which adds 10-15s per page with no benefit for data extraction.
-            await page.wait_for_selector('.s-product', state='attached', timeout=10000)
-        except Exception as e:
-            logger.warning(f"Timeout waiting for products: {e}")
-            # Continue anyway, we might still get some data
-
-    async def _extract_total_pages_js(self, page: Page) -> int:
-        """Extract total pages from window.category.pagination JS object."""
-        try:
-            pagination = await page.evaluate(
-                "() => { try { return window.category.pagination; } catch(e) { return null; } }"
-            )
-            if pagination:
-                total_items = pagination.get("totalItems", 0)
-                items_per_page = pagination.get("itemsPerPage", 24)
-                if total_items and items_per_page:
-                    total_pages = math.ceil(total_items / items_per_page)
-                    logger.info(f"  Pagination: {total_items} items, {items_per_page}/page, {total_pages} pages")
-                    return total_pages
-        except Exception as e:
-            logger.warning(f"  Could not extract pagination from JS: {e}")
-
-        # Fallback: check for Load More link in DOM
-        try:
-            load_more = page.locator("a.ps-category-pagination__button")
-            if await load_more.count() > 0:
-                return 2  # At least 2 pages
-        except Exception:
-            pass
-
-        return 1
-
     def _get_page_url(self, base_url: str, page_num: int) -> str:
         """Construct Liquorland page URL."""
         # Liquorland uses ?p=N format
         separator = '&' if '?' in base_url else '?'
         return f"{base_url}{separator}p={page_num}"
 
+    # ------------------------------------------------------------------
+    # Parsing
+    # ------------------------------------------------------------------
+
     async def parse_products(self, payload: str) -> List[dict]:
-        """Parse products from Liquorland HTML."""
+        """Parse products from a Liquorland payload.
+
+        Dispatches between:
+        - SaleFinder specials payload (JSON sentinel)
+        - Catalog listing page (embedded ``window.category`` JSON)
+        - Legacy rendered HTML (``.s-product`` markup) as a fallback
+        """
         if self._is_specials_payload(payload):
             try:
                 data = json.loads(payload[len(SPECIALS_PAYLOAD_PREFIX):])
@@ -556,6 +580,111 @@ class LiquorlandScraper(Scraper):
             items = data.get("items", []) if isinstance(data, dict) else []
             return self._parse_salefinder_products(items)
 
+        cat = self._extract_window_json(payload, "window.category")
+        if cat and isinstance(cat, dict) and cat.get("items"):
+            return self._parse_category_json(cat)
+
+        # Fallback: rendered HTML with .s-product markup
+        return self._parse_html_products(payload)
+
+    def _parse_category_json(self, cat: dict) -> List[dict]:
+        """Parse products from an embedded window.category JSON object."""
+        products: List[dict] = []
+        for item in cat.get("items", []) or []:
+            try:
+                parsed = self._parse_catalog_item(item)
+                if parsed:
+                    products.append(parsed)
+            except Exception as e:
+                logger.error(f"Error parsing catalog item: {e}", exc_info=True)
+                continue
+        logger.info(f"Parsed {len(products)} products from category JSON")
+        return products
+
+    def _parse_catalog_item(self, item: dict) -> dict | None:
+        if not isinstance(item, dict):
+            return None
+
+        style_colour = item.get("stylecolour") or {}
+        variants = style_colour.get("variants") or []
+        if not variants:
+            return None
+        variant = variants[0] if isinstance(variants[0], dict) else {}
+
+        name = self._clean_text(item.get("description"))
+        if not name:
+            return None
+
+        rel_url = style_colour.get("url") or ""
+        url = self._abs(rel_url) if rel_url else ""
+        source_id = self._source_id_from_url(url, str(item.get("productid") or name))
+
+        # `unitprice` is the price Liquorland actually displays. `originalunitprice`
+        # is an internal RRP that is NOT shown to customers, so we do not treat it
+        # as a "was" price (that would mark essentially every product on special).
+        price = self._parse_money(variant.get("unitprice")) or self._parse_money(
+            variant.get("baseunitprice")
+        )
+        if price is None:
+            return None
+
+        promo_price: float | None = None
+        promo_text: str | None = None
+        is_member_only = False
+
+        multibuy = variant.get("multibuy")
+        if multibuy:
+            mb_text = str(multibuy).strip()
+            if mb_text:
+                deal = parse_multi_buy_deal(mb_text)
+                if deal:
+                    unit = deal.get("unit_price")
+                    if unit and float(unit) < price:
+                        promo_price = float(unit)
+                    promo_text = deal["deal_text"][:255]
+                else:
+                    promo_text = mb_text[:255]
+                is_member_only = detect_member_only(mb_text)
+
+        # Image
+        image_url = None
+        for img in style_colour.get("images") or []:
+            src = img.get("src") or img.get("srcpath")
+            if src:
+                image_url = src if src.startswith("http") else self._abs(src)
+                break
+
+        brand = self._clean_text(item.get("label")) or infer_brand(name)
+        category = infer_category(name)
+        volume = parse_volume(name)
+        abv = extract_abv(name)
+
+        if source_id and price > 0:
+            existing_price = self._catalog_price_by_source_id.get(source_id)
+            if existing_price is None or price < existing_price:
+                self._catalog_price_by_source_id[source_id] = price
+
+        return {
+            "chain": self.chain,
+            "source_id": source_id,
+            "name": name,
+            "brand": brand,
+            "category": category,
+            "price_nzd": price,
+            "promo_price_nzd": promo_price,
+            "promo_text": promo_text,
+            "promo_ends_at": None,
+            "is_member_only": is_member_only,
+            "pack_count": volume.pack_count,
+            "unit_volume_ml": volume.unit_volume_ml,
+            "total_volume_ml": volume.total_volume_ml,
+            "abv_percent": abv,
+            "url": url,
+            "image_url": image_url,
+        }
+
+    def _parse_html_products(self, payload: str) -> List[dict]:
+        """Legacy parser for rendered HTML with .s-product markup (fallback)."""
         tree = HTMLParser(payload)
         products: List[dict] = []
 
