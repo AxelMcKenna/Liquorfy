@@ -314,7 +314,7 @@ export const Landing = () => {
                   </h3>
                   <p className="text-sm md:text-[15px] text-muted-foreground leading-relaxed mb-7 max-w-sm mx-auto">
                     Share your location to see live deals from stores near you and sort
-                    by distance — your spot never leaves your device.
+                    by distance - your spot never leaves your device.
                   </p>
                   <Button
                     onClick={requestLocation}
