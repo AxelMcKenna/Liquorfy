@@ -79,7 +79,6 @@ const valueProps = [
 export const Landing = () => {
   const [query, setQuery] = useState('');
   const navigate = useNavigate();
-  const { products, loading, fetchProducts } = useProducts();
   const { products: valueProducts, loading: valueLoading, fetchProducts: fetchValueProducts } = useProducts();
   const { recentlyViewed } = useRecentlyViewed();
   const { location, radiusKm, setRadiusKm, requestLocationWithFallback: requestLocation, loading: locationLoading, error: locationError } = useLocationContext();
@@ -99,27 +98,6 @@ export const Landing = () => {
       fetchNearbyStores(location, radiusKm);
     }
   }, [location, radiusKm, fetchNearbyStores]);
-
-  useEffect(() => {
-    if (location) {
-      fetchProducts({
-        promo_only: true,
-        limit: promoFetchLimit,
-        sort: SortOption.DISCOUNT,
-        unique_products: true,
-        lat: location.lat,
-        lon: location.lon,
-        radius_km: radiusKm,
-      });
-    } else {
-      fetchProducts({
-        promo_only: true,
-        limit: promoFetchLimit,
-        sort: SortOption.DISCOUNT,
-        unique_products: true,
-      });
-    }
-  }, [location, radiusKm, fetchProducts]);
 
   useEffect(() => {
     const baseFilters = {
@@ -154,32 +132,11 @@ export const Landing = () => {
     return () => window.clearTimeout(debounceId);
   }, [tempRadius, radiusKm, setRadiusKm]);
 
-  const getTopDiscountedProducts = () => {
-    if (!products?.items) return [];
-
-    return products.items
-      .filter((item) => {
-        const promoPrice = item.price.promo_price_nzd;
-        return promoPrice !== null && promoPrice !== undefined && promoPrice < item.price.price_nzd;
-      })
-      .map((item) => ({
-        ...item,
-        discountPercent: ((item.price.price_nzd - (item.price.promo_price_nzd || 0)) / item.price.price_nzd) * 100,
-      }))
-      .sort((a, b) => b.discountPercent - a.discountPercent)
-      .slice(0, 10);
-  };
-
-  const topDiscountedProducts = getTopDiscountedProducts();
   const bestValueProducts = (valueProducts?.items ?? []).slice(0, 10);
 
   const handleSearch = () => {
     const trimmedQuery = query.trim();
     navigate(trimmedQuery ? `/explore?q=${encodeURIComponent(trimmedQuery)}` : '/explore');
-  };
-
-  const handleViewAllDeals = () => {
-    navigate('/explore?promo_only=true');
   };
 
   return (
@@ -262,90 +219,8 @@ export const Landing = () => {
         </div>
       </section>
 
-      {/* ===== DEALS — Left-aligned heading, full grid ===== */}
+      {/* ===== BEST VALUE — product showcase ===== */}
       <section className="py-14 md:py-20">
-        <div className="max-w-7xl mx-auto px-4">
-          {/* Offset heading: left-aligned with right action — creates horizontal tension */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-10">
-            <Reveal className="md:col-span-8">
-              <hr className="accent-rule mb-4" />
-              <h2 className="text-2xl md:text-3xl font-semibold text-foreground tracking-tight">
-                {location ? 'Deals Near You' : 'Top Deals'}
-              </h2>
-              {!location && (
-                <p className="text-sm text-muted-foreground mt-2">
-                  Enable location for personalized results
-                </p>
-              )}
-            </Reveal>
-            <Reveal className="md:col-span-4 flex md:justify-end items-end" delay={0.08}>
-              <Button
-                onClick={handleViewAllDeals}
-                variant="ghost"
-                size="sm"
-                className="text-primary -ml-3 md:ml-0"
-              >
-                View all deals
-                <ArrowRight className="ml-1 h-4 w-4" />
-              </Button>
-            </Reveal>
-          </div>
-
-          <ProductGrid
-            products={topDiscountedProducts}
-            loading={loading}
-          />
-
-          {!loading && topDiscountedProducts.length === 0 && (
-            <div className="text-center py-16">
-              <Search className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-muted-foreground">No deals available right now</p>
-              <p className="text-sm text-muted-foreground/70 mt-1">Check back soon for new promotions</p>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Recently Viewed */}
-      <div className="max-w-7xl mx-auto px-4">
-        <RecentlyViewed products={recentlyViewed} />
-      </div>
-
-      {/* ===== VALUE PROP — Why Liquorfy ===== */}
-      <section className="py-14 md:py-20 border-t bg-secondary/40">
-        <div className="max-w-7xl mx-auto px-4">
-          <Reveal className="mb-10 md:mb-12">
-            <hr className="accent-rule mb-4" />
-            <h2 className="text-2xl md:text-3xl font-semibold text-foreground tracking-tight">
-              Why Liquorfy
-            </h2>
-            <p className="text-sm text-muted-foreground mt-2 max-w-md">
-              One search across every major NZ retailer — so you never overpay for a drink.
-            </p>
-          </Reveal>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {valueProps.map((vp, i) => (
-              <Reveal key={vp.title} delay={i * 0.08}>
-                <div className="h-full bg-background rounded-xl p-6 border card-lift">
-                  <div className="inline-flex items-center justify-center w-11 h-11 rounded-lg bg-primary/10 text-primary mb-4">
-                    <vp.icon className="h-5 w-5" />
-                  </div>
-                  <h3 className="text-base font-semibold text-foreground mb-1.5">
-                    {vp.title}
-                  </h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {vp.description}
-                  </p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ===== BEST VALUE — second product showcase ===== */}
-      <section className="py-14 md:py-20 border-t">
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-10">
             <Reveal className="md:col-span-8">
@@ -386,12 +261,50 @@ export const Landing = () => {
         </div>
       </section>
 
+      {/* Recently Viewed */}
+      <div className="max-w-7xl mx-auto px-4">
+        <RecentlyViewed products={recentlyViewed} />
+      </div>
+
+      {/* ===== VALUE PROP — Why Liquorfy ===== */}
+      <section className="py-14 md:py-20 border-t bg-secondary/40">
+        <div className="max-w-7xl mx-auto px-4">
+          <Reveal className="mb-10 md:mb-12">
+            <hr className="accent-rule mb-4" />
+            <h2 className="text-2xl md:text-3xl font-semibold text-foreground tracking-tight">
+              Why Liquorfy
+            </h2>
+            <p className="text-sm text-muted-foreground mt-2 max-w-md">
+              One search across every major NZ retailer - so you never overpay for a drink.
+            </p>
+          </Reveal>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {valueProps.map((vp, i) => (
+              <Reveal key={vp.title} delay={i * 0.08}>
+                <div className="h-full bg-background rounded-xl p-6 border card-lift">
+                  <div className="inline-flex items-center justify-center w-11 h-11 rounded-lg bg-primary/10 text-primary mb-4">
+                    <vp.icon className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-base font-semibold text-foreground mb-1.5">
+                    {vp.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {vp.description}
+                  </p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ===== MAP ===== */}
-      <section className="py-14 md:py-20 border-t">
+      <section className="py-14 md:py-20 border-t bg-secondary/40">
         <div className="max-w-7xl mx-auto px-4">
           {!location && (
             <Reveal>
-              <div className="bg-secondary rounded-2xl border shadow-[inset_0_2px_8px_rgba(0,0,0,0.06)] px-6 py-12 md:py-16 text-center">
+              <div className="bg-background rounded-2xl border shadow-sm px-6 py-12 md:py-16 text-center">
                 <div className="max-w-md mx-auto">
                   <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-primary/10 text-primary mb-5">
                     <MapPin className="h-7 w-7" />
