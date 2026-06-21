@@ -261,11 +261,6 @@ export const Landing = () => {
         </div>
       </section>
 
-      {/* Recently Viewed */}
-      <div className="max-w-7xl mx-auto px-4">
-        <RecentlyViewed products={recentlyViewed} />
-      </div>
-
       {/* ===== VALUE PROP — Why Liquorfy ===== */}
       <section className="py-14 md:py-20 border-t bg-secondary/40">
         <div className="max-w-7xl mx-auto px-4">
@@ -298,6 +293,11 @@ export const Landing = () => {
           </div>
         </div>
       </section>
+
+      {/* Recently Viewed */}
+      <div className="max-w-7xl mx-auto px-4">
+        <RecentlyViewed products={recentlyViewed} />
+      </div>
 
       {/* ===== MAP ===== */}
       <section className="py-14 md:py-20 border-t bg-secondary/40">
