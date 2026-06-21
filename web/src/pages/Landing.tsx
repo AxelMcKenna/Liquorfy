@@ -295,9 +295,7 @@ export const Landing = () => {
       </section>
 
       {/* Recently Viewed */}
-      <div className="max-w-7xl mx-auto px-4">
-        <RecentlyViewed products={recentlyViewed} />
-      </div>
+      <RecentlyViewed products={recentlyViewed} fullWidth />
 
       {/* ===== MAP ===== */}
       <section className="py-14 md:py-20 border-t bg-secondary/40">
