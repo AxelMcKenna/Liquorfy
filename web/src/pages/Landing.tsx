@@ -16,6 +16,7 @@ import { UserMenu } from '@/components/auth/UserMenu';
 import { Search, ArrowRight, MapPin, User, Store, RefreshCw, Wallet } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { RecentlyViewed } from '@/components/products/RecentlyViewed';
+import { CategoryBrowse } from '@/components/products/CategoryBrowse';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 import { SortOption } from '@/types';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
@@ -294,8 +295,12 @@ export const Landing = () => {
         </div>
       </section>
 
-      {/* Recently Viewed */}
-      <RecentlyViewed products={recentlyViewed} fullWidth />
+      {/* Recently Viewed — or category browse when there's no history yet */}
+      {recentlyViewed.length > 0 ? (
+        <RecentlyViewed products={recentlyViewed} fullWidth />
+      ) : (
+        <CategoryBrowse />
+      )}
 
       {/* ===== MAP ===== */}
       <section className="py-14 md:py-20 border-t bg-secondary/40">
