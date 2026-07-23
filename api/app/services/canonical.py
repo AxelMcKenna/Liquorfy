@@ -93,10 +93,10 @@ def compute_canonical_id(
     usable brand can be derived from either the caller or the name.
 
     Hash inputs: brand | variant | total_volume_ml | pack_count | is_sugar_free.
-    `category` is intentionally excluded — chains use incompatible category
+    `category` is intentionally excluded - chains use incompatible category
     vocabularies (e.g. "Wine / Red Wine" vs "red_wine") and including it
     fragments otherwise-identical SKUs into different canonical IDs.
-    `abv_percent` is excluded for the same reason — retailers inconsistently
+    `abv_percent` is excluded for the same reason - retailers inconsistently
     embed ABV in product names.
 
     The `category` and `abv_percent` parameters are kept for call-site
@@ -136,7 +136,7 @@ def attach_canonical_id(product_data: dict) -> dict:
     """Populate `canonical_product_id` on a scraper product dict in place.
 
     Use this from scraper upsert paths that build raw product dicts directly
-    (instead of going through `Scraper.build_product_dict`). Idempotent —
+    (instead of going through `Scraper.build_product_dict`). Idempotent -
     safe to call on dicts that already carry a canonical id; it will be
     overwritten with the freshly-computed value so the matcher always runs.
     """

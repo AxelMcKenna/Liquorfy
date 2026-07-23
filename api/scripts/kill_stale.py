@@ -1,6 +1,8 @@
 import asyncio
-import asyncpg
 import os
+
+import asyncpg
+
 
 async def run():
     conn = await asyncpg.connect(os.environ["DATABASE_URL"])
@@ -17,5 +19,6 @@ async def run():
     if not result:
         print("No stale transactions found")
     await conn.close()
+
 
 asyncio.run(run())

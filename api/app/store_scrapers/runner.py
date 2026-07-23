@@ -22,13 +22,13 @@ from sqlalchemy import text
 
 from app.db.session import get_async_session
 from app.store_scrapers.base import StoreLocationScraper
+from app.store_scrapers.black_bull import BlackBullLocationScraper
+from app.store_scrapers.bottle_o import BottleOLocationScraper
+from app.store_scrapers.countdown import CountdownLocationScraper
+from app.store_scrapers.glengarry import GlengarryLocationScraper
 from app.store_scrapers.liquorland import LiquorlandLocationScraper
 from app.store_scrapers.super_liquor import SuperLiquorLocationScraper
 from app.store_scrapers.thirsty_liquor import ThirstyLiquorLocationScraper
-from app.store_scrapers.black_bull import BlackBullLocationScraper
-from app.store_scrapers.glengarry import GlengarryLocationScraper
-from app.store_scrapers.bottle_o import BottleOLocationScraper
-from app.store_scrapers.countdown import CountdownLocationScraper
 
 logging.basicConfig(
     level=logging.INFO,

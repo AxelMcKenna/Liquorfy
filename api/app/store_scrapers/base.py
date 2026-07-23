@@ -3,10 +3,10 @@ from __future__ import annotations
 
 import abc
 import logging
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
 
 from httpx import AsyncClient
-from playwright.async_api import async_playwright, Browser, BrowserContext
+from playwright.async_api import Browser, BrowserContext, async_playwright
 
 logger = logging.getLogger(__name__)
 

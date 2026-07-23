@@ -6,22 +6,17 @@ These tests verify the complete scraper pipeline from HTML/JSON to product dicts
 from __future__ import annotations
 
 import json
-from datetime import datetime
 from pathlib import Path
-from typing import List
-from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
-from app.scrapers.registry import CHAINS, get_chain_scraper
-from app.scrapers.liquorland import LiquorlandScraper
-from app.scrapers.super_liquor import SuperLiquorScraper
 from app.scrapers.bottle_o import BottleOScraper
-from app.scrapers.glengarry import GlengarryScraper
 from app.scrapers.countdown_api import CountdownAPIScraper
+from app.scrapers.glengarry import GlengarryScraper
+from app.scrapers.liquorland import LiquorlandScraper
 from app.scrapers.new_world_api import NewWorldAPIScraper
 from app.scrapers.paknsave_api import PakNSaveAPIScraper
-
+from app.scrapers.registry import CHAINS, get_chain_scraper
+from app.scrapers.super_liquor import SuperLiquorScraper
 
 # ============================================================================
 # Fixtures Directory

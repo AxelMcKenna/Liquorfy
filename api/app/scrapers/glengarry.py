@@ -4,8 +4,6 @@ Glengarry is a specialist wine and spirits retailer in NZ.
 """
 from __future__ import annotations
 
-import asyncio
-import json
 import logging
 import re
 from typing import List
@@ -16,10 +14,10 @@ from selectolax.parser import HTMLParser
 
 from app.scrapers.browser_base import BrowserScraper
 from app.services.promo_utils import (
-    parse_promo_price,
+    detect_member_only,
     parse_multi_buy_deal,
     parse_promo_end_date,
-    detect_member_only,
+    parse_promo_price,
 )
 
 logger = logging.getLogger(__name__)

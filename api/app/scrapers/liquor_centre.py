@@ -5,38 +5,38 @@ Scrapes product data from Liquor Centre stores across New Zealand.
 Liquor Centre uses store-specific subdomains (e.g., beerescourt.shop.liquor-centre.co.nz)
 with per-store pricing.
 
-Uses plain HTTP with Pjax headers instead of a headless browser — CityHive
+Uses plain HTTP with Pjax headers instead of a headless browser - CityHive
 serves pre-rendered HTML fragments containing .talker product elements.
 """
 import asyncio
 import json
 import logging
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import AsyncIterator, List, Optional
-from selectolax.parser import HTMLParser
+
 import httpx
-
-from datetime import datetime, timezone
+from selectolax.parser import HTMLParser
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert
 
-from app.scrapers.base import Scraper
 from app.db.models import Price, Product, Store
 from app.db.session import get_async_session
+from app.scrapers.base import Scraper
 from app.services.parser_utils import (
-    parse_volume,
-    extract_abv,
     expand_cityhive_size_codes,
+    extract_abv,
     infer_brand,
     infer_category,
+    parse_volume,
 )
 from app.services.promo_utils import (
-    parse_promo_price,
+    detect_member_only,
     parse_multi_buy_deal,
     parse_promo_end_date,
-    detect_member_only,
+    parse_promo_price,
 )
-from sqlalchemy.dialects.postgresql import insert
 
 logger = logging.getLogger(__name__)
 STORE_SLUG_PATTERN = re.compile(r"https?://([a-z0-9-]+)\.shop\.liquor-centre\.co\.nz", re.IGNORECASE)
@@ -174,7 +174,7 @@ class LiquorCentreScraper(Scraper):
         """
         Yield Liquor Centre pages incrementally for page-level persistence.
 
-        Uses plain HTTP with Pjax headers — no browser needed.
+        Uses plain HTTP with Pjax headers - no browser needed.
         """
         if self.use_fixtures:
             fixture_pages = await self._fetch_from_fixtures()
@@ -290,7 +290,7 @@ class LiquorCentreScraper(Scraper):
 
         # The chain-wide product slug lives in the <a href>. The element's
         # id="line_<hex>" is a per-store inventory line ID and MUST NOT be
-        # used as source_product_id — that caused the duplicate-product bug
+        # used as source_product_id - that caused the duplicate-product bug
         # where the same SKU was inserted once per store.
         link_elem = talker.css_first("a[href]")
         href = link_elem.attributes.get("href", "") if link_elem else ""

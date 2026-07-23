@@ -2,11 +2,9 @@
 from __future__ import annotations
 
 import pytest
-
 from app.services.parser_utils import (
     BRAND_CATEGORY_MAP,
     CATEGORY_HIERARCHY,
-    CATEGORY_KEYWORDS,
     KNOWN_BRANDS,
     ParsedVolume,
     extract_abv,

@@ -6,20 +6,15 @@ Tests ensure scrapers handle errors gracefully and don't crash on malformed data
 from __future__ import annotations
 
 import json
-from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
-
-from app.scrapers.base import Scraper
-from app.scrapers.countdown_api import CountdownAPIScraper
-from app.scrapers.liquorland import LiquorlandScraper
 from app.scrapers.bottle_o import BottleOScraper
+from app.scrapers.countdown_api import CountdownAPIScraper
 from app.scrapers.glengarry import GlengarryScraper
+from app.scrapers.liquorland import LiquorlandScraper
 from app.scrapers.new_world_api import NewWorldAPIScraper
 from app.scrapers.paknsave_api import PakNSaveAPIScraper
-from app.scrapers.registry import CHAINS, get_chain_scraper
-
 
 # ============================================================================
 # Malformed HTML Tests
@@ -172,6 +167,7 @@ class TestMalformedAPIHandling:
         # Empty dict should not crash
         result = scraper._parse_product({})
         # May return with defaults or raise - just shouldn't crash unexpectedly
+        assert result is None or isinstance(result, dict)
 
     def test_foodstuffs_handles_missing_fields(self):
         """Test Foodstuffs scraper handles missing required fields."""

@@ -1,11 +1,8 @@
 """Liquorland store location scraper."""
 from __future__ import annotations
 
-import asyncio
-import json
 import logging
-import re
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 from playwright.async_api import Page
 

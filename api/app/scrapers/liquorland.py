@@ -24,13 +24,13 @@ from typing import Any, AsyncIterator, List
 from selectolax.parser import HTMLParser
 
 from app.scrapers.base import Scraper
-from app.services.parser_utils import extract_abv, parse_volume, infer_brand, infer_category
+from app.services.parser_utils import extract_abv, infer_brand, infer_category, parse_volume
 from app.services.promo_utils import (
-    parse_promo_price,
+    NZ_TZ,
+    detect_member_only,
     parse_multi_buy_deal,
     parse_promo_end_date,
-    detect_member_only,
-    NZ_TZ,
+    parse_promo_price,
 )
 
 logger = logging.getLogger(__name__)
@@ -45,7 +45,7 @@ THROTTLE_BACKOFF = 3.0  # Base backoff (seconds) when a page comes back throttle
 MAX_PAGES_PER_CATEGORY = 600  # Safety cap to guard against runaway pagination
 STOP_AFTER_UNPRICED_PAGES = 12  # Stop a category after this many consecutive priceless pages
 
-# A realistic browser UA — the catalog endpoints sit behind a WAF that throttles
+# A realistic browser UA - the catalog endpoints sit behind a WAF that throttles
 # obvious bots, and the product/price data we read is public.
 BROWSER_HEADERS = {
     "User-Agent": (
@@ -220,12 +220,12 @@ class LiquorlandScraper(Scraper):
                     urls.append(self._abs(url))
                 continue
 
-            # Look for an "All X" child — it covers the entire category
+            # Look for an "All X" child - it covers the entire category
             all_child = self._find_all_child(children)
             if all_child:
                 urls.append(self._abs(all_child))
             else:
-                # No "All X" child — DFS to leaves
+                # No "All X" child - DFS to leaves
                 urls.extend(self._collect_leaf_urls(children))
 
         # De-duplicate while preserving order
@@ -357,7 +357,7 @@ class LiquorlandScraper(Scraper):
             # Fetch pages 2..N in bounded concurrent chunks, yielding as we go.
             # Listings are sorted by distribution, so once we reach the tail of
             # store-only products (no nationwide price) the rest of the category
-            # has nothing priceable — stop early to avoid hundreds of wasted
+            # has nothing priceable - stop early to avoid hundreds of wasted
             # requests against the WAF.
             consecutive_unpriced = 0
             for chunk_start in range(2, total_pages + 1, CATALOG_CONCURRENCY):

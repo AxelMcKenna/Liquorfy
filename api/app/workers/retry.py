@@ -41,7 +41,7 @@ async def retry_with_backoff(
         except Exception as e:
             last_exc = e
             if attempt > max_retries:
-                logger.error(f"{label}: failed after {max_retries + 1} attempts — {e}")
+                logger.error(f"{label}: failed after {max_retries + 1} attempts - {e}")
                 raise
             delay = min(base_delay * (2 ** (attempt - 1)), max_delay)
             logger.warning(

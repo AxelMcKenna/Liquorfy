@@ -16,8 +16,8 @@ from sqlalchemy import select
 
 from app.db.models import IngestionRun, Store
 from app.db.session import async_transaction, get_async_session
-from app.scrapers.base import Scraper
 from app.scrapers.api_auth_base import APIAuthBase
+from app.scrapers.base import Scraper
 from app.services.parser_utils import infer_brand
 from app.workers.retry import retry_with_backoff
 
@@ -390,7 +390,7 @@ class FoodstuffsAPIScraper(Scraper, APIAuthBase):
                     for api_id in missing_api_ids:
                         store_name = f"{self.chain} #{api_id}"
                         # No lat/lon at creation; classifier falls back to override
-                        # table by (chain, api_id) — which covers the known West
+                        # table by (chain, api_id) - which covers the known West
                         # Auckland supermarkets. Stores not in the override and
                         # without coordinates default to sells_alcohol=True.
                         classification = classify_store(

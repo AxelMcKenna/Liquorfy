@@ -13,11 +13,21 @@ from sqlalchemy.dialects.postgresql import insert
 from app.core.config import get_settings
 from app.db.models import IngestionRun, Price, PriceHistory, Product, Store
 from app.db.session import async_transaction
-
+from app.services.pricing import normalize_money
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
 PRICE_UPSERT_CHUNK_SIZE = 2000
+
+
+def _normalize_product_money(product_data: dict) -> dict:
+    normalized = dict(product_data)
+    normalized["price_nzd"] = normalize_money(product_data["price_nzd"])
+    promo_price = product_data.get("promo_price_nzd")
+    normalized["promo_price_nzd"] = (
+        normalize_money(promo_price) if promo_price is not None else None
+    )
+    return normalized
 
 
 class Scraper(abc.ABC):
@@ -174,11 +184,14 @@ class Scraper(abc.ABC):
         Returns:
             Standardized product dictionary
         """
-        from app.services.parser_utils import (
-            parse_volume, extract_abv, infer_brand, infer_category,
-            detect_sugar_free,
-        )
         from app.services.canonical import compute_canonical_id
+        from app.services.parser_utils import (
+            detect_sugar_free,
+            extract_abv,
+            infer_brand,
+            infer_category,
+            parse_volume,
+        )
 
         # Parse volume from name
         volume = parse_volume(name)
@@ -247,6 +260,7 @@ class Scraper(abc.ABC):
 
         from app.services.canonical import attach_canonical_id
 
+        products_data = [_normalize_product_money(item) for item in products_data]
         now = datetime.now(timezone.utc)
         changed_count = 0
 
@@ -407,6 +421,7 @@ class Scraper(abc.ABC):
         """
         from app.services.canonical import attach_canonical_id
 
+        product_data = _normalize_product_money(product_data)
         now = datetime.now(timezone.utc)
         changed = False
 

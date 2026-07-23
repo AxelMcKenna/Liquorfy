@@ -1,12 +1,12 @@
 import os
-import pytest
 
+import pytest
 from app.scrapers.countdown_api import CountdownAPIScraper
 from app.scrapers.liquorland import LiquorlandScraper
 from app.scrapers.super_liquor import SuperLiquorScraper
 
-# Skip tests if Playwright browsers aren't installed
-# These are live integration tests that hit real websites
+
+# These are opt-in live integration tests that hit real websites.
 def _check_playwright_browsers():
     """Check if Playwright browsers are actually installed."""
     try:
@@ -19,10 +19,14 @@ def _check_playwright_browsers():
         return False
 
 PLAYWRIGHT_AVAILABLE = _check_playwright_browsers()
+RUN_LIVE_SCRAPER_TESTS = os.getenv("RUN_LIVE_SCRAPER_TESTS") == "1"
 
 requires_playwright = pytest.mark.skipif(
-    not PLAYWRIGHT_AVAILABLE,
-    reason="Playwright browsers not installed (run: playwright install)"
+    not PLAYWRIGHT_AVAILABLE or not RUN_LIVE_SCRAPER_TESTS,
+    reason=(
+        "Live scraper tests are disabled "
+        "(set RUN_LIVE_SCRAPER_TESTS=1 and install Playwright)"
+    ),
 )
 
 

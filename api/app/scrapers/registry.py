@@ -7,8 +7,8 @@ from app.scrapers.black_bull import BlackBullScraper
 from app.scrapers.bottle_o import BottleOScraper
 from app.scrapers.countdown_api import CountdownAPIScraper  # Using API-based scraper
 from app.scrapers.glengarry import GlengarryScraper
-from app.scrapers.liquorland import LiquorlandScraper
 from app.scrapers.liquor_centre import LiquorCentreScraper
+from app.scrapers.liquorland import LiquorlandScraper
 from app.scrapers.new_world_api import NewWorldAPIScraper  # Using API-based scraper
 from app.scrapers.paknsave_api import PakNSaveAPIScraper  # Using API-based scraper
 from app.scrapers.super_liquor import SuperLiquorScraper

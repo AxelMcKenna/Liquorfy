@@ -23,22 +23,22 @@ echo "==> Running Alembic migrations..."
 DATABASE_URL=postgresql://postgres:postgres@localhost:5433/liquorfy \
 SECRET_KEY=local-dev-key-not-for-production-use-12345 \
 ADMIN_PASSWORD=localdev1234 \
-  python -m alembic upgrade head
+  uv run python -m alembic upgrade head
 
 echo "==> Seeding database..."
 DATABASE_URL=postgresql://postgres:postgres@localhost:5433/liquorfy \
 SECRET_KEY=local-dev-key-not-for-production-use-12345 \
 ADMIN_PASSWORD=localdev1234 \
-  python -m app.db.seed
+  uv run python -m app.db.seed
 
 echo ""
 echo "Done! To start the dev stack (won't conflict with production on :8000):"
 echo ""
-echo "  # Terminal 1 — API on port 8001"
+echo "  # Terminal 1 - API on port 8001"
 echo "  cd api && DATABASE_URL=postgresql://postgres:postgres@localhost:5433/liquorfy \\"
 echo "    SECRET_KEY=local-dev-key-not-for-production-use-12345 \\"
 echo "    ADMIN_PASSWORD=localdev1234 \\"
-echo "    uvicorn app.main:app --reload --port 8001"
+echo "    uv run uvicorn app.main:app --reload --port 8001"
 echo ""
-echo "  # Terminal 2 — Web pointed at dev API"
+echo "  # Terminal 2 - Web pointed at dev API"
 echo "  cd web && VITE_API_URL=http://localhost:8001 npx vite"

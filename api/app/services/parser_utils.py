@@ -8,7 +8,7 @@ VOLUME_PATTERN = re.compile(
     r"(?P<count>\d+)\s*[x×]\s*(?P<unit>\d+(?:\.\d+)?)\s*(?P<measure>ml|cl|l|ltr|litre|litres|liters)\b",
     re.IGNORECASE,
 )
-# "12pk 250ml Cans", "6 Pack 330ml Bottles" — pack keyword then volume
+# "12pk 250ml Cans", "6 Pack 330ml Bottles" - pack keyword then volume
 PACK_VOLUME_PATTERN = re.compile(
     r"(?P<count>\d+)\s*(?:pk|pack)\s+(?P<unit>\d+(?:\.\d+)?)\s*(?P<measure>ml|cl|l|ltr|litre|litres|liters)\b",
     re.IGNORECASE,
@@ -17,7 +17,7 @@ SINGLE_VOLUME_PATTERN = re.compile(
     r"(?P<unit>\d+(?:\.\d+)?)\s*(?P<measure>ml|cl|l|ltr|litre|litres|liters)\b",
     re.IGNORECASE,
 )
-# Matches "12 Bottles", "6 Pack Cans", "15 Pk Btls", "(6 Pack)" — pack count without unit volume
+# Matches "12 Bottles", "6 Pack Cans", "15 Pk Btls", "(6 Pack)" - pack count without unit volume
 PACK_ONLY_PATTERN = re.compile(
     r"(?P<count>\d+)\s*(?:pk|pack)?\s*(?:bottles?|btls?|cans?|pack|pk)\b",
     re.IGNORECASE,
@@ -25,7 +25,7 @@ PACK_ONLY_PATTERN = re.compile(
 ABV_PATTERN = re.compile(r"(?<!\d)(?P<abv>\d{1,2}(?:\.\d+)?)\s*%")
 
 # CityHive (Bottle-O / Liquor Centre) product names truncate the volume
-# suffix to a single letter — "330c" = 330ml can, "330b" = 330ml bottle,
+# suffix to a single letter - "330c" = 330ml can, "330b" = 330ml bottle,
 # "700m" = 700ml (truncated mL). The volume parser doesn't recognise
 # these, which leaves ~7k products with NULL total_volume_ml.
 #
@@ -80,7 +80,7 @@ def parse_volume(text: str) -> ParsedVolume:
         measure = match.group("measure")
         unit_ml = unit_value * (1000 if measure == "l" else 10 if measure == "cl" else 1)
         return ParsedVolume(pack_count=1, unit_volume_ml=unit_ml, total_volume_ml=unit_ml)
-    # Pack-only: "12 Bottles", "6 Pack Cans" — assume 330ml (standard NZ beer bottle/can)
+    # Pack-only: "12 Bottles", "6 Pack Cans" - assume 330ml (standard NZ beer bottle/can)
     match = PACK_ONLY_PATTERN.search(normalized)
     if match:
         count = int(match.group("count"))
@@ -237,7 +237,7 @@ def infer_brand(product_name: str) -> Optional[str]:
             "limited", "edition", "double", "triple", "single", "old", "new",
             "best", "fine", "smooth", "crisp", "fresh", "natural",
         }
-        # Skip leading descriptors — they aren't brand names
+        # Skip leading descriptors - they aren't brand names
         start = 0
         while start < len(words) and words[start].lower() in common_descriptors:
             start += 1
@@ -439,7 +439,6 @@ BRAND_CATEGORY_MAP = {
     "mcguigan": "wine",
     "the balvenie": "scotch",
     "st-rã©my": "brandy",
-    "st-rémy": "brandy",
     "nz pure": "vodka",
     "michelob": "beer",
     "quick brown": "beer",

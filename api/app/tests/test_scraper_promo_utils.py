@@ -5,20 +5,14 @@ Tests all promotional parsing functions used by scrapers.
 """
 from __future__ import annotations
 
-from datetime import datetime
-from unittest.mock import patch
-
 import pytest
-import pytz
-
 from app.services.promo_utils import (
-    parse_promo_price,
+    NZ_TZ,
+    detect_member_only,
     parse_multi_buy_deal,
     parse_promo_end_date,
-    detect_member_only,
-    NZ_TZ,
+    parse_promo_price,
 )
-
 
 # ============================================================================
 # Promo Price Parsing Tests

@@ -10,11 +10,9 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from app.store_scrapers.base import StoreLocationScraper
 from app.store_scrapers.liquorland import LiquorlandLocationScraper
 from app.store_scrapers.super_liquor import SuperLiquorLocationScraper
-
 
 # ============================================================================
 # Base Store Scraper Tests
@@ -375,8 +373,6 @@ class TestStoreDataFiles:
 
     def test_store_data_has_required_fields(self):
         """Test that store data has required fields."""
-        required_fields = {"name", "address"}  # Minimum required fields
-
         for filename in ["countdown_stores.json", "newworld_stores.json"]:
             filepath = self.DATA_DIR / filename
             if filepath.exists():

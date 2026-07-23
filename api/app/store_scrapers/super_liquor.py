@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 import logging
-from typing import List, Dict, Any
+from typing import Any, Dict, List
+
 import httpx
 
 from app.store_scrapers.base import StoreLocationScraper

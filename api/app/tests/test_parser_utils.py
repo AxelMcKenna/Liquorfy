@@ -1,4 +1,4 @@
-from app.services.parser_utils import ParsedVolume, extract_abv, parse_volume
+from app.services.parser_utils import extract_abv, parse_volume
 
 
 def test_parse_single_volume():

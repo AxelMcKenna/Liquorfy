@@ -22,10 +22,10 @@ from app.db.models import Store
 from app.db.session import get_async_session
 from app.scrapers.base import Scraper
 from app.services.parser_utils import (
-    parse_volume,
     extract_abv,
     infer_brand,
     infer_category,
+    parse_volume,
 )
 
 logger = logging.getLogger(__name__)
@@ -172,7 +172,7 @@ class BlackBullScraper(Scraper):
                     f"Using fallback Black Bull store list ({len(self.stores)} stores)"
                 )
 
-        # Semaphore limits concurrent requests per store to 3 — enough to
+        # Semaphore limits concurrent requests per store to 3 - enough to
         # fetch all collections in parallel without hammering a single Shopify instance.
         sem = asyncio.Semaphore(3)
 

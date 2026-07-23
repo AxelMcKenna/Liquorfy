@@ -1,11 +1,8 @@
 """Countdown/Woolworths store location scraper."""
 from __future__ import annotations
 
-import asyncio
-import json
 import logging
-import re
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 import httpx
 from playwright.async_api import Page

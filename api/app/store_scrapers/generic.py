@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 from playwright.async_api import Page
 

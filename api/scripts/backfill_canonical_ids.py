@@ -17,22 +17,40 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from sqlalchemy import func, select, update
-
 from app.db.models import Product
 from app.db.session import async_transaction, get_async_session
 from app.services.canonical import compute_canonical_id
 from app.services.parser_utils import infer_brand, infer_category
+from sqlalchemy import func, select, update
 
 PAGE_SIZE = 5000
 
-_WINE_CATS = frozenset({
-    "wine", "red_wine", "white_wine", "rose", "sparkling", "champagne", "fortified_wine",
-})
-_SPIRIT_CATS = frozenset({
-    "spirits", "vodka", "gin", "rum", "whisky", "bourbon", "scotch",
-    "tequila", "brandy", "cognac", "liqueur",
-})
+_WINE_CATS = frozenset(
+    {
+        "wine",
+        "red_wine",
+        "white_wine",
+        "rose",
+        "sparkling",
+        "champagne",
+        "fortified_wine",
+    }
+)
+_SPIRIT_CATS = frozenset(
+    {
+        "spirits",
+        "vodka",
+        "gin",
+        "rum",
+        "whisky",
+        "bourbon",
+        "scotch",
+        "tequila",
+        "brandy",
+        "cognac",
+        "liqueur",
+    }
+)
 
 
 def _infer_standard_volume(category: str | None) -> tuple[float | None, int | None]:
@@ -58,7 +76,7 @@ async def backfill() -> None:
     unmatchable = 0
     offset = 0
 
-    # Select only the 7 columns we need — avoids loading large text/image fields
+    # Select only the 7 columns we need - avoids loading large text/image fields
     cols = (
         Product.id,
         Product.name,
@@ -83,8 +101,7 @@ async def backfill() -> None:
         batch_updates: list[tuple] = []
 
         for row in rows:
-            (prod_id, name, brand, vol_ml, pack, category,
-             is_sugar_free, existing_cid) = row
+            (prod_id, name, brand, vol_ml, pack, category, is_sugar_free, existing_cid) = row
 
             # Re-infer brand from name to normalize across chains
             if name:
@@ -133,11 +150,10 @@ async def backfill() -> None:
 
         offset += len(rows)
         print(
-            f"  {offset}/{total} — "
-            f"updated={updated}, skipped={skipped}, unmatchable={unmatchable}"
+            f"  {offset}/{total} - updated={updated}, skipped={skipped}, unmatchable={unmatchable}"
         )
 
-    print(f"\nBackfill complete:")
+    print("\nBackfill complete:")
     print(f"  Updated:     {updated}")
     print(f"  Skipped:     {skipped} (canonical ID already correct)")
     print(f"  Unmatchable: {unmatchable} (missing brand/volume even after inference)")

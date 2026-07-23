@@ -6,17 +6,19 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from abc import abstractmethod
 from contextlib import suppress
 from datetime import datetime, timezone
 from typing import List, Optional
-from abc import ABC, abstractmethod
 
 from playwright.async_api import (
-    Error as PlaywrightError,
     Browser,
     BrowserContext,
     Page,
     async_playwright,
+)
+from playwright.async_api import (
+    Error as PlaywrightError,
 )
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
@@ -96,7 +98,7 @@ class BrowserScraper(Scraper):
             timezone_id="Pacific/Auckland",
         )
 
-        # Block resources we don't need — cuts per-page load time significantly.
+        # Block resources we don't need - cuts per-page load time significantly.
         # Image/font/media files are never downloaded; their URL strings in HTML
         # attributes (src, data-src) are unaffected and still extracted correctly.
         _BLOCK_TYPES = {"image", "media", "font", "stylesheet"}
@@ -290,7 +292,7 @@ class BrowserScraper(Scraper):
                             )
                             continue
                 else:
-                    logger.info(f"  Only 1 page found")
+                    logger.info("  Only 1 page found")
 
             except Exception as e:
                 logger.error(f"Failed to fetch {base_url} after retries: {e}")

@@ -1,16 +1,16 @@
 """
-Countdown / Woolworths NZ API scraper — PER-STORE pricing.
+Countdown / Woolworths NZ API scraper - PER-STORE pricing.
 
 Woolworths NZ prices and availability vary by store. The products search API
 (`/api/v1/products`) returns results scoped to the session's selected fulfilment
 store. We therefore iterate every store: set the store, then scrape its catalogue.
 
-Setting the store (reverse-engineered from the site's Angular bundle —
+Setting the store (reverse-engineered from the site's Angular bundle -
 `changeSelectedPickupStore = id => apiService.put(postStoreEndpoint, {addressId:id})`):
     PUT /api/v1/fulfilment/my/pickup-addresses   body {"addressId": <id>}
 The `addressId` is stored per store as `Store.api_id` (backfilled from
 `/api/v1/addresses/pickup-addresses`). Products a store doesn't stock come back
-with a sentinel price of 0 / 99999.99 — those are skipped.
+with a sentinel price of 0 / 99999.99 - those are skipped.
 
 Note: Countdown NZ rebranded to Woolworths NZ (October 2023); the live site and
 API are at woolworths.co.nz.
@@ -21,7 +21,7 @@ import asyncio
 import logging
 import os
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import List
 from urllib.parse import quote
 
 import httpx
@@ -105,7 +105,7 @@ class CountdownAPIScraper(Scraper):
             try:
                 n = int(limit)
                 if n > 0 and n < len(stores):
-                    logger.info(f"countdown: store limit active — scraping {n}/{len(stores)} stores")
+                    logger.info(f"countdown: store limit active - scraping {n}/{len(stores)} stores")
                     stores = stores[:n]
             except ValueError:
                 pass

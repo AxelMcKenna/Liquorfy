@@ -163,7 +163,7 @@ async def send_discord_report() -> None:
     try:
         webhook_url = os.environ.get("DISCORD_WEBHOOK_URL")
         if not webhook_url:
-            logger.debug("DISCORD_WEBHOOK_URL not set — skipping report")
+            logger.debug("DISCORD_WEBHOOK_URL not set - skipping report")
             return
 
         chain_runs = await _fetch_latest_runs()

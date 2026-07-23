@@ -6,17 +6,14 @@ Tests all parsing functions used by scrapers to normalize product data.
 from __future__ import annotations
 
 import pytest
-
 from app.services.parser_utils import (
-    parse_volume,
-    ParsedVolume,
+    CATEGORY_HIERARCHY,
+    detect_sugar_free,
     extract_abv,
     infer_brand,
     infer_category,
-    detect_sugar_free,
-    CATEGORY_HIERARCHY,
+    parse_volume,
 )
-
 
 # ============================================================================
 # Volume Parsing Tests
@@ -184,7 +181,7 @@ class TestExtractABV:
 
     def test_edge_case_abv_extraction(self):
         """Test edge cases in ABV extraction."""
-        # "100% Natural" should NOT match — the lookbehind prevents
+        # "100% Natural" should NOT match - the lookbehind prevents
         # matching digits that are part of a larger number.
         result = extract_abv("100% Natural")
         assert result is None

@@ -1,11 +1,11 @@
 """
-The Bottle O scraper — per-store CityHive scraping with franchise fallback.
+The Bottle O scraper - per-store CityHive scraping with franchise fallback.
 
 Individual Bottle O stores run on the CityHive platform (same as Liquor Centre)
 at {slug}.shop.thebottleo.co.nz with per-store pricing.  Stores without an
 online shop fall back to the franchise catalog at thebottleo.co.nz.
 
-Uses plain HTTP with Pjax headers instead of a headless browser — CityHive
+Uses plain HTTP with Pjax headers instead of a headless browser - CityHive
 serves pre-rendered HTML fragments that contain the same .talker product
 elements, making browser automation unnecessary.
 """
@@ -23,21 +23,21 @@ from selectolax.parser import HTMLParser
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 
-from app.scrapers.base import Scraper
 from app.db.models import Price, Product, Store
 from app.db.session import get_async_session
+from app.scrapers.base import Scraper
 from app.services.parser_utils import (
-    parse_volume,
-    extract_abv,
     expand_cityhive_size_codes,
+    extract_abv,
     infer_brand,
     infer_category,
+    parse_volume,
 )
 from app.services.promo_utils import (
-    parse_promo_price,
+    detect_member_only,
     parse_multi_buy_deal,
     parse_promo_end_date,
-    detect_member_only,
+    parse_promo_price,
 )
 
 logger = logging.getLogger(__name__)
@@ -90,7 +90,7 @@ DEFAULT_STORES = [
 
 class BottleOScraper(Scraper):
     """
-    Scraper for The Bottle O NZ — CityHive per-store + franchise fallback.
+    Scraper for The Bottle O NZ - CityHive per-store + franchise fallback.
 
     Per-store scraping mirrors the LiquorCentreScraper approach: navigate each
     store's CityHive subdomain, paginate categories, tag HTML with metadata,
@@ -148,7 +148,7 @@ class BottleOScraper(Scraper):
         return sorted(slugs)
 
     # ------------------------------------------------------------------
-    # Fetching — per-store CityHive pages + franchise fallback
+    # Fetching - per-store CityHive pages + franchise fallback
     # ------------------------------------------------------------------
 
     async def fetch_catalog_pages(self) -> List[str]:
@@ -270,7 +270,7 @@ class BottleOScraper(Scraper):
                     product_count = html.count('class="talker ')
                     if product_count == 0:
                         if page_num == 1:
-                            logger.warning(f"  No products on franchise page 1")
+                            logger.warning("  No products on franchise page 1")
                         break
 
                     tagged = self._tag_html(html, "__franchise__", "mixed", page_num)
@@ -324,7 +324,7 @@ class BottleOScraper(Scraper):
     def _parse_talker_element(self, talker, store_slug: str) -> Optional[dict]:
         """Parse a single product from a CityHive .talker element."""
 
-        # Product URL — the chain-wide product slug lives in the <a href>.
+        # Product URL - the chain-wide product slug lives in the <a href>.
         # The element's id="line_<hex>" is a per-store inventory line ID and
         # MUST NOT be used as source_product_id (it caused the duplicate-product
         # bug where the same SKU was inserted once per store).
@@ -489,7 +489,7 @@ class BottleOScraper(Scraper):
         }
 
     # ------------------------------------------------------------------
-    # Franchise (GTM) parsing — fallback for non-shoppable stores
+    # Franchise (GTM) parsing - fallback for non-shoppable stores
     # ------------------------------------------------------------------
 
     def _parse_franchise_products(self, payload: str) -> List[dict]:
@@ -719,7 +719,7 @@ class BottleOScraper(Scraper):
         return [tagged]
 
     # ------------------------------------------------------------------
-    # DB persistence — per-store pricing override
+    # DB persistence - per-store pricing override
     # ------------------------------------------------------------------
 
     async def _upsert_products_batch(

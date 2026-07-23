@@ -23,8 +23,6 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-from sqlalchemy import select, update
-
 from app.db.models import Product
 from app.db.session import async_transaction, get_async_session
 from app.services.canonical import compute_canonical_id
@@ -32,6 +30,7 @@ from app.services.parser_utils import (
     expand_cityhive_size_codes,
     parse_volume,
 )
+from sqlalchemy import select, update
 
 PAGE_SIZE = 1000
 

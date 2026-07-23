@@ -8,8 +8,6 @@ from __future__ import annotations
 
 import uuid
 
-import pytest
-
 from app.services.canonical import attach_canonical_id, compute_canonical_id
 
 
@@ -52,7 +50,7 @@ class TestMatcherInvariants:
         assert a is not None
 
     def test_chain_independent(self):
-        """`chain` is not an input to the matcher — nothing about chain
+        """`chain` is not an input to the matcher - nothing about chain
         identity should leak into the canonical id.
         """
         # Calling site never passes a chain, but ensure the parser-utils
@@ -133,7 +131,7 @@ class TestAttachCanonicalId:
         assert isinstance(product_data["canonical_product_id"], uuid.UUID)
 
     def test_overwrites_existing_canonical(self):
-        """Idempotent + overwrites — last computation wins so stale hashes
+        """Idempotent + overwrites - last computation wins so stale hashes
         from older code paths are corrected on the next scrape."""
         stale = uuid.uuid4()
         product_data = {

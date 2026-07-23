@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 from app.store_scrapers.base import StoreLocationScraper
 
@@ -153,7 +153,7 @@ class BottleOLocationScraper(StoreLocationScraper):
         try:
             response = await page.request.fetch(
                 i_choose_you_url,
-                max_redirects=0,  # Don't follow — just read the Location header
+                max_redirects=0,  # Don't follow - just read the Location header
             )
             location = response.headers.get("location", "")
             match = _SHOP_URL_PATTERN.search(location)

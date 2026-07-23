@@ -16,7 +16,7 @@ overwrites `name` with the now-clean string).
 Usage:
     cd api && python scripts/maintenance/cleanup_countdown_names.py [--dry-run]
 
-The script is idempotent — re-running it is a no-op once names are clean.
+The script is idempotent - re-running it is a no-op once names are clean.
 After running, re-run `scripts/backfill_canonical_ids.py` so that the
 repaired products get canonical IDs that match the other chains.
 """
@@ -30,12 +30,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
+from app.db.session import async_transaction, get_async_session
 from sqlalchemy import text
 
-from app.db.session import async_transaction, get_async_session
-
-
-# Matches "<X>  <X> ..." — a token-or-phrase followed by 2+ spaces and the
+# Matches "<X>  <X> ..." - a token-or-phrase followed by 2+ spaces and the
 # same phrase again followed by at least one more space. Anchored to the
 # start of the string so we only collapse the leading duplicate prefix
 # and never touch substrings in the middle of a name.

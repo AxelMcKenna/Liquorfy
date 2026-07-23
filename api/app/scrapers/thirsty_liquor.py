@@ -7,14 +7,15 @@ Thirsty Liquor is a franchise with 130+ stores nationwide, using chain-wide pric
 import asyncio
 import logging
 from typing import List
+
 import httpx
 
 from app.scrapers.base import Scraper
 from app.services.parser_utils import (
-    parse_volume,
     extract_abv,
     infer_brand,
     infer_category,
+    parse_volume,
 )
 
 logger = logging.getLogger(__name__)

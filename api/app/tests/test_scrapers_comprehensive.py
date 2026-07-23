@@ -11,21 +11,15 @@ Tests cover:
 """
 from __future__ import annotations
 
-import json
-from datetime import datetime
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from httpx import Response
-
+from app.scrapers.black_bull import BlackBullScraper
 from app.scrapers.countdown_api import CountdownAPIScraper
 from app.scrapers.new_world_api import NewWorldAPIScraper
 from app.scrapers.paknsave_api import PakNSaveAPIScraper
 from app.scrapers.super_liquor import SuperLiquorScraper
-from app.scrapers.black_bull import BlackBullScraper
 from app.scrapers.thirsty_liquor import ThirstyLiquorScraper
-
 
 # ============================================================================
 # Fixtures
@@ -169,21 +163,16 @@ class TestCountdownScraper:
         scraper.cookies = {"session": "test"}
 
         mock_response_data = {"products": {"items": []}}
+        mock_client = AsyncMock()
+        mock_response = MagicMock()
+        mock_response.json.return_value = mock_response_data
+        mock_response.raise_for_status = MagicMock()
+        mock_client.get.return_value = mock_response
 
-        with patch('httpx.AsyncClient') as mock_client:
-            mock_instance = AsyncMock()
-            # Use MagicMock for the response since .json() is synchronous
-            mock_response = MagicMock()
-            mock_response.json.return_value = mock_response_data
-            mock_response.raise_for_status = MagicMock()
-            mock_get = AsyncMock(return_value=mock_response)
-            mock_instance.get = mock_get
-            mock_client.return_value.__aenter__.return_value = mock_instance
+        result = await scraper._fetch_search(mock_client, "beer")
 
-            result = await scraper._fetch_search("beer")
-
-            assert "products" in result
-            assert result == mock_response_data
+        assert "products" in result
+        assert result == mock_response_data
 
 
 # ============================================================================
@@ -437,6 +426,7 @@ class TestErrorHandling:
         # Test with empty response
         products = scraper._parse_product({})
         # Should not crash, but may have defaults
+        assert products is None or isinstance(products, dict)
 
     @pytest.mark.asyncio
     async def test_super_liquor_handles_network_failure(self):
@@ -480,16 +470,25 @@ class TestScraperIntegration:
             }
         }
 
-        # Mock cookies and search API
-        scraper.cookies = {"session": "test"}
-        with patch.object(scraper, '_fetch_search', new_callable=AsyncMock) as mock_fetch:
-            mock_fetch.return_value = mock_search_response
+        parsed_product = scraper._parse_product(
+            mock_search_response["products"]["items"][0]
+        )
+        with patch.object(
+            scraper,
+            "_load_stores",
+            AsyncMock(return_value=[{"id": "123", "name": "Test Store"}]),
+        ):
+            with patch.object(
+                scraper,
+                "_scrape_store",
+                AsyncMock(return_value=[parsed_product]),
+            ) as scrape_store:
+                products = await scraper.scrape()
 
-            products = await scraper.scrape()
-
-            assert len(products) > 0
-            assert all("source_id" in p for p in products)
-            assert all("price_nzd" in p for p in products)
+        scrape_store.assert_awaited_once_with("123", "Test Store")
+        assert len(products) == 1
+        assert all("source_id" in p for p in products)
+        assert all("price_nzd" in p for p in products)
 
 
 # ============================================================================
@@ -502,8 +501,6 @@ class TestScraperPerformance:
     @pytest.mark.asyncio
     async def test_super_liquor_respects_rate_limits(self):
         """Test that Super Liquor scraper respects rate limiting."""
-        scraper = SuperLiquorScraper(use_fixtures=False)
-
         # Check rate limit constants are set
         from app.scrapers.super_liquor import DELAY_BETWEEN_REQUESTS
 

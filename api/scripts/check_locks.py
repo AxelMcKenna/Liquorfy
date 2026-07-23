@@ -1,6 +1,8 @@
 import asyncio
-import asyncpg
 import os
+
+import asyncpg
+
 
 async def run():
     conn = await asyncpg.connect(os.environ["DATABASE_URL"])
@@ -12,9 +14,12 @@ async def run():
         LIMIT 20
     """)
     for r in rows:
-        print(f"PID={r['pid']} state={r['state']} duration={r['duration']} query={r['query'][:120]}")
+        print(
+            f"PID={r['pid']} state={r['state']} duration={r['duration']} query={r['query'][:120]}"
+        )
     if not rows:
         print("No active queries")
     await conn.close()
+
 
 asyncio.run(run())

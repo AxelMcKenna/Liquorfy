@@ -8,24 +8,19 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
-from pathlib import Path
-from typing import List
-from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
-from app.scrapers.registry import CHAINS, get_chain_scraper
 from app.scrapers.base import Scraper
+from app.scrapers.black_bull import BlackBullScraper
+from app.scrapers.bottle_o import BottleOScraper
 from app.scrapers.countdown_api import CountdownAPIScraper
+from app.scrapers.glengarry import GlengarryScraper
+from app.scrapers.liquorland import SPECIALS_PAYLOAD_PREFIX, LiquorlandScraper
 from app.scrapers.new_world_api import NewWorldAPIScraper
 from app.scrapers.paknsave_api import PakNSaveAPIScraper
-from app.scrapers.liquorland import LiquorlandScraper, SPECIALS_PAYLOAD_PREFIX
+from app.scrapers.registry import CHAINS, get_chain_scraper
 from app.scrapers.super_liquor import SuperLiquorScraper
-from app.scrapers.bottle_o import BottleOScraper
-from app.scrapers.glengarry import GlengarryScraper
 from app.scrapers.thirsty_liquor import ThirstyLiquorScraper
-from app.scrapers.black_bull import BlackBullScraper
-
 
 # ============================================================================
 # Registry Tests
@@ -942,7 +937,7 @@ class TestCountdownScraper:
 
         Pattern observed in production:
         "speights summit lime speights summit beer lager lime 12x330mL"
-        — both `name` and `brand` already contained the brand+subbrand,
+        - both `name` and `brand` already contained the brand+subbrand,
         plus `variety` contained the descriptor.
         """
         scraper = CountdownAPIScraper()

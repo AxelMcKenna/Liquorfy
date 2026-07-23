@@ -1,13 +1,16 @@
 """Recompute canonical_product_id for all products using Python variant extraction."""
+
 import asyncio
 import os
 import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import asyncpg
 from app.services.canonical import compute_canonical_id
 
 DB_URL = os.environ.get("DATABASE_URL", "")
+
 
 async def run():
     conn = await asyncpg.connect(DB_URL)
@@ -54,7 +57,10 @@ async def run():
             GROUP BY canonical_product_id HAVING COUNT(DISTINCT chain) > 1
         ) m
     """)
-    print(f"Done! {stats['with_canonical']}/{stats['total']} with canonical IDs, {cross['cross_chain']} cross-chain products")
+    print(
+        f"Done! {stats['with_canonical']}/{stats['total']} with canonical IDs, {cross['cross_chain']} cross-chain products"
+    )
     await conn.close()
+
 
 asyncio.run(run())

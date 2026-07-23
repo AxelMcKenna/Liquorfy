@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Any, Optional
 
 import pytz
 
@@ -108,7 +108,6 @@ def parse_multi_buy_deal(text: str) -> Optional[dict]:
 
     if match2:
         quantity_buy = int(match2.group(1))
-        quantity_pay = int(match2.group(2))
 
         # Can't calculate exact unit price without knowing base price
         # But we can indicate it's a discount
@@ -343,7 +342,7 @@ def extract_promo_info(
             '.old-price',
         ]
 
-    result = {
+    result: dict[str, Any] = {
         "promo_price": None,
         "promo_text": None,
         "promo_ends_at": None,

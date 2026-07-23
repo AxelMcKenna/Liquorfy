@@ -9,12 +9,11 @@ from typing import Dict, List, Optional
 from selectolax.parser import HTMLParser
 
 from app.scrapers.base import Scraper
-from app.services.parser_utils import extract_abv, parse_volume, infer_brand, infer_category
+from app.services.parser_utils import extract_abv, infer_brand, infer_category, parse_volume
 from app.services.promo_utils import (
-    parse_promo_price,
+    detect_member_only,
     parse_multi_buy_deal,
     parse_promo_end_date,
-    detect_member_only,
 )
 
 FIXTURE = Path(__file__).parent / "fixtures" / "super_liquor.html"
@@ -133,7 +132,7 @@ class SuperLiquorScraper(Scraper):
                             # Continue fetching other pages
                             continue
                 else:
-                    logger.info(f"  Only 1 page found")
+                    logger.info("  Only 1 page found")
 
             except Exception as e:
                 logger.error(f"Failed to fetch {base_url} after retries: {e}")
