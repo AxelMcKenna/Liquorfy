@@ -9,10 +9,17 @@ from pydantic import BaseModel, Field, ValidationError
 
 from app.core.config import get_settings
 from app.db.session import async_transaction, get_async_session
+from app.schemas.location import OptionalLocationParams
 from app.schemas.products import ProductDetailSchema, ProductListResponse, ProductSchema
 from app.schemas.queries import ProductQueryParams
 from app.services.cache import cached_json
-from app.services.search import fetch_autocomplete, fetch_popular, fetch_product_detail, fetch_products, fetch_products_by_ids
+from app.services.search import (
+    fetch_autocomplete,
+    fetch_popular,
+    fetch_product_detail,
+    fetch_products,
+    fetch_products_by_ids,
+)
 from app.services.views import record_product_view
 
 router = APIRouter(prefix="/products", tags=["products"])
@@ -44,6 +51,7 @@ async def _params(
     vol_max_ml: Optional[float] = Query(None),
     price_min: Optional[float] = Query(None),
     price_max: Optional[float] = Query(None),
+    sugar_free: Optional[bool] = Query(None),
     promo_only: bool = Query(False),
     unique_products: bool = Query(False),
     sort: str = Query("price_per_100ml"),
@@ -72,6 +80,7 @@ async def _params(
             vol_max_ml=vol_max_ml,
             price_min=price_min,
             price_max=price_max,
+            sugar_free=sugar_free,
             promo_only=promo_only,
             unique_products=unique_products,
             sort=effective_sort,
@@ -88,10 +97,10 @@ async def _params(
 @router.get("", response_model=ProductListResponse)
 async def list_products(params: ProductQueryParams = Depends(_params)) -> ProductListResponse:
     # Allow location-optional queries for:
-    # 1. Small promo queries (landing page top deals) — high cache hit rate
+    # 1. Small promo queries (landing page top deals) - high cache hit rate
     # 2. Text searches (user searched from hero before enabling location)
     # Both are capped to prevent expensive full-table scans without geographic filtering.
-    has_location = params.lat is not None and params.lon is not None and params.radius_km is not None
+    has_location = params.has_location
     is_small_promo_query = params.promo_only and params.page_size <= 100 and params.page == 1
     is_small_search_query = params.q and params.page_size <= 50 and params.page == 1
     locationless_allowed = is_small_promo_query or is_small_search_query
@@ -102,22 +111,6 @@ async def list_products(params: ProductQueryParams = Depends(_params)) -> Produc
             status_code=400,
             detail="Location parameters (lat, lon, radius_km) are required. Please enable location services."
         )
-
-    # Validate location if provided
-    if has_location:
-        # Validate location is within New Zealand
-        if not (-47 <= params.lat <= -34 and 165 <= params.lon <= 179):
-            raise HTTPException(
-                status_code=400,
-                detail="Location must be within New Zealand"
-            )
-
-        # Enforce reasonable radius limit (max 10km)
-        if params.radius_km > 10:
-            raise HTTPException(
-                status_code=400,
-                detail="Search radius cannot exceed 10km"
-            )
 
     async with get_async_session() as session:
         cache_key = json.dumps(params.dict(), sort_keys=True)
@@ -145,7 +138,7 @@ async def autocomplete(
     q: str = Query(..., min_length=2, max_length=100),
     limit: int = Query(8, ge=1, le=20),
 ) -> list[AutocompleteItem]:
-    """Fast fuzzy autocomplete — no store/price joins, trigram-ranked."""
+    """Fast fuzzy autocomplete - no store/price joins, trigram-ranked."""
     cache_key = f"autocomplete:{q.lower().strip()}:{limit}"
 
     async def producer() -> list[dict]:
@@ -196,16 +189,25 @@ async def product_detail(
     lon: Optional[float] = Query(None),
     radius_km: Optional[float] = Query(None),
 ) -> ProductDetailSchema:
+    try:
+        location = OptionalLocationParams(lat=lat, lon=lon, radius_km=radius_km)
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=exc.errors()) from exc
+
     loc_suffix = ""
-    if lat is not None and lon is not None and radius_km is not None:
-        loc_suffix = f":{round(lat, 2)}:{round(lon, 2)}:{round(radius_km, 1)}"
+    if location.has_location:
+        loc_suffix = f":{location.lat:.6f}:{location.lon:.6f}:{location.radius_km:.3f}"
     cache_key = f"product_detail:{product_id}{loc_suffix}"
 
     async def producer() -> dict:
         async with get_async_session() as session:
             try:
                 product = await fetch_product_detail(
-                    session, product_id, lat=lat, lon=lon, radius_km=radius_km,
+                    session,
+                    product_id,
+                    lat=location.lat,
+                    lon=location.lon,
+                    radius_km=location.radius_km,
                 )
             except ValueError as exc:
                 raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -215,11 +217,12 @@ async def product_detail(
     return ProductDetailSchema.parse_obj(payload)
 
 
-class BatchProductsRequest(BaseModel):
-    ids: list[UUID] = Field(..., description="Product IDs to fetch (max 50)")
-    lat: Optional[float] = None
-    lon: Optional[float] = None
-    radius_km: Optional[float] = Field(None, ge=1, le=10)
+class BatchProductsRequest(OptionalLocationParams):
+    ids: list[UUID] = Field(
+        ...,
+        max_items=50,
+        description="Product IDs to fetch (max 50)",
+    )
 
 
 @router.post("/batch", response_model=list[ProductSchema])

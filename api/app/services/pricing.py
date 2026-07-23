@@ -1,38 +1,57 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Optional
 
-STANDARD_DRINK_FACTOR = 0.789 / 0.010
+STANDARD_DRINK_FACTOR = Decimal("78.9")
+MONEY_QUANTUM = Decimal("0.01")
 
 
 @dataclass(frozen=True)
 class PricingMetrics:
-    price_per_100ml: Optional[float]
-    standard_drinks: Optional[float]
-    price_per_standard_drink: Optional[float]
+    price_per_100ml: Optional[Decimal]
+    standard_drinks: Optional[Decimal]
+    price_per_standard_drink: Optional[Decimal]
+
+
+def normalize_money(value: Decimal | float | int | str) -> Decimal:
+    """Convert scraped or request money into an exact two-decimal value."""
+    return Decimal(str(value)).quantize(MONEY_QUANTUM, rounding=ROUND_HALF_UP)
 
 
 def compute_pricing_metrics(
     *,
     total_volume_ml: Optional[float],
     abv_percent: Optional[float],
-    effective_price_nzd: float,
+    effective_price_nzd: Decimal | float,
 ) -> PricingMetrics:
-    price_per_100ml: Optional[float] = None
-    standard_drinks: Optional[float] = None
-    price_per_standard_drink: Optional[float] = None
+    price = normalize_money(effective_price_nzd)
+    price_per_100ml: Optional[Decimal] = None
+    standard_drinks: Optional[Decimal] = None
+    price_per_standard_drink: Optional[Decimal] = None
 
     if total_volume_ml and total_volume_ml > 0:
-        price_per_100ml = round(effective_price_nzd / (total_volume_ml / 100), 2)
+        volume = Decimal(str(total_volume_ml))
+        price_per_100ml = (price / (volume / Decimal("100"))).quantize(
+            MONEY_QUANTUM, rounding=ROUND_HALF_UP
+        )
 
     if total_volume_ml and abv_percent:
-        standard_drinks = round(
-            (total_volume_ml / 1000) * (abv_percent / 100) * STANDARD_DRINK_FACTOR,
-            2,
+        volume = Decimal(str(total_volume_ml))
+        abv = Decimal(str(abv_percent))
+        standard_drinks = (
+            (volume / Decimal("1000"))
+            * (abv / Decimal("100"))
+            * STANDARD_DRINK_FACTOR
+        ).quantize(
+            MONEY_QUANTUM,
+            rounding=ROUND_HALF_UP,
         )
         if standard_drinks > 0:
-            price_per_standard_drink = round(effective_price_nzd / standard_drinks, 2)
+            price_per_standard_drink = (price / standard_drinks).quantize(
+                MONEY_QUANTUM, rounding=ROUND_HALF_UP
+            )
 
     return PricingMetrics(
         price_per_100ml=price_per_100ml,
@@ -41,4 +60,9 @@ def compute_pricing_metrics(
     )
 
 
-__all__ = ["compute_pricing_metrics", "PricingMetrics"]
+__all__ = [
+    "compute_pricing_metrics",
+    "normalize_money",
+    "PricingMetrics",
+    "STANDARD_DRINK_FACTOR",
+]

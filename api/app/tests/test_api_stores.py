@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from fastapi.testclient import TestClient
 
 
@@ -64,23 +63,24 @@ class TestStoresNearbyEndpoint:
     def test_stores_radius_max_exceeded(self, client: TestClient):
         """Stores endpoint should reject radius > 10km."""
         response = client.get("/stores?lat=-36.8485&lon=174.7633&radius_km=11")
-        assert response.status_code == 400
-        assert "10km" in response.json()["detail"]
+        assert response.status_code == 422
+        assert "between 1 and 10" in response.text
 
     def test_stores_radius_zero_rejected(self, client: TestClient):
         """Stores endpoint should reject radius <= 0."""
         response = client.get("/stores?lat=-36.8485&lon=174.7633&radius_km=0")
-        assert response.status_code == 400
+        assert response.status_code == 422
 
     def test_stores_radius_negative_rejected(self, client: TestClient):
         """Stores endpoint should reject negative radius."""
         response = client.get("/stores?lat=-36.8485&lon=174.7633&radius_km=-5")
-        assert response.status_code == 400
-        assert "positive" in response.json()["detail"]
+        assert response.status_code == 422
+        assert "between 1 and 10" in response.text
 
     def test_stores_response_structure(self, client: TestClient):
         """Stores response should have correct structure."""
         import uuid
+
         from app.schemas.products import StoreListResponse, StoreSchema
 
         mock_store = StoreSchema(

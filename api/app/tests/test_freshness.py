@@ -5,8 +5,8 @@ Covers:
 - sweep_chain_promos: clears promos on old rows, leaves fresh rows alone
 - sweep_store_promos: scopes to single store
 - run_promo_expiry_cleanup: clears rows with past promo_ends_at
-- _effective_price: returns correct price for expired/valid/no-promo cases
-- _is_stale: returns correct staleness flag based on last_seen_at
+- effective_price: returns correct price for expired/valid/no-promo cases
+- is_stale: returns correct staleness flag based on last_seen_at
 """
 from __future__ import annotations
 
@@ -16,7 +16,6 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # Helpers for building mock Price objects
@@ -47,11 +46,11 @@ def _make_price(
 # ---------------------------------------------------------------------------
 
 class TestEffectivePrice:
-    """Tests for the query-time _effective_price helper."""
+    """Tests for the query-time effective-price helper."""
 
     def _fn(self, price):
-        from app.services.search import _effective_price
-        return _effective_price(price)
+        from app.services.product_presenter import effective_price
+        return effective_price(price)
 
     def test_no_promo_returns_regular_price(self):
         price = _make_price(price_nzd=30.0, promo_price_nzd=None)
@@ -83,11 +82,11 @@ class TestEffectivePrice:
 # ---------------------------------------------------------------------------
 
 class TestIsStale:
-    """Tests for the _is_stale helper."""
+    """Tests for the shared staleness helper."""
 
     def _fn(self, price):
-        from app.services.search import _is_stale
-        return _is_stale(price)
+        from app.services.product_presenter import is_stale
+        return is_stale(price)
 
     def test_recent_price_is_not_stale(self):
         price = _make_price(last_seen_at=_now_utc() - timedelta(hours=12))
@@ -115,8 +114,8 @@ class TestIsStale:
     def test_none_last_seen_at_is_stale(self):
         price = MagicMock()
         price.last_seen_at = None
-        from app.services.search import _is_stale
-        assert _is_stale(price) is True
+        from app.services.product_presenter import is_stale
+        assert is_stale(price) is True
 
 
 # ---------------------------------------------------------------------------
@@ -173,6 +172,7 @@ class TestSweepChainPromos:
     @pytest.mark.asyncio
     async def test_logs_when_rows_swept(self, caplog):
         import logging
+
         from app.services.freshness import sweep_chain_promos
 
         mock_session = AsyncMock()
@@ -288,6 +288,7 @@ class TestRunPromoExpiryCleanup:
     @pytest.mark.asyncio
     async def test_logs_when_rows_cleared(self, caplog):
         import logging
+
         from app.workers.cleanup import run_promo_expiry_cleanup
 
         mock_session = AsyncMock()

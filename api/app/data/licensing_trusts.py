@@ -23,7 +23,7 @@ digitised from:
     (north/east) using public coastal waypoints.
 
 These polygons are best-effort and may be off the gazetted line by tens of metres
-in places. Where 100% correctness matters — i.e. for every known supermarket — the
+in places. Where 100% correctness matters - i.e. for every known supermarket - the
 ``STORE_OVERRIDES`` table in ``app.services.licensing_trusts`` provides the
 authoritative answer keyed by (chain, identifier) and is consulted before the
 polygon. Any store falling within ~200 m of either polygon edge is flagged as
@@ -33,7 +33,6 @@ the classification is trusted.
 from __future__ import annotations
 
 from typing import Final
-
 
 # --- Waitakere Licensing Trust (WLT) ---
 # Covers (per The Trusts): Whenuapai, Hobsonville, West Harbour, Waitakere Township,

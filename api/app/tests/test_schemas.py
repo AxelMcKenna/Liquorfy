@@ -3,10 +3,9 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from decimal import Decimal
 
 import pytest
-from pydantic import ValidationError
-
 from app.schemas.products import (
     PriceSchema,
     ProductDetailSchema,
@@ -16,6 +15,7 @@ from app.schemas.products import (
     StoreSchema,
 )
 from app.schemas.queries import ProductQueryParams
+from pydantic import ValidationError
 
 
 class TestProductQueryParams:
@@ -39,7 +39,9 @@ class TestProductQueryParams:
         with pytest.raises(ValidationError) as exc_info:
             ProductQueryParams(radius_km=10)
 
-        assert "lat and lon must be provided" in str(exc_info.value)
+        assert "lat, lon, and radius_km must be provided together" in str(
+            exc_info.value
+        )
 
     def test_radius_with_lat_lon(self):
         """Should accept radius when lat/lon provided."""
@@ -115,7 +117,7 @@ class TestPriceSchema:
             is_member_only=False,
             distance_km=None
         )
-        assert price.price_nzd == 9.99
+        assert price.price_nzd == Decimal("9.99")
 
     def test_optional_fields_can_be_none(self):
         """Optional fields should accept None."""
@@ -178,7 +180,7 @@ class TestProductSchema:
         )
 
         assert product.name == "Test Beer 12x330ml"
-        assert product.price.price_nzd == 29.99
+        assert product.price.price_nzd == Decimal("29.99")
 
 
 class TestProductDetailSchema:

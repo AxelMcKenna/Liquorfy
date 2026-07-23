@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
 from typing import Optional
 from uuid import UUID
 
@@ -11,13 +12,13 @@ class PriceSchema(BaseModel):
     store_id: UUID
     store_name: str
     chain: str
-    price_nzd: float
-    promo_price_nzd: Optional[float]
+    price_nzd: Decimal
+    promo_price_nzd: Optional[Decimal]
     promo_text: Optional[str]
     promo_ends_at: Optional[datetime]
-    price_per_100ml: Optional[float]
-    standard_drinks: Optional[float]
-    price_per_standard_drink: Optional[float]
+    price_per_100ml: Optional[Decimal]
+    standard_drinks: Optional[Decimal]
+    price_per_standard_drink: Optional[Decimal]
     is_member_only: bool
     is_stale: bool = False
     distance_km: Optional[float]
@@ -49,12 +50,12 @@ class CrossChainPrice(BaseModel):
     chain: str
     store_id: UUID
     store_name: str
-    price_nzd: float
-    promo_price_nzd: Optional[float] = None
+    price_nzd: Decimal
+    promo_price_nzd: Optional[Decimal] = None
     promo_text: Optional[str] = None
     promo_ends_at: Optional[datetime] = None
-    price_per_100ml: Optional[float] = None
-    price_per_standard_drink: Optional[float] = None
+    price_per_100ml: Optional[Decimal] = None
+    price_per_standard_drink: Optional[Decimal] = None
     is_member_only: bool = False
     is_stale: bool = False
     distance_km: Optional[float] = None
@@ -62,8 +63,8 @@ class CrossChainPrice(BaseModel):
 
 class PriceHistoryPoint(BaseModel):
     date: str
-    price_nzd: float
-    promo_price_nzd: Optional[float] = None
+    price_nzd: Decimal
+    promo_price_nzd: Optional[Decimal] = None
 
 
 class ProductDetailSchema(ProductSchema):

@@ -1,8 +1,9 @@
 """Tests for pricing service."""
 from __future__ import annotations
 
-import pytest
+from decimal import Decimal
 
+import pytest
 from app.services.pricing import STANDARD_DRINK_FACTOR, PricingMetrics, compute_pricing_metrics
 
 
@@ -25,7 +26,7 @@ class TestComputePricingMetrics:
             abv_percent=None,
             effective_price_nzd=9.99
         )
-        assert metrics.price_per_100ml == pytest.approx(3.03, 0.01)
+        assert metrics.price_per_100ml == Decimal("3.03")
 
     def test_price_per_100ml_none_when_no_volume(self):
         """Should return None price per 100ml when volume is None."""
@@ -56,8 +57,7 @@ class TestComputePricingMetrics:
         assert metrics.standard_drinks is not None
         # NZ standard drink = 10g of alcohol
         # 1000ml * 0.40 * 0.789 g/ml / 10g = 31.56 drinks
-        expected = (1000 / 1000) * (40 / 100) * STANDARD_DRINK_FACTOR
-        assert metrics.standard_drinks == pytest.approx(expected, 0.1)
+        assert metrics.standard_drinks == Decimal("31.56")
 
     def test_standard_drinks_beer(self):
         """Should calculate standard drinks for typical beer."""
@@ -68,8 +68,7 @@ class TestComputePricingMetrics:
             effective_price_nzd=5.0
         )
         assert metrics.standard_drinks is not None
-        expected = (330 / 1000) * (5 / 100) * STANDARD_DRINK_FACTOR
-        assert metrics.standard_drinks == pytest.approx(expected, 0.1)
+        assert metrics.standard_drinks == Decimal("1.30")
 
     def test_standard_drinks_none_when_no_volume(self):
         """Should return None standard drinks when volume is None."""
@@ -168,4 +167,4 @@ class TestStandardDrinkFactor:
         # NZ: 1 standard drink = 10g pure alcohol
         # Alcohol density = 0.789 g/ml
         # Factor = 0.789 / 0.010 = 78.9
-        assert STANDARD_DRINK_FACTOR == pytest.approx(78.9, 0.1)
+        assert STANDARD_DRINK_FACTOR == Decimal("78.9")

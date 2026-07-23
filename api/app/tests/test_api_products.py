@@ -4,7 +4,6 @@ from __future__ import annotations
 import json
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from fastapi.testclient import TestClient
 
 
@@ -39,8 +38,8 @@ class TestListProductsEndpoint:
         """Products should reject locations outside New Zealand."""
         # Sydney, Australia - outside NZ bounds
         response = client.get("/products?lat=-33.8688&lon=151.2093&radius_km=10")
-        assert response.status_code == 400
-        assert "New Zealand" in response.json()["detail"]
+        assert response.status_code == 422
+        assert "New Zealand" in response.text
 
     def test_products_validates_max_radius(self, client: TestClient):
         """Products should reject radius > 10km."""
@@ -176,7 +175,8 @@ class TestProductDetailEndpoint:
         """Product detail should return product data."""
         import uuid
         from datetime import datetime
-        from app.schemas.products import ProductDetailSchema, PriceSchema
+
+        from app.schemas.products import PriceSchema, ProductDetailSchema
 
         product_id = uuid.uuid4()
         store_id = uuid.uuid4()
@@ -229,22 +229,22 @@ class TestProductsLocationValidation:
     def test_lat_out_of_range_north(self, client: TestClient):
         """Latitude north of NZ should be rejected."""
         response = client.get("/products?lat=-30.0&lon=174.7633&radius_km=10")
-        assert response.status_code == 400
+        assert response.status_code == 422
 
     def test_lat_out_of_range_south(self, client: TestClient):
         """Latitude south of NZ should be rejected."""
         response = client.get("/products?lat=-50.0&lon=174.7633&radius_km=10")
-        assert response.status_code == 400
+        assert response.status_code == 422
 
     def test_lon_out_of_range_west(self, client: TestClient):
         """Longitude west of NZ should be rejected."""
         response = client.get("/products?lat=-36.8485&lon=160.0&radius_km=10")
-        assert response.status_code == 400
+        assert response.status_code == 422
 
     def test_lon_out_of_range_east(self, client: TestClient):
         """Longitude east of NZ should be rejected."""
         response = client.get("/products?lat=-36.8485&lon=180.0&radius_km=10")
-        assert response.status_code == 400
+        assert response.status_code == 422
 
     def test_zero_radius_rejected(self, client: TestClient):
         """Zero radius should be rejected by validation."""

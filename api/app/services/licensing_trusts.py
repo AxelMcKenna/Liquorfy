@@ -2,9 +2,9 @@
 Portage and Waitakere Licensing Trust monopoly.
 
 Decision order for any store:
-  1. STORE_OVERRIDES — explicit per-store entries (gold-standard truth, manually
+  1. STORE_OVERRIDES - explicit per-store entries (gold-standard truth, manually
      verified against Auckland Council GeoMaps).
-  2. Trust-owned brand allowlist — if the store name matches a Trust-operated
+  2. Trust-owned brand allowlist - if the store name matches a Trust-operated
      brand (West Liquor, The Tap, etc.) it's always allowed to sell alcohol.
   3. Point-in-polygon against PLT and WLT polygons (best-effort hand-digitised).
      Inside polygon ⇒ sells_alcohol=False unless brand is Trust-owned.
@@ -57,8 +57,8 @@ class ClassificationResult:
 
 # Authoritative per-store overrides. Keyed by (chain, identifier_kind, identifier).
 # identifier_kind is one of:
-#   * "api_id" — match Store.api_id (e.g. Countdown numeric store IDs)
-#   * "name"   — case-insensitive exact match on Store.name
+#   * "api_id" - match Store.api_id (e.g. Countdown numeric store IDs)
+#   * "name"   - case-insensitive exact match on Store.name
 #
 # These were verified against the Trust district boundary one by one. If you add
 # a new West Auckland supermarket to the seed data, add it here too and update
@@ -68,7 +68,7 @@ def _override(trust: str, store_label: str) -> ClassificationResult:
         sells_alcohol=False,
         licensing_trust_area=trust,
         needs_review=False,
-        reason=f"{store_label} — {trust.title()} Licensing Trust district",
+        reason=f"{store_label} - {trust.title()} Licensing Trust district",
     )
 
 
@@ -85,7 +85,7 @@ def _register_override(*, chain: str, api_id: str, name: str, trust: str, label:
     STORE_OVERRIDES[(chain, "name", name.lower())] = result
 
 
-# --- Countdown / Woolworths — Waitakere Licensing Trust ---
+# --- Countdown / Woolworths - Waitakere Licensing Trust ---
 _register_override(chain="countdown", api_id="9038", name="Lincoln Road Woolworths",
                    trust=WAITAKERE, label="Lincoln Road Woolworths (Henderson)")
 _register_override(chain="countdown", api_id="9064", name="Northwest Woolworths",
@@ -101,7 +101,7 @@ _register_override(chain="countdown", api_id="9451", name="Te Atatu Woolworths",
 _register_override(chain="countdown", api_id="9551", name="Hobsonville Woolworths",
                    trust=WAITAKERE, label="Hobsonville Woolworths")
 
-# --- Countdown / Woolworths — Portage Licensing Trust ---
+# --- Countdown / Woolworths - Portage Licensing Trust ---
 _register_override(chain="countdown", api_id="9146", name="Kelston Woolworths",
                    trust=PORTAGE, label="Kelston Woolworths (Glen Eden)")
 _register_override(chain="countdown", api_id="9149", name="Lynnmall Woolworths",
@@ -109,7 +109,7 @@ _register_override(chain="countdown", api_id="9149", name="Lynnmall Woolworths",
 _register_override(chain="countdown", api_id="9211", name="Blockhouse Bay Woolworths",
                    trust=PORTAGE, label="Blockhouse Bay Woolworths")
 
-# --- PAK'nSAVE — Waitakere Licensing Trust ---
+# --- PAK'nSAVE - Waitakere Licensing Trust ---
 _register_override(chain="paknsave", api_id="6c73764e-b8e6-4e55-ad37-f6a9d207da1f",
                    name="PAK'nSAVE Alderman Dr Hen",
                    trust=WAITAKERE, label="PAK'nSAVE Alderman Drive (Henderson)")
@@ -120,12 +120,12 @@ _register_override(chain="paknsave", api_id="33d8d6fc-861a-45ff-9937-5ccdb55eaed
                    name="PAK'nSAVE Westgate",
                    trust=WAITAKERE, label="PAK'nSAVE Westgate (Massey)")
 
-# --- New World — Waitakere Licensing Trust ---
+# --- New World - Waitakere Licensing Trust ---
 _register_override(chain="newworld", api_id="403b1c6f-121c-4945-8aa8-fa53a7e59133",
                    name="New World Hobsonville",
                    trust=WAITAKERE, label="New World Hobsonville")
 
-# --- New World — Portage Licensing Trust ---
+# --- New World - Portage Licensing Trust ---
 _register_override(chain="newworld", api_id="c8998066-d39b-401c-aa6b-d6d18f8d122f",
                    name="New World New Lynn",
                    trust=PORTAGE, label="New World New Lynn")
@@ -159,7 +159,7 @@ def _point_in_polygon(lon: float, lat: float, polygon: list[tuple[float, float]]
 def _distance_to_polygon_edge(lon: float, lat: float, polygon: list[tuple[float, float]]) -> float:
     """Minimum 2-D distance (in degrees) from the point to any polygon edge.
 
-    Degree distance is fine for ambiguity-buffer purposes — we don't need true
+    Degree distance is fine for ambiguity-buffer purposes - we don't need true
     geodesic. 0.002 deg ~ 220 m at NZ latitudes which is plenty for catching
     digitisation error.
     """
@@ -196,7 +196,7 @@ def classify_store(
 
     Returns a ClassificationResult. Stores with no coordinates AND no override
     AND no trust-owned name pattern default to ``sells_alcohol=True`` with
-    ``needs_review=False`` — they can't be classified geographically so we trust
+    ``needs_review=False`` - they can't be classified geographically so we trust
     them. This is the safe default because the supermarket chains we already
     have hardcoded overrides for cover every known West Auckland location.
     """
@@ -213,7 +213,7 @@ def classify_store(
         if hit is not None:
             return hit
 
-    # 2. Trust-owned brand — always allowed.
+    # 2. Trust-owned brand - always allowed.
     if _is_trust_owned_brand(name or ""):
         return ClassificationResult(
             sells_alcohol=True,
@@ -222,7 +222,7 @@ def classify_store(
             reason=f"Trust-owned brand: {name}",
         )
 
-    # 3. Polygon classification — requires coordinates.
+    # 3. Polygon classification - requires coordinates.
     if lat is None or lon is None:
         return ClassificationResult(
             sells_alcohol=True,
@@ -247,11 +247,11 @@ def classify_store(
             needs_review=needs_review,
             reason=(
                 f"Inside {trust} Trust district polygon"
-                + (" (near edge — review)" if needs_review else "")
+                + (" (near edge - review)" if needs_review else "")
             ),
         )
 
-    # Outside both polygons — check whether we're close to an edge (potential
+    # Outside both polygons - check whether we're close to an edge (potential
     # false negative from digitisation).
     edge_d_wlt = _distance_to_polygon_edge(lon, lat, WAITAKERE_TRUST_POLYGON)
     edge_d_plt = _distance_to_polygon_edge(lon, lat, PORTAGE_TRUST_POLYGON)
@@ -262,7 +262,7 @@ def classify_store(
         needs_review=near_edge,
         reason=(
             "Outside both Trust polygons"
-            + (" (near edge — review)" if near_edge else "")
+            + (" (near edge - review)" if near_edge else "")
         ),
     )
 
