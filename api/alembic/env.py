@@ -3,19 +3,18 @@ import sys
 from logging.config import fileConfig
 from pathlib import Path
 
+from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
-
-from alembic import context
 
 # Add the api directory to the path so we can import app modules
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 # Import the Base and models to get metadata
-from app.db.base import Base
-from app.db.models import Store, Product, Price, IngestionRun  # noqa: F401
 from app.core.config import get_settings
+from app.db.base import Base
+from app.db.models import IngestionRun, Price, Product, Store  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -42,6 +41,13 @@ config.set_main_option("sqlalchemy.url", db_url)
 # for 'autogenerate' support
 target_metadata = Base.metadata
 
+
+def include_object(object_, name, type_, reflected, compare_to):
+    """Ignore PostGIS-owned objects that are outside application metadata."""
+    if type_ == "table" and reflected and name not in target_metadata.tables:
+        return False
+    return True
+
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
@@ -64,6 +70,7 @@ def run_migrations_offline() -> None:
     context.configure(
         url=url,
         target_metadata=target_metadata,
+        include_object=include_object,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
     )
@@ -73,7 +80,11 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata)
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        include_object=include_object,
+    )
 
     with context.begin_transaction():
         context.run_migrations()
