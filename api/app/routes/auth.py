@@ -1,16 +1,17 @@
 """Authentication routes."""
-from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
-from app.core.auth import create_token_with_credentials, require_admin, revoke_token
+from app.core.auth import create_token_with_credentials, revoke_token
+from app.middleware.rate_limit import get_limiter
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 security = HTTPBearer(auto_error=False)
+limiter = get_limiter()
 
 
 class LoginRequest(BaseModel):
@@ -28,7 +29,11 @@ class TokenResponse(BaseModel):
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(credentials: LoginRequest) -> TokenResponse:
+@limiter.limit("10/minute")
+async def login(
+    request: Request,
+    credentials: LoginRequest,
+) -> TokenResponse:
     """
     Authenticate with username and password to receive a JWT token.
 

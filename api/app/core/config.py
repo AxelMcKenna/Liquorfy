@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 import functools
-import os
-from dataclasses import dataclass
-from typing import Any, Dict, Iterable, Optional
+from typing import Any, Dict, Iterable
 
-from pydantic import AnyUrl, BaseSettings, Field, validator
+from pydantic import BaseSettings, Field, root_validator, validator
 
 
 class Settings(BaseSettings):
@@ -15,11 +13,11 @@ class Settings(BaseSettings):
     environment: str = Field("development", env="ENVIRONMENT")
     secret_key: str = Field("changeme", env="SECRET_KEY")
 
-    database_url: AnyUrl = Field(
+    database_url: str = Field(
         "postgresql+psycopg://postgres:postgres@db:5432/liquorfy",
         env="DATABASE_URL",
     )
-    redis_url: AnyUrl = Field("redis://redis:6379/0", env="REDIS_URL")
+    redis_url: str = Field("redis://redis:6379/0", env="REDIS_URL")
 
     api_cache_ttl_seconds: int = 600
     default_radius_km: float = 2.0
@@ -31,6 +29,10 @@ class Settings(BaseSettings):
 
     admin_username: str = Field("admin", env="ADMIN_USERNAME")
     admin_password: str = Field("admin", env="ADMIN_PASSWORD")
+    admin_password_hash: str = Field("", env="ADMIN_PASSWORD_HASH")
+    admin_token_ttl_seconds: int = Field(
+        3600, env="ADMIN_TOKEN_TTL_SECONDS", ge=300, le=43200
+    )
 
     # Supabase Auth
     supabase_url: str = Field("", env="SUPABASE_URL")
@@ -69,7 +71,7 @@ class Settings(BaseSettings):
         # Check for common insecure values
         if v.lower() in insecure_defaults:
             raise ValueError(
-                f"SECRET_KEY cannot be a default value. "
+                "SECRET_KEY cannot be a default value. "
                 "Generate a secure key with: openssl rand -base64 32"
             )
 
@@ -93,6 +95,18 @@ class Settings(BaseSettings):
             )
 
         return v
+
+    @root_validator
+    def validate_production_admin_auth(cls, values):
+        if (
+            values.get("environment") == "production"
+            and not values.get("admin_password_hash")
+        ):
+            raise ValueError(
+                "ADMIN_PASSWORD_HASH is required in production; "
+                "generate it with app.core.auth.hash_password"
+            )
+        return values
 
     @validator("feature_enabled_chains", pre=True)
     def _parse_feature_flags(cls, value: Any) -> Dict[str, bool]:

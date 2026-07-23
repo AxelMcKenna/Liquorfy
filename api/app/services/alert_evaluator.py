@@ -1,8 +1,10 @@
 """Evaluate active price alerts and send email notifications."""
+
 from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
+from decimal import Decimal
 
 import httpx
 from sqlalchemy import text
@@ -113,9 +115,15 @@ async def evaluate_alerts() -> int:
     for alert in alerts:
         alert_id = str(alert["alert_id"])
         user_id = str(alert["user_id"])
-        threshold = float(alert["threshold_price"]) if alert["threshold_price"] is not None else None
-        current_price = float(alert["effective_price"])
-        last_notified = float(alert["last_notified_price"]) if alert["last_notified_price"] is not None else None
+        threshold = (
+            Decimal(alert["threshold_price"]) if alert["threshold_price"] is not None else None
+        )
+        current_price = Decimal(alert["effective_price"])
+        last_notified = (
+            Decimal(alert["last_notified_price"])
+            if alert["last_notified_price"] is not None
+            else None
+        )
 
         # Check trigger conditions
         should_trigger = False
@@ -130,7 +138,7 @@ async def evaluate_alerts() -> int:
             continue
 
         # Suppress re-alert if price hasn't changed
-        if last_notified is not None and abs(current_price - last_notified) < 0.01:
+        if last_notified is not None and current_price == last_notified:
             continue
 
         # Get user email
@@ -139,7 +147,7 @@ async def evaluate_alerts() -> int:
         email = email_cache[user_id]
 
         if not email:
-            logger.warning("No email for user %s — skipping alert %s", user_id, alert_id)
+            logger.warning("No email for user %s - skipping alert %s", user_id, alert_id)
             continue
 
         # Send notification
@@ -171,8 +179,11 @@ async def evaluate_alerts() -> int:
                 )
             notifications_sent += 1
             logger.info(
-                "Alert triggered: alert=%s product=%s price=%.2f -> %s",
-                alert_id, alert["product_name"], current_price, email,
+                "Alert triggered: alert=%s product=%s price=%s -> %s",
+                alert_id,
+                alert["product_name"],
+                current_price,
+                email,
             )
 
     return notifications_sent

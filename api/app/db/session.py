@@ -18,6 +18,13 @@ _settings = get_settings()
 
 _TRUTHY = {"1", "true", "yes", "on"}
 
+
+def _query_scalar(value: str | tuple[str, ...] | None) -> str | None:
+    if isinstance(value, tuple):
+        return value[-1] if value else None
+    return value
+
+
 def _is_truthy(value: str | None) -> bool:
     if value is None:
         return False
@@ -33,8 +40,8 @@ def _adapt_urls(raw_url: str) -> tuple[URL, URL, dict[str, Any], dict[str, Any]]
     # PostgreSQL: prefer asyncpg for async, psycopg for sync
     if url.get_backend_name() in {"postgresql", "postgres"}:
         query = dict(url.query)
-        sslmode = query.get("sslmode")
-        pgbouncer = query.get("pgbouncer")
+        sslmode = _query_scalar(query.get("sslmode"))
+        pgbouncer = _query_scalar(query.get("pgbouncer"))
 
         async_query = dict(query)
         async_query.pop("sslmode", None)

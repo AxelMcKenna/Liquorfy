@@ -1,9 +1,11 @@
 """Email delivery via Resend for price alert notifications."""
+
 from __future__ import annotations
 
 import hashlib
 import hmac
 import logging
+from decimal import Decimal
 from html import escape
 
 import httpx
@@ -28,8 +30,8 @@ def _unsubscribe_token(alert_id: str) -> str:
 def _render_alert_html(
     *,
     product_name: str,
-    current_price: float,
-    threshold_price: float | None,
+    current_price: Decimal,
+    threshold_price: Decimal | None,
     alert_on_promo: bool,
     store_name: str,
     product_url: str | None,
@@ -69,8 +71,8 @@ async def send_alert_email(
     to_email: str,
     alert_id: str,
     product_name: str,
-    current_price: float,
-    threshold_price: float | None,
+    current_price: Decimal,
+    threshold_price: Decimal | None,
     alert_on_promo: bool,
     store_name: str,
     product_url: str | None,
@@ -78,7 +80,7 @@ async def send_alert_email(
 ) -> bool:
     """Send a price alert email via Resend. Returns True on success."""
     if not settings.resend_api_key:
-        logger.warning("RESEND_API_KEY not configured — skipping email")
+        logger.warning("RESEND_API_KEY not configured - skipping email")
         return False
 
     token = _unsubscribe_token(alert_id)

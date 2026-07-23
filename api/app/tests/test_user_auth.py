@@ -3,12 +3,11 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timedelta, timezone
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import jwt
 import pytest
-
 from app.core.user_auth import get_current_user, get_optional_user
-
 
 # Use the same secret as conftest sets for SECRET_KEY;
 # we need a separate one for Supabase JWT secret.
@@ -20,12 +19,15 @@ def _make_token(
     aud: str = "authenticated",
     expired: bool = False,
     secret: str = _JWT_SECRET,
+    issuer: str | None = None,
 ) -> str:
     payload: dict = {}
     if sub is not None:
         payload["sub"] = sub
     if aud:
         payload["aud"] = aud
+    if issuer:
+        payload["iss"] = issuer
     if expired:
         payload["exp"] = datetime.now(tz=timezone.utc) - timedelta(hours=1)
     else:
@@ -40,9 +42,14 @@ class _FakeCredentials:
 
 @pytest.fixture(autouse=True)
 def _set_supabase_secret(monkeypatch):
-    """Patch the module-level _jwt_secret so JWT verification uses the test secret."""
-    import app.core.user_auth as mod
-    monkeypatch.setattr(mod, "_jwt_secret", _JWT_SECRET.encode())
+    """Configure the lazy settings-backed Supabase verification secret."""
+    from app.core.config import get_settings
+
+    monkeypatch.setenv("SUPABASE_JWT_SECRET", _JWT_SECRET)
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
 
 
 @pytest.mark.asyncio
@@ -110,3 +117,29 @@ async def test_get_optional_user_none():
 async def test_get_optional_user_invalid():
     result = await get_optional_user(_FakeCredentials("bad-token"))
     assert result is None
+
+
+@pytest.mark.asyncio
+async def test_get_current_user_rejects_deleted_supabase_user(monkeypatch):
+    from app.core.config import get_settings
+
+    supabase_url = "https://project.supabase.co"
+    monkeypatch.setenv("SUPABASE_URL", supabase_url)
+    monkeypatch.setenv("SUPABASE_ANON_KEY", "test-anon-key")
+    get_settings.cache_clear()
+
+    user_id = str(uuid.uuid4())
+    token = _make_token(
+        sub=user_id,
+        issuer=f"{supabase_url}/auth/v1",
+    )
+    response = MagicMock(status_code=401)
+    client = AsyncMock()
+    client.get.return_value = response
+
+    with patch("app.core.user_auth.httpx.AsyncClient") as client_class:
+        client_class.return_value.__aenter__.return_value = client
+        with pytest.raises(Exception) as exc_info:
+            await get_current_user(_FakeCredentials(token))
+
+    assert exc_info.value.status_code == 401

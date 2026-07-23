@@ -1,4 +1,5 @@
 """Tests for price alert routes and evaluation logic."""
+
 from __future__ import annotations
 
 import hashlib
@@ -6,11 +7,13 @@ import hmac
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import jwt
 import pytest
-from fastapi.testclient import TestClient
+from app.schemas.alerts import CreateAlertRequest
+from pydantic import ValidationError
 
 _JWT_SECRET = "test-supabase-jwt-secret-at-least-32-chars"
 _SECRET_KEY = "test-secret-key-that-is-at-least-32-chars-long"
@@ -42,6 +45,7 @@ def _unsubscribe_token(alert_id: str) -> str:
 def _set_env(monkeypatch):
     monkeypatch.setenv("SUPABASE_JWT_SECRET", _JWT_SECRET)
     from app.core.config import get_settings
+
     get_settings.cache_clear()
 
 
@@ -65,10 +69,13 @@ class TestAlertRoutes:
     """Test alert CRUD endpoints."""
 
     def test_create_alert_unauthenticated(self, client):
-        resp = client.post("/alerts", json={
-            "product_id": str(uuid.uuid4()),
-            "threshold_price": 25.0,
-        })
+        resp = client.post(
+            "/alerts",
+            json={
+                "product_id": str(uuid.uuid4()),
+                "threshold_price": 25.0,
+            },
+        )
         assert resp.status_code == 401
 
     def test_list_alerts_unauthenticated(self, client):
@@ -81,11 +88,42 @@ class TestAlertRoutes:
         assert resp.status_code == 403
 
 
+class TestAlertValidation:
+    def test_requires_a_threshold_or_promo_condition(self):
+        with pytest.raises(ValidationError):
+            CreateAlertRequest(product_id=uuid.uuid4())
+
+    def test_preserves_exact_decimal_thresholds(self):
+        request = CreateAlertRequest(
+            product_id=uuid.uuid4(),
+            threshold_price="19.99",
+        )
+
+        assert request.threshold_price == Decimal("19.99")
+
+    def test_email_renders_decimal_prices(self):
+        from app.services.email import _render_alert_html
+
+        html = _render_alert_html(
+            product_name="Test Wine",
+            current_price=Decimal("19.99"),
+            threshold_price=Decimal("20.00"),
+            alert_on_promo=False,
+            store_name="Test Store",
+            product_url=None,
+            unsubscribe_url="https://example.test/unsubscribe",
+        )
+
+        assert "$19.99" in html
+        assert "$20.00" in html
+
+
 class TestUnsubscribeToken:
     """Test HMAC unsubscribe token generation."""
 
     def test_token_consistency(self):
         from app.routes.alerts import _unsubscribe_token
+
         alert_id = uuid.uuid4()
         t1 = _unsubscribe_token(alert_id)
         t2 = _unsubscribe_token(alert_id)
@@ -94,6 +132,7 @@ class TestUnsubscribeToken:
 
     def test_different_alerts_different_tokens(self):
         from app.routes.alerts import _unsubscribe_token
+
         t1 = _unsubscribe_token(uuid.uuid4())
         t2 = _unsubscribe_token(uuid.uuid4())
         assert t1 != t2
@@ -116,5 +155,6 @@ class TestAlertEvaluator:
 
         with patch("app.services.alert_evaluator.get_async_session", mock_get_session):
             from app.services.alert_evaluator import evaluate_alerts
+
             count = await evaluate_alerts()
             assert count == 0

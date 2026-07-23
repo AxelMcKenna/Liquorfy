@@ -1,35 +1,53 @@
 from __future__ import annotations
 
 import logging
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, cast
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
+from app.core.auth import close_auth_redis
 from app.core.config import get_settings
 from app.core.logging import configure_logging
+from app.db.session import dispose_engines
 from app.middleware import (
     RateLimitExceeded,
     SecurityHeadersMiddleware,
+    SlowAPIMiddleware,
     _rate_limit_exceeded_handler,
     get_limiter,
 )
 from app.routes import alerts, auth, health, ingest, products, stores, user, worker
+from app.services.cache import close_cache
 
 configure_logging()
 logger = logging.getLogger(__name__)
 
 settings = get_settings()
 
-app = FastAPI(title=settings.app_name)
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    yield
+    await close_auth_redis()
+    await close_cache()
+    await dispose_engines()
+
+
+app = FastAPI(title=settings.app_name, lifespan=lifespan)
 
 # Rate limiting
 limiter = get_limiter()
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_exception_handler(
+    RateLimitExceeded,
+    cast(Any, _rate_limit_exceeded_handler),
+)
+app.add_middleware(SlowAPIMiddleware)
 
 app.include_router(alerts.router)
 app.include_router(auth.router)

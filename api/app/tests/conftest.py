@@ -3,11 +3,9 @@ from __future__ import annotations
 
 import asyncio
 import os
-import sys
 import uuid
 from collections.abc import AsyncIterator, Iterator
 from datetime import datetime, timedelta
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -32,15 +30,18 @@ def pytest_configure(config):
 
 
 # Import after environment is configured
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager  # noqa: E402
 
-from fastapi.testclient import TestClient
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.pool import StaticPool
-
-from app.db.base import Base
-from app.db.models import IngestionRun, Price, Product, Store
+from app.db.base import Base  # noqa: E402
+from app.db.models import IngestionRun, Price, Product, Store  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
+from httpx import AsyncClient  # noqa: E402
+from sqlalchemy.ext.asyncio import (  # noqa: E402
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
+from sqlalchemy.pool import StaticPool  # noqa: E402
 
 
 @pytest.fixture(scope="session")
@@ -120,7 +121,7 @@ def client(mock_redis) -> Iterator[TestClient]:
 
                             with patch("app.core.auth.get_redis_client", mock_get_redis):
                                 with patch("app.routes.health.get_redis_client", mock_get_redis):
-                                    with patch("app.services.cache._cache._redis", mock_redis):
+                                    with patch("app.services.cache._get_cache", return_value=mock_redis):
                                         from app.main import app
                                         with TestClient(app) as test_client:
                                             yield test_client
@@ -134,7 +135,7 @@ async def async_client(mock_redis) -> AsyncIterator[AsyncClient]:
 
     with patch("app.core.auth.get_redis_client", mock_get_redis):
         with patch("app.routes.health.get_redis_client", mock_get_redis):
-            with patch("app.services.cache._cache._redis", mock_redis):
+            with patch("app.services.cache._get_cache", return_value=mock_redis):
                 from app.core.config import get_settings
                 get_settings.cache_clear()
 

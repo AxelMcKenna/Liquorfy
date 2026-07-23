@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from app.middleware.rate_limit import (
     RateLimitExceeded,
+    SlowAPIMiddleware,
     _rate_limit_exceeded_handler,
     get_limiter,
 )
@@ -12,5 +13,6 @@ __all__ = [
     "SecurityHeadersMiddleware",
     "get_limiter",
     "RateLimitExceeded",
+    "SlowAPIMiddleware",
     "_rate_limit_exceeded_handler",
 ]

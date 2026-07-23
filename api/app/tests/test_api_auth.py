@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from fastapi.testclient import TestClient
 
 
@@ -73,10 +72,38 @@ class TestLoginEndpoint:
         token = response.json()["access_token"]
 
         settings = get_settings()
-        payload = jwt.decode(token, settings.secret_key, algorithms=["HS256"])
+        payload = jwt.decode(
+            token,
+            settings.secret_key,
+            algorithms=["HS256"],
+            audience="liquorfy-admin",
+            issuer="liquorfy",
+        )
 
         assert payload["sub"] == settings.admin_username
         assert "exp" in payload
+
+    def test_login_is_rate_limited(self, client: TestClient):
+        """Repeated login attempts should be throttled independently."""
+        from app.routes.auth import limiter
+
+        limiter.reset()
+        try:
+            responses = [
+                client.post(
+                    "/auth/login",
+                    json={
+                        "username": "testadmin",
+                        "password": "testpassword123",
+                    },
+                )
+                for _ in range(11)
+            ]
+        finally:
+            limiter.reset()
+
+        assert all(response.status_code == 200 for response in responses[:10])
+        assert responses[10].status_code == 429
 
 
 class TestLogoutEndpoint:
@@ -141,6 +168,7 @@ class TestTokenExpiration:
     def test_expired_token_rejected(self, client: TestClient):
         """Expired token should be rejected."""
         import datetime as dt
+
         import jwt
         from app.core.config import get_settings
 

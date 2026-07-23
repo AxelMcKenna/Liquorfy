@@ -1,13 +1,17 @@
 """Rate limiting middleware for FastAPI application."""
 from __future__ import annotations
 
+import functools
+
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
 
 from app.core.config import get_settings
 
 
+@functools.lru_cache(maxsize=1)
 def get_limiter() -> Limiter:
     """
     Create and configure rate limiter.
@@ -38,4 +42,9 @@ def get_limiter() -> Limiter:
     return limiter
 
 
-__all__ = ["get_limiter", "RateLimitExceeded", "_rate_limit_exceeded_handler"]
+__all__ = [
+    "get_limiter",
+    "RateLimitExceeded",
+    "SlowAPIMiddleware",
+    "_rate_limit_exceeded_handler",
+]

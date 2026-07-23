@@ -6,7 +6,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import jwt
 import pytest
-
 from app.core.auth import (
     create_admin_token,
     create_token_with_credentials,
@@ -72,22 +71,38 @@ class TestTokenCreation:
         settings = get_settings()
 
         token = create_admin_token()
-        payload = jwt.decode(token, settings.secret_key, algorithms=["HS256"])
+        payload = jwt.decode(
+            token,
+            settings.secret_key,
+            algorithms=["HS256"],
+            audience="liquorfy-admin",
+            issuer="liquorfy",
+        )
 
         assert payload["sub"] == settings.admin_username
         assert "exp" in payload
+        assert "iat" in payload
+        assert "jti" in payload
 
     def test_create_admin_token_expiration(self):
-        """create_admin_token should set 12-hour expiration."""
+        """create_admin_token should use the configured short expiration."""
         from app.core.config import get_settings
         settings = get_settings()
 
         now = dt.datetime.utcnow()
         token = create_admin_token()
-        payload = jwt.decode(token, settings.secret_key, algorithms=["HS256"])
+        payload = jwt.decode(
+            token,
+            settings.secret_key,
+            algorithms=["HS256"],
+            audience="liquorfy-admin",
+            issuer="liquorfy",
+        )
 
         exp_time = dt.datetime.utcfromtimestamp(payload["exp"])
-        expected_exp = now + dt.timedelta(hours=12)
+        expected_exp = now + dt.timedelta(
+            seconds=settings.admin_token_ttl_seconds
+        )
 
         # Allow 2 minute tolerance for test execution time
         assert abs((exp_time - expected_exp).total_seconds()) < 120
@@ -116,8 +131,8 @@ class TestTokenCreation:
 
     def test_create_token_with_invalid_password(self):
         """create_token_with_credentials should reject invalid password."""
-        from fastapi import HTTPException
         from app.core.config import get_settings
+        from fastapi import HTTPException
         settings = get_settings()
 
         with pytest.raises(HTTPException) as exc_info:
@@ -155,6 +170,8 @@ class TestTokenRevocation:
         # Create an already-expired token
         payload = {
             "sub": settings.admin_username,
+            "iss": "liquorfy",
+            "aud": "liquorfy-admin",
             "exp": dt.datetime.utcnow() - dt.timedelta(hours=1),
         }
         expired_token = jwt.encode(payload, settings.secret_key, algorithm="HS256")
@@ -273,15 +290,17 @@ class TestRequireAdmin:
     @pytest.mark.asyncio
     async def test_require_admin_wrong_user(self):
         """require_admin should raise 403 for non-admin user."""
+        from app.core.config import get_settings
         from fastapi import HTTPException
         from fastapi.security import HTTPAuthorizationCredentials
-        from app.core.config import get_settings
 
         settings = get_settings()
 
         # Create token for a different user
         payload = {
             "sub": "not_admin",
+            "iss": "liquorfy",
+            "aud": "liquorfy-admin",
             "exp": dt.datetime.utcnow() + dt.timedelta(hours=12),
         }
         token = jwt.encode(payload, settings.secret_key, algorithm="HS256")

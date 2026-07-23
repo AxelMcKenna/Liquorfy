@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import datetime as dt
 import hashlib
+import hmac
+import logging
+import uuid
 from typing import Optional
 
 import bcrypt
@@ -12,14 +15,28 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.config import get_settings
 
-settings = get_settings()
 security = HTTPBearer(auto_error=False)
+logger = logging.getLogger(__name__)
+_auth_redis: redis.Redis | None = None
 
 
 # Redis client for token blacklist
 async def get_redis_client() -> redis.Redis:
     """Get Redis client for token revocation."""
-    return redis.from_url(str(settings.redis_url), decode_responses=True)
+    global _auth_redis
+    if _auth_redis is None:
+        _auth_redis = redis.from_url(
+            str(get_settings().redis_url),
+            decode_responses=True,
+        )
+    return _auth_redis
+
+
+async def close_auth_redis() -> None:
+    global _auth_redis
+    if _auth_redis is not None:
+        await _auth_redis.aclose()
+        _auth_redis = None
 
 
 def hash_password(password: str) -> str:
@@ -64,9 +81,15 @@ def create_admin_token() -> str:
     Returns:
         JWT token string
     """
+    settings = get_settings()
+    now = dt.datetime.now(dt.timezone.utc)
     payload = {
         "sub": settings.admin_username,
-        "exp": dt.datetime.utcnow() + dt.timedelta(hours=12),
+        "iss": "liquorfy",
+        "aud": "liquorfy-admin",
+        "iat": now,
+        "jti": str(uuid.uuid4()),
+        "exp": now + dt.timedelta(seconds=settings.admin_token_ttl_seconds),
     }
     return jwt.encode(payload, settings.secret_key, algorithm="HS256")
 
@@ -85,9 +108,14 @@ def create_token_with_credentials(username: str, password: str) -> str:
     Raises:
         HTTPException: If credentials are invalid
     """
-    # For now, we're still using plaintext comparison for backwards compatibility
-    # TODO: Once admin password is hashed in database, switch to verify_password()
-    if username != settings.admin_username or password != settings.admin_password:
+    settings = get_settings()
+    username_matches = hmac.compare_digest(username, settings.admin_username)
+    if settings.admin_password_hash:
+        password_matches = verify_password(password, settings.admin_password_hash)
+    else:
+        password_matches = hmac.compare_digest(password, settings.admin_password)
+
+    if not username_matches or not password_matches:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials"
@@ -106,17 +134,24 @@ async def revoke_token(token: str) -> None:
     The token is hashed before storing for efficiency and privacy.
     Expiry matches the token's exp claim so blacklist auto-cleans.
     """
-    redis_client = None
+    settings = get_settings()
     try:
         # Decode to get expiration
-        payload = jwt.decode(token, settings.secret_key, algorithms=["HS256"])
+        payload = jwt.decode(
+            token,
+            settings.secret_key,
+            algorithms=["HS256"],
+            audience="liquorfy-admin",
+            issuer="liquorfy",
+            options={"verify_exp": False},
+        )
         exp = payload.get("exp")
 
         if not exp:
             return  # Token has no expiration, can't revoke effectively
 
         # Calculate TTL (time until expiration)
-        now = dt.datetime.utcnow().timestamp()
+        now = dt.datetime.now(dt.timezone.utc).timestamp()
         ttl = int(exp - now)
 
         if ttl <= 0:
@@ -128,15 +163,17 @@ async def revoke_token(token: str) -> None:
         # Store in Redis with TTL matching token expiration
         redis_client = await get_redis_client()
         await redis_client.setex(f"revoked_token:{token_hash}", ttl, "1")
-    except Exception:
-        # If revocation fails, don't block the operation
-        pass
-    finally:
-        if redis_client is not None:
-            try:
-                await redis_client.close()
-            except Exception:
-                pass
+    except jwt.PyJWTError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+        ) from exc
+    except Exception as exc:
+        logger.exception("Failed to revoke admin token")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Token revocation is temporarily unavailable",
+        ) from exc
 
 
 async def is_token_revoked(token: str) -> bool:
@@ -149,7 +186,6 @@ async def is_token_revoked(token: str) -> bool:
     Returns:
         True if token is revoked, False otherwise
     """
-    redis_client = None
     try:
         token_hash = hashlib.sha256(token.encode()).hexdigest()
         redis_client = await get_redis_client()
@@ -157,13 +193,8 @@ async def is_token_revoked(token: str) -> bool:
         return bool(revoked)
     except Exception:
         # If revocation check fails, deny access (fail closed).
+        logger.exception("Failed to check admin token revocation")
         return True
-    finally:
-        if redis_client is not None:
-            try:
-                await redis_client.close()
-            except Exception:
-                pass
 
 
 async def require_admin(
@@ -185,13 +216,20 @@ async def require_admin(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing token")
 
     token = credentials.credentials
+    settings = get_settings()
 
     # Check if token is revoked
     if await is_token_revoked(token):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has been revoked")
 
     try:
-        payload = jwt.decode(token, settings.secret_key, algorithms=["HS256"])
+        payload = jwt.decode(
+            token,
+            settings.secret_key,
+            algorithms=["HS256"],
+            audience="liquorfy-admin",
+            issuer="liquorfy",
+        )
     except jwt.PyJWTError as exc:  # pragma: no cover - error path
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from exc
 
@@ -204,6 +242,7 @@ async def require_admin(
 __all__ = [
     "create_admin_token",
     "create_token_with_credentials",
+    "close_auth_redis",
     "hash_password",
     "verify_password",
     "revoke_token",
