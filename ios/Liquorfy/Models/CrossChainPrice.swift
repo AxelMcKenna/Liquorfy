@@ -46,7 +46,7 @@ struct CrossChainPrice: Codable, Hashable, Identifiable, Sendable {
         return promo < priceNzd
     }
 
-    /// The price a shopper actually pays — promo when present, otherwise regular.
+    /// The price a shopper actually pays - promo when present, otherwise regular.
     var currentPrice: Double { promoPriceNzd ?? priceNzd }
 
     var savingsPercent: Int {

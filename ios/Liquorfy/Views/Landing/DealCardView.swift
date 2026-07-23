@@ -19,7 +19,7 @@ struct DealCardView: View {
             }
 
             VStack(alignment: .leading, spacing: 4) {
-                // Name — always 2 lines
+                // Name - always 2 lines
                 Text(product.name)
                     .font(.appSerif(size: 14, relativeTo: .subheadline))
                     .lineLimit(2)
@@ -28,7 +28,7 @@ struct DealCardView: View {
 
                 ChainBadgeView(chain: product.chain)
 
-                // Price — always reserve space for strikethrough
+                // Price - always reserve space for strikethrough
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     Text(Formatters.formatPrice(product.price.currentPrice))
                         .font(.appPrice)
@@ -45,7 +45,7 @@ struct DealCardView: View {
                 }
                 .frame(minHeight: 22)
 
-                // Distance — always reserve space
+                // Distance - always reserve space
                 if let distance = product.price.distanceKm {
                     DistanceBadgeView(distanceKm: distance)
                 } else {

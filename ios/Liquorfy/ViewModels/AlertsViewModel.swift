@@ -57,7 +57,7 @@ final class AlertsViewModel {
         await fetchAlerts()
     }
 
-    /// PATCH /alerts/{id} — update threshold, promo flag, or active state (matches web).
+    /// PATCH /alerts/{id} - update threshold, promo flag, or active state (matches web).
     @MainActor
     func updateAlert(
         id: UUID,

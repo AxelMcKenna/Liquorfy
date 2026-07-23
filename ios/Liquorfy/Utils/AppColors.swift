@@ -14,11 +14,11 @@ extension Color {
     static let appTertiaryBackground = Color("AppTertiaryBackground")
 
     // MARK: Distance indicator colors (matching web CSS variables)
-    /// Close (<2 km) — green hsl(142, 71%, 45%)
+    /// Close (<2 km) - green hsl(142, 71%, 45%)
     static let distanceClose = Color(hex: "#21c45d")
-    /// Medium (2–5 km) — amber hsl(45, 93%, 47%)
+    /// Medium (2–5 km) - amber hsl(45, 93%, 47%)
     static let distanceMedium = Color(hex: "#e7af08")
-    /// Far (>5 km) — gray hsl(0, 0%, 45%)
+    /// Far (>5 km) - gray hsl(0, 0%, 45%)
     static let distanceFar = Color(hex: "#727272")
 }
 
@@ -26,12 +26,12 @@ extension Color {
 // both Color contexts (`.tint(.appPrimary)`) and ShapeStyle contexts
 // (`.foregroundStyle(.appPrimary)`), as well as explicit `Color.appPrimary`.
 extension ShapeStyle where Self == Color {
-    /// Primary green — HSL 158° 55% 23% (#1a5a43)
+    /// Primary green - HSL 158° 55% 23% (#1a5a43)
     static var appPrimary: Color { Color(hex: "#1a5a43") }
 }
 
 // MARK: - Typography
-// Lora (serif) for headings, DM Sans for body — matches web exactly
+// Lora (serif) for headings, DM Sans for body - matches web exactly
 
 extension Font {
     // MARK: Serif (Lora → Georgia on iOS, headings only)
@@ -45,7 +45,7 @@ extension Font {
     static var appTitle3: Font    { appSerif(size: 20, relativeTo: .title3) }
     static var appHeadline: Font  { appSerif(size: 17, relativeTo: .headline) }
 
-    // MARK: Sans (DM Sans — body text, cards, captions)
+    // MARK: Sans (DM Sans - body text, cards, captions)
     static func appSans(size: CGFloat, relativeTo style: TextStyle = .body) -> Font {
         .custom("DMSans-Regular", size: size, relativeTo: style)
     }
@@ -60,18 +60,18 @@ extension Font {
     }
 
     // Web-matched presets (DM Sans sizes from web CSS)
-    /// 16pt regular — web text-base
+    /// 16pt regular - web text-base
     static var appBody: Font       { appSans(size: 16, relativeTo: .body) }
-    /// 14pt medium — web text-sm font-medium (product names)
+    /// 14pt medium - web text-sm font-medium (product names)
     static var appCardTitle: Font  { appSansMedium(size: 14, relativeTo: .subheadline) }
-    /// 20pt semibold — web text-xl font-semibold (prices)
+    /// 20pt semibold - web text-xl font-semibold (prices)
     static var appPrice: Font      { appSansSemiBold(size: 20, relativeTo: .title3) }
-    /// 14pt regular — web text-sm (secondary card text)
+    /// 14pt regular - web text-sm (secondary card text)
     static var appCardBody: Font   { appSans(size: 14, relativeTo: .subheadline) }
-    /// 12pt regular — web text-xs (captions, distances, badges)
+    /// 12pt regular - web text-xs (captions, distances, badges)
     static var appCaption: Font    { appSans(size: 12, relativeTo: .caption) }
-    /// 12pt semibold — web text-xs font-semibold (badge labels)
+    /// 12pt semibold - web text-xs font-semibold (badge labels)
     static var appBadge: Font      { appSansSemiBold(size: 12, relativeTo: .caption) }
-    /// 15pt regular — web callout equivalent
+    /// 15pt regular - web callout equivalent
     static var appCallout: Font    { appSans(size: 15, relativeTo: .callout) }
 }

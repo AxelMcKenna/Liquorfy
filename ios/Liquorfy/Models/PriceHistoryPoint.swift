@@ -16,6 +16,6 @@ struct PriceHistoryPoint: Codable, Hashable, Identifiable, Sendable {
         case promoPriceNzd = "promo_price_nzd"
     }
 
-    /// The effective price plotted on the chart — promo when present.
+    /// The effective price plotted on the chart - promo when present.
     var effectivePrice: Double { promoPriceNzd ?? priceNzd }
 }

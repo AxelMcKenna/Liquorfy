@@ -10,7 +10,7 @@ final class FilterState {
     var priceMin: Double?
     var priceMax: Double?
     /// nil until the user explicitly picks a sort, so the default tracks `promoOnly`
-    /// — matching web: `sortParam || (promo_only ? DISCOUNT : BEST_VALUE)`.
+    /// - matching web: `sortParam || (promo_only ? DISCOUNT : BEST_VALUE)`.
     var userSelectedSort: SortOption?
     var currentPage: Int = 1
 

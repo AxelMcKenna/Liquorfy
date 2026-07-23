@@ -353,7 +353,7 @@ struct ExploreView: View {
 
         if !hasLocation {
             // Locationless queries are pinned to page 1, and the API requires either
-            // promo_only or a search query — so force promo_only when there's no query.
+            // promo_only or a search query - so force promo_only when there's no query.
             filters.page = 1
             if filters.query?.isEmpty ?? true {
                 filters.promoOnly = true

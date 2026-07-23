@@ -1,7 +1,7 @@
 import Foundation
 
 /// One unified, store-or-chain agnostic price row so the viewed product, its other
-/// stores, and cheaper cross-chain alternatives can be ranked together — cheapest
+/// stores, and cheaper cross-chain alternatives can be ranked together - cheapest
 /// first. Mirrors the web `CompareEntry` in ProductDetail.tsx.
 struct CompareEntry: Identifiable, Hashable, Sendable {
     let key: String
@@ -15,7 +15,7 @@ struct CompareEntry: Identifiable, Hashable, Sendable {
 
     var id: String { key }
 
-    /// Effective price used for ranking — promo when it beats the regular price.
+    /// Effective price used for ranking - promo when it beats the regular price.
     var effective: Double {
         if let promo = promoPriceNzd, promo < priceNzd { return promo }
         return priceNzd

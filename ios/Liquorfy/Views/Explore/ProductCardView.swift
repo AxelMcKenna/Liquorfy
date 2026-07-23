@@ -8,7 +8,7 @@ struct ProductCardView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Image — fixed height so all cards match
+            // Image - fixed height so all cards match
             ZStack(alignment: .topLeading) {
                 AsyncProductImageView(url: product.imageUrl, size: 130)
                     .frame(maxWidth: .infinity)
@@ -58,7 +58,7 @@ struct ProductCardView: View {
                 }
             }
 
-            // Info — fixed layout so all cards are equal height
+            // Info - fixed layout so all cards are equal height
             VStack(alignment: .leading, spacing: 8) {
                 // Name (always reserves 2 lines)
                 Text(product.name)
@@ -118,7 +118,7 @@ struct ProductCardView: View {
                 }
                 .frame(minHeight: 24)
 
-                // Savings — the tangible value, in dollars (always reserves 1 line)
+                // Savings - the tangible value, in dollars (always reserves 1 line)
                 Text(product.price.hasPromo && product.price.savingsAmount > 0
                      ? "Save \(Formatters.formatPrice(product.price.savingsAmount))"
                      : " ")

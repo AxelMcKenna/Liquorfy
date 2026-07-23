@@ -137,7 +137,7 @@ struct ProductDetailView: View {
                 .cardStyle(cornerRadius: 16)
                 .padding(.horizontal)
 
-                // Compare prices — viewed product, other stores, and other chains, cheapest first.
+                // Compare prices - viewed product, other stores, and other chains, cheapest first.
                 compareSection
 
                 // Price history
@@ -169,7 +169,7 @@ struct ProductDetailView: View {
                         .font(.appCaption)
                         .foregroundStyle(.secondary)
                 }
-                Text("Across stores and chains — cheapest first")
+                Text("Across stores and chains - cheapest first")
                     .font(.appCaption)
                     .foregroundStyle(.secondary)
 

@@ -13,7 +13,7 @@ struct Store: Codable, Identifiable, Hashable, Sendable {
     /// West Auckland Licensing Trust monopoly. When false, the store sits inside the
     /// Portage or Waitakere Trust district and legally cannot sell alcohol.
     let sellsAlcohol: Bool?
-    /// "portage" | "waitakere" | nil — matches the web `licensing_trust_area` union.
+    /// "portage" | "waitakere" | nil - matches the web `licensing_trust_area` union.
     let licensingTrustArea: String?
 
     enum CodingKeys: String, CodingKey {
