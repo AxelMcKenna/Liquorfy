@@ -9,7 +9,7 @@ __pycache__/
 .secret_key
 
 .venv/
-poetry.lock
+.uv-cache/
 node_modules/
 web/dist/
 .idea/

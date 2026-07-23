@@ -21,7 +21,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:15-alpine
+        image: postgis/postgis:15-3.4
         env:
           POSTGRES_DB: liquorfy_test
           POSTGRES_USER: postgres
@@ -53,32 +53,26 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-      - name: Cache Poetry dependencies
-        uses: actions/cache@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8
         with:
-          path: ~/.cache/pypoetry
-          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-poetry-
+          enable-cache: true
 
       - name: Install dependencies
-        run: |
-          poetry config virtualenvs.create false
-          poetry install --no-interaction --no-ansi
+        run: uv sync --locked
 
       - name: Run API tests
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/liquorfy_test
           REDIS_URL: redis://localhost:6379/0
-          SECRET_KEY: test-secret-key-for-ci
+          SECRET_KEY: test-secret-key-for-ci-that-is-over-32-characters
           ENVIRONMENT: test
         run: |
-          poetry run pytest api/app/tests/ -v
+          uv run --frozen ruff check api/app api/alembic api/scripts
+          uv run --frozen mypy api/app
+          uv run --frozen alembic -c api/alembic.ini upgrade head
+          uv run --frozen alembic -c api/alembic.ini check
+          uv run --frozen pytest api/app/tests/ -v
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -199,7 +193,7 @@ jobs:
       #       cd /opt/liquorfy
       #       docker-compose -f infra/docker-compose.prod.yml pull
       #       docker-compose -f infra/docker-compose.prod.yml up -d
-      #       docker-compose -f infra/docker-compose.prod.yml exec -T api poetry run alembic upgrade head
+      #       docker-compose -f infra/docker-compose.prod.yml exec -T api alembic upgrade head
 
       - name: Deployment placeholder
         run: |

@@ -1,19 +1,20 @@
+ARG UV_VERSION=0.11.26
+FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
 FROM python:3.11-slim
-
-ARG POETRY_VERSION=2.4.1
 
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app/api
+    PYTHONPATH=/app/api \
+    UV_LINK_MODE=copy \
+    PATH="/app/.venv/bin:$PATH"
 
 WORKDIR /app
 
-RUN pip install --no-cache-dir "poetry==${POETRY_VERSION}"
+COPY --from=uv /uv /uvx /bin/
 
-COPY pyproject.toml poetry.lock* ./
-RUN poetry config virtualenvs.create false \
-    && poetry install --no-interaction --no-ansi --no-root
+COPY pyproject.toml uv.lock ./
+RUN uv sync --locked --no-install-project
 
 COPY api ./api
 

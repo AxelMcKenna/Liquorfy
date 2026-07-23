@@ -23,6 +23,8 @@
 htmlcov
 .venv
 **/.venv
+.uv-cache
+**/.uv-cache
 
 # JavaScript dependencies and build output
 node_modules

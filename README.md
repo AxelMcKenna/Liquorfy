@@ -1,224 +1,94 @@
 # Liquorfy
 
-[![CI/CD Pipeline](https://github.com/AxelMcKenna/Liquorfy/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/AxelMcKenna/Liquorfy/actions/workflows/ci-cd.yml)
-[![Production](https://img.shields.io/website?down_message=offline&label=production&up_message=online&url=https%3A%2F%2Fliquorfy.co.nz)](https://liquorfy.co.nz)
-![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688?logo=fastapi&logoColor=white)
-![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=111111)
-![Vite](https://img.shields.io/badge/Vite-5-646CFF?logo=vite&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15%20%2B%20PostGIS-4169E1?logo=postgresql&logoColor=white)
-![Redis](https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
+> **TL;DR:** Run `docker compose -f infra/docker-compose.yml up --build`, then open <http://localhost:5173>. Use this file for development; use the two files in `docs/` only for architecture or production operations.
 
-Liquorfy is a location-aware liquor price comparison platform for New Zealand. It combines a FastAPI backend, scheduled scraping workers, and a React frontend to surface nearby deals with normalized pricing metrics.
+Liquorfy compares liquor prices across New Zealand retailers. The repository contains a FastAPI API and scraper worker, a React web app, and a native SwiftUI iOS app.
 
-Production deployment: [https://liquorfy.co.nz](https://liquorfy.co.nz)
+Production: [liquorfy.co.nz](https://liquorfy.co.nz)
 
-## Table of Contents
+## Run it
 
-- [Architecture](#architecture)
-- [Data Flow](#data-flow)
-- [Core Capabilities](#core-capabilities)
-- [Tab Icon](#tab-icon)
-- [Getting Started](#getting-started)
-- [Local Development](#local-development)
-- [API Overview](#api-overview)
-- [Operations and Reliability](#operations-and-reliability)
-- [CI/CD](#cicd)
-- [Repository Layout](#repository-layout)
-- [Documentation](#documentation)
-
-## Architecture
-
-```mermaid
-flowchart LR
-  subgraph Clients
-    WEB[Web App<br/>React + Vite]
-    IOS[iOS App<br/>SwiftUI]
-  end
-
-  subgraph Platform
-    API[FastAPI Service]
-    WORKER[Worker Scheduler]
-    DB[(PostgreSQL + PostGIS)]
-    REDIS[(Redis Cache)]
-  end
-
-  subgraph Sources
-    CHAINS[Retailer APIs and Websites]
-  end
-
-  WEB -->|HTTPS| API
-  IOS -->|HTTPS| API
-  API <--> DB
-  API <--> REDIS
-  WORKER -->|Ingest and Normalize| DB
-  WORKER -->|Scrape| CHAINS
-```
-
-## Data Flow
-
-```mermaid
-flowchart TD
-  A[Retailer Source Data] --> B[Chain Scrapers]
-  B --> C[Normalization and Pricing Metrics]
-  C --> D[(PostgreSQL + PostGIS)]
-  D --> E[Search and Geospatial Services]
-  E --> F[Redis Cache]
-  E --> G[API Responses]
-  G --> H[Web and iOS Clients]
-```
-
-## Core Capabilities
-
-- Aggregates product and price data from major NZ liquor retailers.
-- Computes standardized value metrics such as price per 100ml and price per standard drink.
-- Supports geospatial store and product discovery with radius constraints.
-- Provides scheduled scraper execution via a dedicated worker service.
-- Includes Redis-backed response caching for high-traffic queries.
-- Ships with production-minded defaults: health checks, security headers, and rate limiting.
-
-## Tab Icon
-
-To use a custom browser tab icon (favicon), place your file at:
-
-- `web/public/branding/favicon.png`
-
-Notes:
-
-- The web app loads this file at `/branding/favicon.png`.
-- This only affects the tab icon and does not change any in-page UI.
-
-## Getting Started
-
-### Prerequisites
-
-- Docker and Docker Compose
-- Python 3.11+
-- Node.js 20+ (for running frontend outside Docker)
-- Poetry
-
-### Quickstart (Full Stack via Docker)
+Requirements: Docker with Compose.
 
 ```bash
-cp .env.example .env
 docker compose -f infra/docker-compose.yml up --build
 ```
 
-Services started:
+- Web: <http://localhost:5173>
+- API: <http://localhost:8000>
+- API reference: <http://localhost:8000/docs>
 
-- `web` at `http://localhost:5173`
-- `api` at `http://localhost:8000`
-- `db` (PostgreSQL/PostGIS) on `localhost:5432`
-- `redis` on `localhost:6379`
-- `worker` for scheduled ingestion
+The development stack also starts PostgreSQL, Redis, and the scraper worker.
 
-### Production Stack (Docker Compose)
+## Develop locally
 
-```bash
-cp .env.production.template .env
-docker compose -f infra/docker-compose.prod.yml up -d --build
-```
-
-## Local Development
-
-### 1) Install backend dependencies
+Requirements: Python 3.11, uv, and Node.js 22.
 
 ```bash
-poetry install
+# Dependencies
+uv sync
+(cd web && npm install)
+
+# Local database
+docker compose -f docker-compose.dev.yml up -d db
+
+# Host-side API configuration
+export DATABASE_URL=postgresql://postgres:postgres@localhost:5433/liquorfy
+export SECRET_KEY=local-dev-key-not-for-production-use-12345
+export ADMIN_PASSWORD=localdev1234
+
+# Migrate and run
+uv run alembic -c api/alembic.ini upgrade head
+uv run uvicorn app.main:app --reload --app-dir api
+
+# In another terminal
+(cd web && npm run dev)
 ```
 
-### 2) Start dependencies (db + redis)
+Run the worker in another terminal:
 
 ```bash
-docker compose -f infra/docker-compose.yml up -d db redis
+uv run python -m app.workers.runner
 ```
 
-### 3) Run API
+To run selected chains once:
 
 ```bash
-poetry run uvicorn app.main:app --reload --app-dir api
+LIQUORFY_RUN_ONCE=true uv run python -m app.workers.runner countdown,new_world
 ```
 
-### 4) Run worker
+Available chain names live in `api/app/scrapers/registry.py`.
+
+## Check changes
 
 ```bash
-poetry run python -m app.workers.runner
+uv run --frozen ruff check api/app api/alembic api/scripts
+uv run --frozen mypy api/app
+uv run --frozen alembic -c api/alembic.ini check
+uv run --frozen pytest
+(cd web && npm run build)
 ```
 
-### 5) Run frontend
+For the Capacitor wrapper:
 
 ```bash
-cd web
-npm install
-npm run dev
+(cd web && npm run cap:run:ios)
 ```
 
-### 6) Run tests
+The separate native SwiftUI app is in `ios/` and is opened with Xcode.
 
-```bash
-poetry run pytest api/app/tests -v
-```
-
-## API Overview
-
-Interactive API docs: `http://localhost:8000/docs`
-
-In production behind Nginx, API requests are proxied under `/api`.
-
-Core endpoints:
-
-- `GET /healthz` - liveness probe.
-- `GET /health` - dependency-aware health check (database + Redis).
-- `GET /readiness` - readiness probe.
-- `GET /products` - filtered and paginated product search.
-- `GET /products/{product_id}` - product detail.
-- `GET /stores` - geospatial nearby stores.
-- `POST /auth/login` - JWT token issuance.
-- `POST /auth/logout` - token revocation.
-- `POST /ingest/run` - trigger ingestion (admin-protected).
-- `GET /worker/health` - scraper status summary.
-- `GET /worker/runs` - ingestion run history.
-- `GET /worker/runs/{run_id}` - ingestion run detail.
-
-## Operations and Reliability
-
-- Development environment template: `.env.example`
-- Production environment template: `.env.production.template`
-- Production compose file: `infra/docker-compose.prod.yml`
-- Container definitions: `infra/dockerfiles/`
-- Nginx runtime config: `infra/nginx/nginx.conf`
-- Health checks are configured at both API and container levels.
-- Security middleware adds CSP and standard hardening headers.
-
-## CI/CD
-
-GitHub Actions workflow: `.github/workflows/ci-cd.yml`
-
-- Runs backend tests against PostgreSQL and Redis.
-- Builds the web frontend.
-- Builds and pushes production Docker images to GHCR on `main`.
-- Includes a deployment stage scaffold for infrastructure-specific rollout.
-
-## Repository Layout
+## Project map
 
 ```text
-api/          FastAPI app, services, scrapers, worker, tests
-web/          React + Vite frontend
-ios/          Native iOS client
-infra/        Dockerfiles, Compose files, nginx config
-docs/         Operational, API, and mobile documentation
+api/      API, database models, scrapers, worker, and tests
+web/      React/Vite web app and Capacitor wrapper
+ios/      Native SwiftUI app
+infra/    Docker, Compose, and Nginx configuration
+docs/     Architecture and production operations
 ```
 
-## Documentation
-
-- [Documentation Index](./docs/README.md)
-- [Setup Guide](./docs/SETUP.md)
-- [Deployment Guide](./docs/DEPLOYMENT.md)
-- [Security Guide](./docs/SECURITY.md)
-- [API Documentation](./docs/api/README.md)
-- [Mobile Documentation](./docs/mobile/README.md)
+See [architecture](docs/ARCHITECTURE.md) for system boundaries and [operations](docs/OPERATIONS.md) for deployment, migrations, health checks, and security.
 
 ## License
 
-Proprietary. See [`LICENSE`](./LICENSE).
+Proprietary. See [LICENSE](LICENSE).
