@@ -3,31 +3,42 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import socket
 import sys
-from datetime import datetime, timedelta, timezone
+import time
+from contextlib import suppress
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
+from uuid import UUID, uuid4
 
-from sqlalchemy import text, update
+from sqlalchemy import text
 
 from app.core.logging import configure_logging
-from app.db.models import IngestionRun
-from app.db.session import async_transaction, get_async_session
+from app.db.session import get_async_session
 from app.scrapers.registry import CHAINS, get_chain_scraper
+from app.workers.tasks import (
+    HeartbeatState,
+    JobOutcome,
+    claim_next_ingest_job,
+    enqueue_ingest,
+    finish_ingest_job,
+    get_ingest_job,
+    heartbeat_ingest_job,
+    recover_expired_ingest_jobs,
+)
 
 configure_logging()
 logger = logging.getLogger(__name__)
 
 
 # Configuration
-SCRAPE_ON_STARTUP = False  # Set True to run scrapers immediately on container start
-SCRAPE_START_HOUR = 2  # 2 AM NZST
-SCRAPER_INTERVAL_HOURS = 24  # Run scrapers once per day
 SCRAPER_TIMEOUT_MINUTES = 120  # Max time per scraper (Liquor Centre has 90 stores!)
-SEQUENTIAL_DELAY_SECONDS = 60  # Delay between scrapers to avoid overwhelming system
-RETRY_DELAY_SECONDS = 120  # Wait before retrying a failed chain
-MAX_RETRIES = 1  # Number of retries per chain per pass
 DB_HEALTH_CHECK_RETRIES = 5
 DB_HEALTH_CHECK_DELAY = 10  # seconds between DB health check retries
+JOB_POLL_SECONDS = 5
+MAINTENANCE_INTERVAL_SECONDS = 900
+JOB_LEASE_SECONDS = 120
+JOB_HEARTBEAT_SECONDS = 30
 CHAIN_TIMEOUT_MINUTES = {
     # Liquorland category pagination is significantly larger than other chains.
     "liquorland": 300,
@@ -65,39 +76,11 @@ async def _check_db_health() -> None:
                 ) from e
 
 
-async def _cleanup_zombie_runs() -> int:
-    """Mark any leftover 'running' ingestion runs as failed.
-
-    This handles the case where the worker crashed mid-scrape, leaving
-    IngestionRun records stuck in 'running' status forever.
-
-    Returns count of cleaned-up runs.
-    """
-    async with async_transaction() as session:
-        stmt = (
-            update(IngestionRun)
-            .where(IngestionRun.status == "running")
-            .values(
-                status="failed",
-                finished_at=datetime.now(timezone.utc),
-                error_message="Worker restarted while scraper was running",
-            )
-        )
-        result = await session.execute(stmt)
-        count = getattr(result, "rowcount", 0) or 0
-
-    if count:
-        logger.warning(f"Cleaned up {count} zombie ingestion run(s) from previous crash")
-    return count
-
-
-class WorkerScheduler:
-    """Manages scraper scheduling and execution with proper error handling."""
+class ScraperExecutor:
+    """Execute one scraper at a time for jobs claimed from the durable queue."""
 
     def __init__(self, chains_to_run: Optional[List[str]] = None):
         self.chains_to_run = chains_to_run or list(CHAINS.keys())
-        self.last_run: Dict[str, Optional[datetime]] = {chain: None for chain in self.chains_to_run}
-        self.running_chains: Dict[str, asyncio.Task] = {}
         self.consecutive_failures: Dict[str, int] = {chain: 0 for chain in self.chains_to_run}
 
     async def run_scraper(self, chain: str) -> bool:
@@ -106,42 +89,33 @@ class WorkerScheduler:
         Returns True if the scraper completed successfully, False otherwise.
         """
         logger.info(f"Starting scraper: {chain}")
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
         timeout_minutes = CHAIN_TIMEOUT_MINUTES.get(chain, SCRAPER_TIMEOUT_MINUTES)
 
         try:
             scraper = get_chain_scraper(chain)
 
-            await asyncio.wait_for(
-                scraper.run(),
-                timeout=timeout_minutes * 60
-            )
+            await asyncio.wait_for(scraper.run(), timeout=timeout_minutes * 60)
 
-            duration = (datetime.utcnow() - start_time).total_seconds()
+            duration = (datetime.now(timezone.utc) - start_time).total_seconds()
             logger.info(f"Scraper completed: {chain} ({duration:.1f}s)")
-            self.last_run[chain] = datetime.utcnow()
             self.consecutive_failures[chain] = 0
             return True
 
         except asyncio.TimeoutError:
-            duration = (datetime.utcnow() - start_time).total_seconds()
-            logger.error(
-                f"Scraper timeout: {chain} (>{duration:.1f}s, limit={timeout_minutes}m)"
-            )
+            duration = (datetime.now(timezone.utc) - start_time).total_seconds()
+            logger.error(f"Scraper timeout: {chain} (>{duration:.1f}s, limit={timeout_minutes}m)")
             self.consecutive_failures[chain] = self.consecutive_failures.get(chain, 0) + 1
             return False
 
         except Exception as e:
-            duration = (datetime.utcnow() - start_time).total_seconds()
+            duration = (datetime.now(timezone.utc) - start_time).total_seconds()
             logger.error(f"Scraper failed: {chain} ({duration:.1f}s) - {type(e).__name__}: {e}")
             logger.exception(e)
             self.consecutive_failures[chain] = self.consecutive_failures.get(chain, 0) + 1
             return False
 
         finally:
-            if chain in self.running_chains:
-                del self.running_chains[chain]
-
             # Log warning for chains with repeated failures
             failures = self.consecutive_failures.get(chain, 0)
             if failures >= 3:
@@ -150,80 +124,163 @@ class WorkerScheduler:
                     f"may need manual investigation"
                 )
 
-    async def should_run_scraper(self, chain: str) -> bool:
-        """Check if a scraper should run based on schedule."""
-        if chain in self.running_chains:
-            return False
-
-        last_run = self.last_run.get(chain)
-        if last_run is None:
-            return True
-
-        time_since_last_run = datetime.utcnow() - last_run
-        return time_since_last_run >= timedelta(hours=SCRAPER_INTERVAL_HOURS)
-
-    async def run_all_scrapers(self, force: bool = False) -> None:
-        """Run all scrapers sequentially with delays, retrying failures once."""
-        logger.info(f"Checking {len(self.chains_to_run)} scrapers for scheduled runs")
-
-        failed_chains: List[str] = []
-
-        for chain in self.chains_to_run:
-            if force or await self.should_run_scraper(chain):
-                task = asyncio.create_task(self.run_scraper(chain))
-                self.running_chains[chain] = task
-
-                try:
-                    success = await task
-                    if not success:
-                        failed_chains.append(chain)
-                except Exception as e:
-                    logger.error(f"Scraper task failed for chain={chain}: {e}")
-                    failed_chains.append(chain)
-
-                logger.info(f"Waiting {SEQUENTIAL_DELAY_SECONDS}s before next scraper...")
-                await asyncio.sleep(SEQUENTIAL_DELAY_SECONDS)
-            else:
-                last_run = self.last_run.get(chain)
-                if last_run:
-                    time_since = datetime.utcnow() - last_run
-                    logger.info(f"Skipping {chain} (last run {time_since.total_seconds() / 3600:.1f}h ago)")
-
-        # Retry failed chains once
-        if failed_chains:
-            logger.info(
-                f"Retrying {len(failed_chains)} failed chain(s) after "
-                f"{RETRY_DELAY_SECONDS}s: {', '.join(failed_chains)}"
-            )
-            await asyncio.sleep(RETRY_DELAY_SECONDS)
-
-            for chain in failed_chains:
-                logger.info(f"Retry attempt for: {chain}")
-                task = asyncio.create_task(self.run_scraper(chain))
-                self.running_chains[chain] = task
-
-                try:
-                    await task
-                except Exception as e:
-                    logger.error(f"Retry failed for chain={chain}: {e}")
-
-                await asyncio.sleep(SEQUENTIAL_DELAY_SECONDS)
-
 
 async def _post_scrape_tasks() -> None:
     """Run discord report and alert evaluation after a scrape pass."""
     try:
         from app.workers.discord_report import send_discord_report
+
         await send_discord_report()
     except Exception as e:
         logger.warning(f"Discord report failed: {e}")
 
     try:
         from app.services.alert_evaluator import evaluate_alerts
+
         count = await evaluate_alerts()
         logger.info(f"Alert evaluation: {count} notification(s) sent")
     except Exception as e:
         logger.warning(f"Alert evaluation failed: {e}")
+
+
+async def _maintain_job_lease(
+    job_id: UUID,
+    *,
+    worker_id: str,
+    stop: asyncio.Event,
+) -> HeartbeatState:
+    """Heartbeat until the scrape finishes, cancellation is requested, or ownership is lost."""
+    while not stop.is_set():
+        try:
+            await asyncio.wait_for(
+                stop.wait(),
+                timeout=JOB_HEARTBEAT_SECONDS,
+            )
+            return HeartbeatState.ACTIVE
+        except asyncio.TimeoutError:
+            try:
+                state = await heartbeat_ingest_job(
+                    job_id,
+                    worker_id=worker_id,
+                    lease_seconds=JOB_LEASE_SECONDS,
+                )
+            except Exception:
+                logger.exception("Could not heartbeat ingestion job %s", job_id)
+                return HeartbeatState.LEASE_LOST
+            if state is not HeartbeatState.ACTIVE:
+                return state
+    return HeartbeatState.ACTIVE
+
+
+async def _run_claimed_job(
+    executor: ScraperExecutor,
+    *,
+    worker_id: str,
+    job_id: UUID,
+    chain: str,
+) -> str | None:
+    stop_heartbeat = asyncio.Event()
+    scrape_task = asyncio.create_task(executor.run_scraper(chain))
+    heartbeat_task = asyncio.create_task(
+        _maintain_job_lease(
+            job_id,
+            worker_id=worker_id,
+            stop=stop_heartbeat,
+        )
+    )
+
+    done, _ = await asyncio.wait(
+        {scrape_task, heartbeat_task},
+        return_when=asyncio.FIRST_COMPLETED,
+    )
+    error_message: str | None
+
+    if heartbeat_task in done and not scrape_task.done():
+        heartbeat_state = await heartbeat_task
+        scrape_task.cancel()
+        with suppress(asyncio.CancelledError):
+            await scrape_task
+        outcome = (
+            JobOutcome.CANCELLED
+            if heartbeat_state is HeartbeatState.CANCEL_REQUESTED
+            else JobOutcome.FAILED
+        )
+        error_message = (
+            "Cancellation requested"
+            if outcome is JobOutcome.CANCELLED
+            else "Worker lost the database lease"
+        )
+    else:
+        try:
+            succeeded = await scrape_task
+        except Exception as exc:
+            logger.exception("Ingestion job %s crashed", job_id)
+            succeeded = False
+            error_message = f"{type(exc).__name__}: {exc}"
+        else:
+            error_message = None if succeeded else "Scraper failed; inspect ingestion run"
+        stop_heartbeat.set()
+        heartbeat_state = await heartbeat_task
+        if heartbeat_state is HeartbeatState.CANCEL_REQUESTED:
+            outcome = JobOutcome.CANCELLED
+            error_message = "Cancellation requested"
+        elif heartbeat_state is HeartbeatState.LEASE_LOST:
+            outcome = JobOutcome.FAILED
+            error_message = "Worker lost the database lease"
+        else:
+            outcome = JobOutcome.SUCCEEDED if succeeded else JobOutcome.FAILED
+
+    return await finish_ingest_job(
+        job_id,
+        worker_id=worker_id,
+        outcome=outcome,
+        error_message=error_message,
+    )
+
+
+async def _drain_ingest_jobs(
+    executor: ScraperExecutor,
+    *,
+    worker_id: str,
+) -> int:
+    """Run ready jobs sequentially, while other workers skip claimed rows."""
+    processed = 0
+    while True:
+        job = await claim_next_ingest_job(
+            worker_id=worker_id,
+            lease_seconds=JOB_LEASE_SECONDS,
+        )
+        if job is None:
+            return processed
+
+        logger.info(
+            "Claimed ingestion job %s for %s (attempt %s/%s)",
+            job.id,
+            job.chain,
+            job.attempt_count,
+            job.max_attempts,
+        )
+        final_status = await _run_claimed_job(
+            executor,
+            worker_id=worker_id,
+            job_id=job.id,
+            chain=job.chain,
+        )
+        logger.info("Ingestion job %s transitioned to %s", job.id, final_status)
+        processed += 1
+
+
+async def _run_maintenance() -> None:
+    try:
+        from app.workers.cleanup import (
+            run_price_history_cleanup,
+            run_promo_expiry_cleanup,
+        )
+
+        await run_promo_expiry_cleanup()
+        await run_price_history_cleanup()
+    except Exception as exc:
+        logger.warning("Cleanup failed: %s", exc)
 
 
 async def main(chains_to_run: Optional[List[str]] = None) -> None:
@@ -252,7 +309,15 @@ async def main(chains_to_run: Optional[List[str]] = None) -> None:
         chains_to_run = list(CHAINS.keys())
         logger.info(f"Running all chains: {', '.join(chains_to_run)}")
 
-    logger.info(f"Interval: {SCRAPER_INTERVAL_HOURS}h | Timeout: {SCRAPER_TIMEOUT_MINUTES}m | Retry delay: {RETRY_DELAY_SECONDS}s")
+    worker_id = os.environ.get("LIQUORFY_WORKER_ID") or (
+        f"{socket.gethostname()}:{os.getpid()}:{uuid4().hex[:8]}"
+    )
+
+    logger.info(
+        "Worker id: %s | Default scraper timeout: %sm",
+        worker_id,
+        SCRAPER_TIMEOUT_MINUTES,
+    )
     logger.info(f"Run once: {'yes' if run_once else 'no'}")
     if CHAIN_TIMEOUT_MINUTES:
         overrides = ", ".join(
@@ -263,47 +328,56 @@ async def main(chains_to_run: Optional[List[str]] = None) -> None:
 
     # Pre-flight checks
     await _check_db_health()
-    await _cleanup_zombie_runs()
+    recovered = await recover_expired_ingest_jobs()
+    if recovered:
+        logger.warning("Recovered %s ingestion job(s) with expired leases", recovered)
 
-    scheduler = WorkerScheduler(chains_to_run=chains_to_run)
+    executor = ScraperExecutor(chains_to_run=chains_to_run)
 
-    if SCRAPE_ON_STARTUP or run_once:
-        logger.info("Running initial scraper pass...")
-        await scheduler.run_all_scrapers(force=True)
-        await _post_scrape_tasks()
-
-        if run_once:
-            logger.info("LIQUORFY_RUN_ONCE enabled - exiting after initial pass")
-            return
-    else:
-        logger.info(f"Skipping startup scrape. Nightly run scheduled at {SCRAPE_START_HOUR:02d}:00 NZST")
-
-    # Run on schedule — check every 15 minutes, scrape at the configured hour
-    last_scrape_date: Optional[str] = None
-    while True:
-        await asyncio.sleep(900)  # 15-minute check interval
-
-        # Use NZST (UTC+13 during NZDT, UTC+12 during NZST)
-        now_nz = datetime.now(timezone(timedelta(hours=13)))
-        today = now_nz.strftime("%Y-%m-%d")
-        current_hour = now_nz.hour
-
-        # Run cleanup every cycle (lightweight)
-        try:
-            from app.workers.cleanup import run_promo_expiry_cleanup, run_price_history_cleanup
-            await run_promo_expiry_cleanup()
-            await run_price_history_cleanup()
-        except Exception as e:
-            logger.warning(f"Cleanup failed: {e}")
-
-        # Check if it's time for the nightly scrape
-        if current_hour == SCRAPE_START_HOUR and last_scrape_date != today:
-            logger.info(f"Nightly scrape triggered at {now_nz.strftime('%H:%M')} NZST")
-            last_scrape_date = today
-            await scheduler.run_all_scrapers(force=True)
+    if run_once:
+        logger.info("Queueing one-off scraper pass")
+        requested_job_ids = [
+            await enqueue_ingest(
+                chain,
+                requested_by=f"worker-cli:{worker_id}",
+            )
+            for chain in chains_to_run
+        ]
+        processed_total = 0
+        while True:
+            processed_total += await _drain_ingest_jobs(
+                executor,
+                worker_id=worker_id,
+            )
+            jobs = [await get_ingest_job(job_id) for job_id in requested_job_ids]
+            if all(
+                job is not None and job.status in {"completed", "failed", "cancelled"}
+                for job in jobs
+            ):
+                break
+            await asyncio.sleep(JOB_POLL_SECONDS)
+        if processed_total:
             await _post_scrape_tasks()
-        elif last_scrape_date != today:
-            logger.debug(f"Waiting for {SCRAPE_START_HOUR:02d}:00 NZST (currently {now_nz.strftime('%H:%M')})")
+        logger.info("LIQUORFY_RUN_ONCE enabled - exiting after queued pass")
+        return
+
+    # Scheduling runs in app.workers.scheduler. This process only consumes jobs.
+    last_maintenance_at = 0.0
+    while True:
+        processed = await _drain_ingest_jobs(
+            executor,
+            worker_id=worker_id,
+        )
+        if processed:
+            await _post_scrape_tasks()
+            continue
+
+        now_monotonic = time.monotonic()
+        if now_monotonic - last_maintenance_at >= MAINTENANCE_INTERVAL_SECONDS:
+            await _run_maintenance()
+            last_maintenance_at = now_monotonic
+
+        await asyncio.sleep(JOB_POLL_SECONDS)
 
 
 if __name__ == "__main__":

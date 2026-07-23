@@ -7,17 +7,23 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
+from uuid import UUID
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import select, func, desc
+from sqlalchemy import desc, func, select
 from sqlalchemy.orm import aliased
 
+from app.core.auth import require_admin
 from app.db.models import IngestionRun
 from app.db.session import get_async_session
 from app.scrapers.registry import CHAINS
 
-router = APIRouter(prefix="/worker", tags=["worker"])
+router = APIRouter(
+    prefix="/worker",
+    tags=["worker"],
+    dependencies=[Depends(require_admin)],
+)
 
 
 # ============================================================================
@@ -65,7 +71,7 @@ class IngestionRunResponse(BaseModel):
     error_message: Optional[str]
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 # ============================================================================
@@ -112,6 +118,7 @@ async def worker_health():
         scrapers_never_run = 0
         scrapers_running = 0
         oldest_success_hours = None
+        has_stuck_run = False
 
         for chain in CHAINS:
             last_run = chain_to_run.get(chain)
@@ -154,6 +161,7 @@ async def worker_health():
                     oldest_success_hours = hours_since
             elif status == "running":
                 scrapers_running += 1
+                has_stuck_run = has_stuck_run or hours_since > 2
             else:
                 scrapers_failing += 1
 
@@ -176,6 +184,7 @@ async def worker_health():
         healthy = (
             scrapers_healthy >= len(CHAINS) * 0.5
             and (oldest_success_hours is None or oldest_success_hours < 48)
+            and not has_stuck_run
         )
 
         return WorkerHealthResponse(
@@ -193,8 +202,8 @@ async def worker_health():
 @router.get("/runs", response_model=List[IngestionRunResponse])
 async def list_ingestion_runs(
     chain: Optional[str] = None,
-    limit: int = 50,
-    offset: int = 0,
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
 ):
     """
     List recent ingestion runs.
@@ -239,7 +248,7 @@ async def list_ingestion_runs(
 
 
 @router.get("/runs/{run_id}", response_model=IngestionRunResponse)
-async def get_ingestion_run(run_id: str):
+async def get_ingestion_run(run_id: UUID):
     """
     Get details for a specific ingestion run.
 
