@@ -1,9 +1,9 @@
-FROM node:20-bullseye-slim
+FROM node:22-alpine
 
 WORKDIR /app/web
 
-COPY web/package.json web/package-lock.json* ./
-RUN npm install
+COPY web/package.json web/package-lock.json ./
+RUN npm ci
 
 COPY web ./
 

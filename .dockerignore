@@ -1,0 +1,38 @@
+# Version control and local tooling
+.git
+.github
+.agents
+.claude
+.codex
+.idea
+.vscode
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+!.env.production.template
+
+# Python caches and environments
+**/__pycache__
+**/*.py[cod]
+**/.pytest_cache
+**/.ruff_cache
+**/.mypy_cache
+.coverage
+htmlcov
+.venv
+**/.venv
+
+# JavaScript dependencies and build output
+node_modules
+**/node_modules
+web/dist
+**/.vite
+
+# Files that are not used by container builds
+docs
+ios
+marketing
+*.pdf
+.DS_Store

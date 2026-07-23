@@ -1,44 +1,36 @@
-# Production API Dockerfile (lean runtime, no Playwright browsers)
 FROM python:3.11-slim
+
+ARG DEBIAN_FRONTEND=noninteractive
+ARG POETRY_VERSION=2.4.1
+
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app/api \
+    UVICORN_WORKERS=2
 
 WORKDIR /app
 
-# Keep runtime dependencies minimal for API memory footprint
-RUN apt-get update && apt-get install -y \
-    ca-certificates \
-    curl \
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Poetry
-RUN pip install --no-cache-dir poetry==1.7.1
+RUN pip install --no-cache-dir "poetry==${POETRY_VERSION}"
 
-# Copy dependency files
 COPY pyproject.toml poetry.lock* ./
+RUN poetry config virtualenvs.create false \
+    && poetry install --no-interaction --no-ansi --only main --no-root
 
-# Install Python dependencies
-RUN poetry config virtualenvs.create false && \
-    poetry install --no-interaction --no-ansi --only main --no-root
-
-# Copy application code
 COPY api ./api
 
-# Set Python path
-ENV PYTHONPATH=/app/api
+RUN useradd --create-home --uid 1000 appuser \
+    && chown -R appuser:appuser /app
 
-# Create non-root user for security
-RUN useradd -m -u 1000 appuser && \
-    chown -R appuser:appuser /app
-
-# Switch to non-root user
 USER appuser
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-  CMD curl -f http://localhost:8000/health || exit 1
+    CMD curl --fail --silent http://localhost:8000/readiness || exit 1
 
-# Expose port
 EXPOSE 8000
 
-# Run with production settings (default to 2 workers on small VMs)
-ENV UVICORN_WORKERS=2
-CMD ["sh", "-c", "poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers ${UVICORN_WORKERS}"]
+CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers \"${UVICORN_WORKERS}\" --proxy-headers --forwarded-allow-ips='*'"]
