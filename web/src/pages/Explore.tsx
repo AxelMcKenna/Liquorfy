@@ -13,6 +13,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { useSavedFilters } from '@/hooks/useSavedFilters';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
+import { InlineAlert } from '@/components/ui/inline-alert';
 import {
   Pagination,
   PaginationContent,
@@ -182,10 +184,10 @@ export const Explore = () => {
         />
 
         <main className="flex-1 min-w-0 min-h-screen">
-          <div className="max-w-6xl mx-auto px-4 py-6 pb-32">
-            {/* Combined prompt banner — location + sign-in in one block */}
+          <div className="max-w-6xl mx-auto px-4 py-6 pb-24 lg:pb-12">
+            {/* Combined prompt banner - location + sign-in in one block */}
             {showBanner && (
-              <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 sm:p-4 mb-4 flex items-start sm:items-center justify-between gap-2 sm:gap-4">
+              <InlineAlert className="p-3 sm:p-4 mb-4 flex items-start sm:items-center justify-between gap-2 sm:gap-4">
                 <div className="flex flex-col gap-1.5 min-w-0">
                   {needsLocation && (
                     <div className="flex items-center gap-2.5">
@@ -225,26 +227,23 @@ export const Explore = () => {
                   variant="ghost"
                   size="icon"
                   onClick={() => setBannerDismissed(true)}
+                  aria-label="Dismiss suggestions"
                   className="flex-shrink-0 h-8 w-8 text-muted-foreground hover:text-foreground"
                 >
                   <X className="h-4 w-4" />
                 </Button>
-              </div>
+              </InlineAlert>
             )}
 
             {locationError && !isLocationSet && (
-              <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-                <p className="text-sm text-destructive">{locationError}</p>
-              </div>
+              <InlineAlert variant="error" className="mb-4">{locationError}</InlineAlert>
             )}
 
             {/* Mobile filter chips */}
             <FilterChips />
 
             {error && (
-              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 mb-4">
-                <p className="text-sm text-destructive">{error}</p>
-              </div>
+              <InlineAlert variant="error" className="mb-4">{error}</InlineAlert>
             )}
 
             {/* Results count */}
@@ -267,7 +266,7 @@ export const Explore = () => {
               sort={filters.sort}
             />
 
-            {/* Pagination — only when location is set (locationless queries are page-1 only) */}
+            {/* Pagination - only when location is set (locationless queries are page-1 only) */}
             {isLocationSet && !loading && products.length > 0 && totalPages > 1 && (
               <div className="mt-6">
                 <Pagination>
@@ -322,16 +321,16 @@ export const Explore = () => {
               </div>
             )}
 
-            {!loading && products.length === 0 && (
-              <div className="text-center py-16">
-                <Search className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
-                <p className="text-muted-foreground font-medium">No products found</p>
-                <p className="text-sm text-muted-foreground/70 mt-1">
-                  {!isLocationSet
+            {!loading && !error && products.length === 0 && (
+              <EmptyState
+                icon={Search}
+                title="No products found"
+                description={
+                  !isLocationSet
                     ? 'Try enabling location for more results, or adjust your search'
-                    : 'Try adjusting your filters or search terms'}
-                </p>
-              </div>
+                    : 'Try adjusting your filters or search terms'
+                }
+              />
             )}
           </div>
         </main>
@@ -340,7 +339,8 @@ export const Explore = () => {
       {/* Mobile filter FAB */}
       <button
         onClick={() => setIsSidebarOpen(true)}
-        className="fixed bottom-6 right-6 z-30 lg:hidden bg-primary text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors"
+        aria-label="Open filters"
+        className="fixed bottom-6 right-6 z-30 lg:hidden bg-primary text-white rounded-full w-14 h-14 flex items-center justify-center shadow-md hover:bg-primary/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       >
         <SlidersHorizontal className="h-5 w-5" />
       </button>

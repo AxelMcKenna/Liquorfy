@@ -4,9 +4,10 @@ import { Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { InlineAlert } from '@/components/ui/inline-alert';
+import { AuthCardHeader } from '@/components/auth/AuthCardHeader';
+import { AuthLayout } from '@/components/layout/AuthLayout';
 import { supabase } from '@/lib/supabase';
-import { Footer } from '@/components/layout/Footer';
-import { PageHeader } from '@/components/layout/PageHeader';
 import { toast } from 'sonner';
 
 const ResetPasswordPage = () => {
@@ -59,66 +60,49 @@ const ResetPasswordPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <PageHeader />
+    <AuthLayout>
+      <AuthCardHeader
+        icon={Lock}
+        title="Set new password"
+        description="Choose a new password for your account"
+      />
 
-      <main className="flex-1 flex items-center justify-center px-4">
-        <div className="w-full max-w-sm bg-white rounded-lg border shadow-md p-8 space-y-6">
-          <div className="text-center">
-            <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-              <Lock className="h-6 w-6 text-primary" />
-            </div>
-            <h2 className="text-2xl font-serif font-semibold tracking-tight">
-              Set new password
-            </h2>
-            <p className="text-sm text-muted-foreground mt-2">
-              Choose a new password for your account
-            </p>
-          </div>
+      {errors.form && <InlineAlert variant="error">{errors.form}</InlineAlert>}
 
-          {errors.form && (
-            <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-md px-4 py-3">
-              {errors.form}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="password">New Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="At least 6 characters"
-                value={password}
-                onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: undefined })); }}
-                className={errors.password ? 'border-red-400 focus-visible:ring-red-400' : ''}
-                required
-                disabled={loading}
-              />
-              {errors.password && <p className="text-xs text-red-600">{errors.password}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirm-password">Confirm Password</Label>
-              <Input
-                id="confirm-password"
-                type="password"
-                placeholder="Confirm your password"
-                value={confirmPassword}
-                onChange={(e) => { setConfirmPassword(e.target.value); setErrors((p) => ({ ...p, confirm: undefined })); }}
-                className={errors.confirm ? 'border-red-400 focus-visible:ring-red-400' : ''}
-                required
-                disabled={loading}
-              />
-              {errors.confirm && <p className="text-xs text-red-600">{errors.confirm}</p>}
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Updating...' : 'Update Password'}
-            </Button>
-          </form>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="password">New Password</Label>
+          <Input
+            id="password"
+            type="password"
+            placeholder="At least 6 characters"
+            value={password}
+            onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: undefined })); }}
+            className={errors.password ? 'border-red-400 focus-visible:ring-red-400' : ''}
+            required
+            disabled={loading}
+          />
+          {errors.password && <p className="text-xs text-red-600">{errors.password}</p>}
         </div>
-      </main>
-      <Footer />
-    </div>
+        <div className="space-y-2">
+          <Label htmlFor="confirm-password">Confirm Password</Label>
+          <Input
+            id="confirm-password"
+            type="password"
+            placeholder="Confirm your password"
+            value={confirmPassword}
+            onChange={(e) => { setConfirmPassword(e.target.value); setErrors((p) => ({ ...p, confirm: undefined })); }}
+            className={errors.confirm ? 'border-red-400 focus-visible:ring-red-400' : ''}
+            required
+            disabled={loading}
+          />
+          {errors.confirm && <p className="text-xs text-red-600">{errors.confirm}</p>}
+        </div>
+        <Button type="submit" className="w-full" disabled={loading}>
+          {loading ? 'Updating...' : 'Update Password'}
+        </Button>
+      </form>
+    </AuthLayout>
   );
 };
 

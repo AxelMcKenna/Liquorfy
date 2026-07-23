@@ -10,6 +10,7 @@ import { formatDistance, getDistanceColorClass } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import { useClusters, isCluster } from '@/hooks/useClusters';
 import type { ClusterOrPoint } from '@/hooks/useClusters';
+import { MapSurface } from './MapSurface';
 
 // Memoized circle calculation - only recalculates when center or radius changes
 const createCircle = (center: [number, number], radiusInKm: number) => {
@@ -45,6 +46,7 @@ const createCircle = (center: [number, number], radiusInKm: number) => {
 export interface StoreMapProps {
   userLocation: Location;
   stores: Store[];
+  className?: string;
   selectedStore?: Store | null;
   onStoreClick?: (store: Store) => void;
   radiusKm: number;
@@ -55,6 +57,7 @@ export interface StoreMapProps {
 export const StoreMap: React.FC<StoreMapProps> = ({
   userLocation,
   stores,
+  className,
   selectedStore = null,
   radiusKm,
   onLocationChange,
@@ -130,7 +133,7 @@ export const StoreMap: React.FC<StoreMapProps> = ({
   }, [supercluster, mapRef]);
 
   return (
-    <div className="w-full h-[500px] rounded-lg overflow-hidden shadow-lg border border-border">
+    <MapSurface className={cn('shadow-lg', className)}>
       <Map
         ref={setMapRef}
         {...viewState}
@@ -309,6 +312,6 @@ export const StoreMap: React.FC<StoreMapProps> = ({
           </Popup>
         )}
       </Map>
-    </div>
+    </MapSurface>
   );
 };

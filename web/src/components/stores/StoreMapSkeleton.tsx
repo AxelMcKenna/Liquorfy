@@ -1,5 +1,6 @@
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { MapSurface } from './MapSurface';
 
 interface StoreMapSkeletonProps {
   className?: string;
@@ -7,8 +8,8 @@ interface StoreMapSkeletonProps {
 
 export const StoreMapSkeleton = ({ className }: StoreMapSkeletonProps) => {
   return (
-    <div className={cn("w-full h-[500px] rounded-lg overflow-hidden border-2 border-gray-200", className)}>
+    <MapSurface className={cn("border-2 border-gray-200", className)}>
       <Skeleton className="h-full w-full" />
-    </div>
+    </MapSurface>
   );
 };

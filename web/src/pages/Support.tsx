@@ -1,26 +1,27 @@
-import { PageHeader } from "@/components/layout/PageHeader";
+import { LegalPage } from "@/components/layout/LegalPage";
+import { Card } from "@/components/ui/card";
 
 export const Support = () => {
   return (
-    <div className="min-h-screen bg-background">
-      <PageHeader backTo="/" />
-
-      <main className="max-w-3xl mx-auto px-4 py-12">
-        <h1 className="text-3xl font-semibold text-foreground mb-2">Support</h1>
-        <p className="text-sm text-muted-foreground mb-10">
+    <LegalPage
+      title="Support"
+      subtitle={
+        <>
           Have a question or need help? We're here for you.
-        </p>
-
-        <div className="space-y-8 text-sm leading-relaxed text-foreground/90">
-          <section className="bg-secondary rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-foreground mb-2">Contact Us</h2>
-            <p>
-              For any questions, feedback, or issues, email us at{" "}
-              <a href="mailto:liquorfy@gmail.com" className="text-primary hover:underline">
-                liquorfy@gmail.com
-              </a>
-              . We aim to respond within 48 hours.
-            </p>
+        </>
+      }
+    >
+          <section>
+            <Card variant="muted" className="p-6">
+              <h2 className="text-lg font-semibold text-foreground mb-2">Contact Us</h2>
+              <p>
+                For any questions, feedback, or issues, email us at{" "}
+                <a href="mailto:liquorfy@gmail.com" className="text-primary hover:underline">
+                  liquorfy@gmail.com
+                </a>
+                . We aim to respond within 48 hours.
+              </p>
+            </Card>
           </section>
 
           <section>
@@ -63,7 +64,7 @@ export const Support = () => {
                 </h3>
                 <p>
                   Prices are updated daily from retailer websites. Promotions are refreshed as they
-                  become available. Occasionally, a price may be slightly out of date — always
+                  become available. Occasionally, a price may be slightly out of date - always
                   confirm at the retailer before purchasing.
                 </p>
               </div>
@@ -127,9 +128,7 @@ export const Support = () => {
               .
             </p>
           </section>
-        </div>
-      </main>
-    </div>
+    </LegalPage>
   );
 };
 

@@ -1,30 +1,22 @@
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export const ProductSkeleton = () => {
   return (
-    <Card className="h-full flex flex-col overflow-hidden border bg-card">
-      {/* Animated pulse bar */}
-      <div className="h-1 bg-primary/20 skeleton-shimmer" />
+    <Card className="h-full overflow-hidden bg-card" aria-hidden="true">
+      <div className="w-full aspect-[4/3] sm:aspect-square bg-secondary/70 skeleton-shimmer" />
 
-      {/* Image skeleton - Light background */}
-      <div className="w-full aspect-[4/3] sm:aspect-square bg-gray-200 skeleton-shimmer" />
-
-      <CardContent className="p-2 sm:p-4 flex-1 space-y-2 sm:space-y-3">
-        {/* Title and brand */}
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-full bg-secondary/50" />
-          <Skeleton className="h-4 w-3/4 bg-secondary/50" />
+      <CardContent className="p-3 flex-1 space-y-2">
+        <div className="space-y-1.5">
+          <Skeleton className="h-3.5 w-full bg-secondary" />
+          <Skeleton className="h-3.5 w-3/4 bg-secondary" />
+          <Skeleton className="h-3 w-2/5 bg-secondary" />
         </div>
-        {/* Store */}
-        <Skeleton className="h-3 w-1/2 bg-secondary/50" />
-        {/* Price */}
-        <Skeleton className="h-8 w-24 bg-secondary/50" />
+        <Skeleton className="h-3 w-4/5 bg-secondary" />
+        <Skeleton className="h-6 w-20 bg-secondary" />
+        <Skeleton className="h-3 w-16 bg-secondary" />
+        <Skeleton className="h-3 w-24 bg-secondary" />
       </CardContent>
-
-      <CardFooter className="p-4 pt-0">
-        <Skeleton className="h-10 w-full bg-secondary/50" />
-      </CardFooter>
     </Card>
   );
 };

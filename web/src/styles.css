@@ -1,5 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500;600&display=swap");
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -25,10 +23,10 @@
     --foreground-secondary: 0 0% 38%;
     --foreground-tertiary: 0 0% 55%;
 
-    --card: 42 18% 97%;
+    --card: 0 0% 100%;
     --card-foreground: 0 0% 9%;
 
-    --popover: 42 18% 97%;
+    --popover: 0 0% 100%;
     --popover-foreground: 0 0% 9%;
 
     /* Primary green */
@@ -94,7 +92,7 @@
 
   body {
     overflow-x: hidden;
-    overscroll-behavior: none;
+    overscroll-behavior-x: none;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -188,56 +186,7 @@
   animation: card-enter 0.35s ease-out both;
 }
 
-/* Asymmetric landing — slide from left */
-@keyframes slide-in-left {
-  from {
-    opacity: 0;
-    transform: translateX(-24px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-/* Asymmetric landing — slide from right */
-@keyframes slide-in-right {
-  from {
-    opacity: 0;
-    transform: translateX(24px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-/* Asymmetric landing — fade up */
-@keyframes fade-up {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-slide-left {
-  animation: slide-in-left 0.6s ease-out both;
-}
-
-.animate-slide-right {
-  animation: slide-in-right 0.6s ease-out both;
-}
-
-.animate-fade-up {
-  animation: fade-up 0.5s ease-out both;
-}
-
-
-/* Gold accent rule — visual anchor for headings */
+/* Gold accent rule - visual anchor for headings */
 .accent-rule {
   border: none;
   height: 2px;
@@ -246,13 +195,13 @@
   margin: 0;
 }
 
-/* Card lift — hover effect for CTA cards */
+/* Card lift - hover effect for CTA cards */
 .card-lift {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 .card-lift:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
 }
 
 ::selection {
@@ -301,4 +250,15 @@
   border-radius: var(--radius);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   padding: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

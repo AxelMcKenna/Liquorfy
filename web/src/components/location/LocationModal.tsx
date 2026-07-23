@@ -182,7 +182,7 @@ export const LocationModal = () => {
                   onClick={handleSkip}
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  Skip — browse nationwide
+                  Skip - browse nationwide
                 </button>
               )}
             </div>
@@ -256,16 +256,15 @@ export const LocationModal = () => {
                 </div>
               )}
 
-              <div className="border rounded-lg overflow-hidden h-[250px] sm:h-[400px]">
-                <LazyStoreMap
-                  userLocation={tempLocation || { lat: -41.2924, lon: 174.7787 }}
-                  stores={[]}
-                  onLocationChange={handleLocationChange}
-                  isDraggable={true}
-                  radiusKm={tempRadius}
-                  fallbackClassName="h-[250px] sm:h-[400px] border-none"
-                />
-              </div>
+              <LazyStoreMap
+                userLocation={tempLocation || { lat: -41.2924, lon: 174.7787 }}
+                stores={[]}
+                onLocationChange={handleLocationChange}
+                isDraggable={true}
+                radiusKm={tempRadius}
+                className="h-[250px] sm:h-[400px] shadow-none"
+                fallbackClassName="h-[250px] sm:h-[400px]"
+              />
 
               {tempLocation && (
                 <div className="text-center">

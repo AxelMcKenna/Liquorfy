@@ -1,16 +1,8 @@
-import { Footer } from "@/components/layout/Footer";
-import { PageHeader } from "@/components/layout/PageHeader";
+import { LegalPage } from "@/components/layout/LegalPage";
 
 export const Terms = () => {
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <PageHeader backTo="/" />
-
-      <main className="max-w-3xl mx-auto px-4 py-12 flex-1">
-        <h1 className="text-3xl font-semibold text-foreground mb-2">Terms of Service</h1>
-        <p className="text-sm text-muted-foreground mb-10">Last updated: 26 March 2026</p>
-
-        <div className="space-y-8 text-sm leading-relaxed text-foreground/90">
+    <LegalPage title="Terms of Service" subtitle="Last updated: 26 March 2026">
           <section>
             <h2 className="text-lg font-semibold text-foreground mb-3">Acceptance of Terms</h2>
             <p>
@@ -135,11 +127,7 @@ export const Terms = () => {
               </a>
             </p>
           </section>
-        </div>
-      </main>
-
-      <Footer />
-    </div>
+    </LegalPage>
   );
 };
 

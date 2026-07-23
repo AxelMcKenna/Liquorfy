@@ -19,7 +19,7 @@ export const ShareButton = ({ productName, productId, className }: ShareButtonPr
         await navigator.share({ title: productName, text: `Check out ${productName} on Liquorfy`, url });
         return;
       } catch {
-        // User cancelled or share failed — fall through to clipboard
+        // User cancelled or share failed - fall through to clipboard
       }
     }
 

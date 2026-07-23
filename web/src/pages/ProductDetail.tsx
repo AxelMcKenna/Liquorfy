@@ -55,7 +55,7 @@ const DistanceChip = ({ distanceKm }: { distanceKm?: number | null }) => {
 };
 
 // One unified, store-or-chain agnostic price entry so we can rank the viewed
-// product, its other stores, and other chains together — cheapest first.
+// product, its other stores, and other chains together - cheapest first.
 interface CompareEntry {
   key: string;
   storeName: string;
@@ -180,7 +180,7 @@ const CompareSection = ({ product }: { product: ProductDetail }) => {
         </span>
       </h2>
       <p className="text-sm text-[hsl(var(--foreground-secondary))] mb-4">
-        Across stores and chains — cheapest first
+        Across stores and chains - cheapest first
       </p>
 
       {!isLocationSet && (
@@ -483,7 +483,7 @@ export const ProductDetailPage = () => {
           </div>
         </div>
 
-        {/* Compare prices — viewed product, its other stores, and other chains, cheapest first */}
+        {/* Compare prices - viewed product, its other stores, and other chains, cheapest first */}
         <CompareSection product={product} />
 
         {/* Price history chart */}

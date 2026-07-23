@@ -1,15 +1,8 @@
-import { PageHeader } from "@/components/layout/PageHeader";
+import { LegalPage } from "@/components/layout/LegalPage";
 
 export const Privacy = () => {
   return (
-    <div className="min-h-screen bg-background">
-      <PageHeader backTo="/" />
-
-      <main className="max-w-3xl mx-auto px-4 py-12">
-        <h1 className="text-3xl font-semibold text-foreground mb-2">Privacy Policy</h1>
-        <p className="text-sm text-muted-foreground mb-10">Last updated: 26 March 2026</p>
-
-        <div className="space-y-8 text-sm leading-relaxed text-foreground/90">
+    <LegalPage title="Privacy Policy" subtitle="Last updated: 26 March 2026">
           <section>
             <h2 className="text-lg font-semibold text-foreground mb-3">Overview</h2>
             <p>
@@ -29,16 +22,16 @@ export const Privacy = () => {
             <h3 className="font-semibold text-foreground mt-4 mb-2">Without an account</h3>
             <ul className="list-disc pl-5 space-y-2">
               <li>
-                <strong>Location data</strong> — If you grant permission, we use your device's
+                <strong>Location data</strong> - If you grant permission, we use your device's
                 location to show nearby stores and prices. This data is sent to our server to perform
                 geographic searches but is not stored or linked to any identifier.
               </li>
               <li>
-                <strong>Search queries</strong> — Product searches you perform are processed by our
+                <strong>Search queries</strong> - Product searches you perform are processed by our
                 server to return results. We do not log individual search queries tied to any user.
               </li>
               <li>
-                <strong>Analytics</strong> — We use Vercel Analytics and Speed Insights to collect
+                <strong>Analytics</strong> - We use Vercel Analytics and Speed Insights to collect
                 anonymous, aggregated usage data (page views, performance metrics). These services do
                 not use cookies and do not track individual users across sites.
               </li>
@@ -50,23 +43,23 @@ export const Privacy = () => {
             </p>
             <ul className="list-disc pl-5 space-y-2">
               <li>
-                <strong>Email address</strong> — Provided by your Google or Apple account during
+                <strong>Email address</strong> - Provided by your Google or Apple account during
                 sign-in. Used to send price alert notifications and for account identification.
               </li>
               <li>
-                <strong>Name and profile photo</strong> — If provided by your sign-in provider.
+                <strong>Name and profile photo</strong> - If provided by your sign-in provider.
                 Used only for display within the app.
               </li>
               <li>
-                <strong>Location preferences</strong> — Your saved default location and search radius,
+                <strong>Location preferences</strong> - Your saved default location and search radius,
                 so they persist between sessions.
               </li>
               <li>
-                <strong>Price alerts</strong> — Products you choose to track and the price thresholds
+                <strong>Price alerts</strong> - Products you choose to track and the price thresholds
                 you set.
               </li>
               <li>
-                <strong>Favourites</strong> — Products you mark as favourites.
+                <strong>Favourites</strong> - Products you mark as favourites.
               </li>
             </ul>
           </section>
@@ -97,7 +90,7 @@ export const Privacy = () => {
             <p>We use the following third-party services:</p>
             <ul className="list-disc pl-5 space-y-2 mt-3">
               <li>
-                <strong>Vercel</strong> — Hosting, analytics, and speed insights. See{" "}
+                <strong>Vercel</strong> - Hosting, analytics, and speed insights. See{" "}
                 <a
                   href="https://vercel.com/legal/privacy-policy"
                   target="_blank"
@@ -109,7 +102,7 @@ export const Privacy = () => {
                 .
               </li>
               <li>
-                <strong>Supabase</strong> — Database hosting and authentication. Product, store, and
+                <strong>Supabase</strong> - Database hosting and authentication. Product, store, and
                 account data is stored on Supabase infrastructure. User authentication is handled
                 by Supabase Auth. See{" "}
                 <a
@@ -123,7 +116,7 @@ export const Privacy = () => {
                 .
               </li>
               <li>
-                <strong>Google</strong> — If you sign in with Google, your email and profile
+                <strong>Google</strong> - If you sign in with Google, your email and profile
                 information are provided to us by Google's OAuth service. See{" "}
                 <a
                   href="https://policies.google.com/privacy"
@@ -136,7 +129,7 @@ export const Privacy = () => {
                 .
               </li>
               <li>
-                <strong>Apple</strong> — If you sign in with Apple, your email (or a private relay
+                <strong>Apple</strong> - If you sign in with Apple, your email (or a private relay
                 address) is provided to us by Apple's Sign In service. See{" "}
                 <a
                   href="https://www.apple.com/legal/privacy/"
@@ -149,7 +142,7 @@ export const Privacy = () => {
                 .
               </li>
               <li>
-                <strong>MapLibre / Map tiles</strong> — Used to display store locations on a map.
+                <strong>MapLibre / Map tiles</strong> - Used to display store locations on a map.
                 Your approximate location is sent to tile servers to load map imagery.
               </li>
             </ul>
@@ -182,16 +175,16 @@ export const Privacy = () => {
             <p>Under New Zealand's Privacy Act 2020, you have the right to:</p>
             <ul className="list-disc pl-5 space-y-2 mt-2">
               <li>
-                <strong>Access your data</strong> — You can view your account information, preferences,
+                <strong>Access your data</strong> - You can view your account information, preferences,
                 and alerts from the Settings page.
               </li>
               <li>
-                <strong>Delete your data</strong> — You can delete your account at any time from the
+                <strong>Delete your data</strong> - You can delete your account at any time from the
                 Settings page. This permanently removes all your data including preferences, alerts,
                 and favourites.
               </li>
               <li>
-                <strong>Revoke location access</strong> — You can revoke location permissions at any
+                <strong>Revoke location access</strong> - You can revoke location permissions at any
                 time through your browser or device settings.
               </li>
             </ul>
@@ -226,9 +219,7 @@ export const Privacy = () => {
               .
             </p>
           </section>
-        </div>
-      </main>
-    </div>
+    </LegalPage>
   );
 };
 

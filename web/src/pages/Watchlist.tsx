@@ -1,49 +1,36 @@
-import { useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion, useInView } from 'framer-motion';
 import { Heart, Settings, Bell, Search, ArrowRight, Eye } from 'lucide-react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { AlertsList } from '@/components/alerts/AlertsList';
 import { Footer } from '@/components/layout/Footer';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { SectionHeader } from '@/components/ui/section-header';
 import { useFavourites } from '@/hooks/useFavourites';
 import { useFavouriteProducts } from '@/hooks/useFavouriteProducts';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 import { ProductGrid } from '@/components/products/ProductGrid';
 import { ProductSkeleton } from '@/components/products/ProductSkeleton';
 
-/* Scroll-triggered reveal */
 const Reveal = ({
   children,
   className = '',
-  delay = 0,
 }: {
   children: React.ReactNode;
   className?: string;
   delay?: number;
 }) => {
-  const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true, margin: '-40px' });
-  return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 24 }}
-      animate={isInView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.55, delay, ease: [0.22, 1, 0.36, 1] }}
-      className={className}
-    >
-      {children}
-    </motion.div>
-  );
+  return <div className={className}>{children}</div>;
 };
 
 const StatPill = ({ icon: Icon, value, label }: { icon: React.ElementType; value: number; label: string }) => (
-  <div className="flex items-center gap-2.5 px-4 py-2 bg-white rounded-lg border">
+  <Card variant="flat" className="flex items-center gap-2.5 px-4 py-2">
     <Icon className="h-4 w-4 text-muted-foreground" />
     <span className="text-sm font-semibold text-foreground">{value}</span>
     <span className="text-sm text-muted-foreground">{label}</span>
-  </div>
+  </Card>
 );
 
 const WatchlistPage = () => {
@@ -57,7 +44,11 @@ const WatchlistPage = () => {
       <div className="min-h-screen bg-background flex flex-col">
         <PageHeader
           rightContent={
-            <Link to="/settings" className="flex items-center justify-center h-8 w-8 rounded-md text-white/70 hover:text-white hover:bg-white/10 transition-colors">
+            <Link
+              to="/settings"
+              aria-label="Settings"
+              className="flex items-center justify-center h-11 w-11 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+            >
               <Settings className="h-4 w-4" />
             </Link>
           }
@@ -66,24 +57,19 @@ const WatchlistPage = () => {
         <main className="max-w-6xl mx-auto px-4 w-full flex-1">
 
           {/* ── Page intro ── */}
-          <motion.div
-            className="pt-10 md:pt-14 pb-8"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          >
+          <div className="pt-10 md:pt-14 pb-8">
             <h1 className="font-display text-3xl md:text-4xl font-semibold text-foreground tracking-tight leading-tight">
               Your Watchlist
             </h1>
             <p className="text-muted-foreground mt-2 text-[15px]">
-              Favourites, alerts, and recently viewed — all in one place.
+              Favourites, alerts, and recently viewed - all in one place.
             </p>
 
             <div className="flex flex-wrap gap-3 mt-5">
               <StatPill icon={Heart} value={favouriteIds.size} label="favourites" />
               <StatPill icon={Eye} value={recentlyViewed.length} label="viewed" />
             </div>
-          </motion.div>
+          </div>
 
           <div className="space-y-14 pb-14">
 
@@ -91,24 +77,22 @@ const WatchlistPage = () => {
             <Reveal>
               <section>
                 <div className="flex items-center justify-between mb-5">
-                  <div>
-                    <hr className="accent-rule mb-3" />
-                    <h2 className="text-xl md:text-2xl font-semibold text-foreground tracking-tight">
-                      Price Alerts
-                    </h2>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Get notified when prices drop
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-primary"
-                    onClick={() => navigate('/explore')}
-                  >
-                    Browse products
-                    <ArrowRight className="ml-1 h-4 w-4" />
-                  </Button>
+                  <SectionHeader
+                    className="w-full"
+                    title="Price Alerts"
+                    description="Get notified when prices drop"
+                    action={
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-primary"
+                        onClick={() => navigate('/explore')}
+                      >
+                        Browse products
+                        <ArrowRight className="ml-1 h-4 w-4" />
+                      </Button>
+                    }
+                  />
                 </div>
                 <AlertsList />
               </section>
@@ -117,22 +101,18 @@ const WatchlistPage = () => {
             {/* ── Favourites ── */}
             <Reveal>
               <section>
-                <div className="flex items-center justify-between mb-5">
-                  <div>
-                    <hr className="accent-rule mb-3" />
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-xl md:text-2xl font-semibold text-foreground tracking-tight">
-                        Favourites
-                      </h2>
+                <SectionHeader
+                  className="mb-5"
+                  title={
+                    <span className="flex items-center gap-2">
+                      Favourites
                       {favouriteIds.size > 0 && (
                         <span className="text-sm text-muted-foreground font-normal">({favouriteIds.size})</span>
                       )}
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Products you've saved
-                    </p>
-                  </div>
-                </div>
+                    </span>
+                  }
+                  description="Products you've saved"
+                />
 
                 {favouritesLoading ? (
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
@@ -143,25 +123,26 @@ const WatchlistPage = () => {
                 ) : favouriteProducts.length > 0 ? (
                   <ProductGrid products={favouriteProducts} loading={false} />
                 ) : (
-                  <div className="border border-dashed rounded-xl p-10 md:p-14 text-center">
-                    <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center mx-auto mb-4">
-                      <Heart className="h-6 w-6 text-red-400" />
-                    </div>
-                    <p className="text-foreground font-medium mb-1">
-                      {favouriteIds.size > 0
+                  <EmptyState
+                    icon={Heart}
+                    className="border border-dashed rounded-xl px-6 py-10 md:py-14"
+                    title={
+                      favouriteIds.size > 0
                         ? 'Some favourited products may no longer be available'
-                        : 'No favourites yet'}
-                    </p>
-                    <p className="text-sm text-muted-foreground mb-6 max-w-xs mx-auto">
-                      {favouriteIds.size > 0
+                        : 'No favourites yet'
+                    }
+                    description={
+                      favouriteIds.size > 0
                         ? 'Try browsing for similar products'
-                        : 'Tap the heart icon on any product to save it here'}
-                    </p>
-                    <Button variant="outline" size="sm" onClick={() => navigate('/explore')}>
-                      <Search className="h-4 w-4 mr-2" />
-                      Browse products
-                    </Button>
-                  </div>
+                        : 'Tap the heart icon on any product to save it here'
+                    }
+                    action={
+                      <Button variant="outline" size="sm" onClick={() => navigate('/explore')}>
+                        <Search className="h-4 w-4 mr-2" />
+                        Browse products
+                      </Button>
+                    }
+                  />
                 )}
               </section>
             </Reveal>
@@ -170,26 +151,22 @@ const WatchlistPage = () => {
             {recentlyViewed.length > 0 && (
               <Reveal>
                 <section>
-                  <div className="flex items-center justify-between mb-5">
-                    <div>
-                      <hr className="accent-rule mb-3" />
-                      <h2 className="text-xl md:text-2xl font-semibold text-foreground tracking-tight">
-                        Recently Viewed
-                      </h2>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Pick up where you left off
-                      </p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-primary"
-                      onClick={() => navigate('/explore')}
-                    >
-                      Explore more
-                      <ArrowRight className="ml-1 h-4 w-4" />
-                    </Button>
-                  </div>
+                  <SectionHeader
+                    className="mb-5"
+                    title="Recently Viewed"
+                    description="Pick up where you left off"
+                    action={
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-primary"
+                        onClick={() => navigate('/explore')}
+                      >
+                        Explore more
+                        <ArrowRight className="ml-1 h-4 w-4" />
+                      </Button>
+                    }
+                  />
                   <ProductGrid products={recentlyViewed.slice(0, 10)} loading={false} />
                 </section>
               </Reveal>

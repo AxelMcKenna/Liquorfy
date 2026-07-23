@@ -31,12 +31,12 @@ export const Header = ({
             {user ? (
               <UserMenu />
             ) : (
-              <Link to="/login">
-                <Button size="sm" className="text-white hover:bg-white/10 font-semibold gap-2">
+              <Button asChild variant="ghost" size="sm" className="text-white hover:bg-white/10 hover:text-white font-semibold gap-2">
+                <Link to="/login">
                   <User className="h-4 w-4" />
                   Account
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             )}
           </div>
           <div className="text-center">
@@ -73,18 +73,19 @@ export const Header = ({
               variant="ghost"
               size="icon"
               onClick={() => openLocationModal()}
-              className="text-white hover:bg-white/10 h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0"
+              aria-label={isLocationSet ? `Location radius: ${radiusKm} kilometres` : 'Set location'}
+              className="text-white hover:bg-white/10 hover:text-white h-11 w-11"
             >
               <MapPin className="h-4 w-4" />
             </Button>
             {user ? (
               <UserMenu />
             ) : (
-              <Link to="/login">
-                <Button size="icon" className="text-white hover:bg-white/10 h-8 w-8">
+              <Button asChild variant="ghost" size="icon" className="text-white hover:bg-white/10 hover:text-white h-11 w-11">
+                <Link to="/login" aria-label="Account">
                   <User className="h-4 w-4" />
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             )}
           </div>
         </div>
@@ -124,7 +125,7 @@ export const Header = ({
               variant="ghost"
               size="sm"
               onClick={() => openLocationModal()}
-              className="text-white hover:bg-white/10 gap-2 focus-visible:ring-0 focus-visible:ring-offset-0"
+              className="text-white hover:bg-white/10 hover:text-white gap-2"
             >
               <MapPin className="h-4 w-4" />
               <span>
@@ -134,12 +135,12 @@ export const Header = ({
             {user ? (
               <UserMenu />
             ) : (
-              <Link to="/login">
-                <Button size="sm" className="text-white hover:bg-white/10 font-semibold gap-2">
+              <Button asChild variant="ghost" size="sm" className="text-white hover:bg-white/10 hover:text-white font-semibold gap-2">
+                <Link to="/login">
                   <User className="h-4 w-4" />
                   <span>Account</span>
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             )}
           </div>
         </div>

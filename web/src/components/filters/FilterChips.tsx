@@ -21,10 +21,15 @@ export const FilterChips = () => {
   };
 
   return (
-    <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar lg:hidden mb-3">
+    <div
+      role="group"
+      className="flex gap-2 overflow-x-auto pb-1 no-scrollbar lg:hidden mb-3"
+      aria-label="Quick filters"
+    >
       {/* Deals chip */}
       <button
         onClick={togglePromo}
+        aria-pressed={Boolean(filters.promo_only)}
         className={cn(
           "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap border transition-colors flex-shrink-0",
           filters.promo_only
@@ -44,6 +49,7 @@ export const FilterChips = () => {
           <button
             key={value}
             onClick={() => toggleCategory(value)}
+            aria-pressed={isActive}
             className={cn(
               "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap border transition-colors flex-shrink-0",
               isActive

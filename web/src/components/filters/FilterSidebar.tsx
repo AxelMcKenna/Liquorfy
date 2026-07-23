@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useFilters } from '@/hooks/useFilters';
 import { CategoryFilter } from './CategoryFilter';
 import { ChainFilter } from './ChainFilter';
@@ -17,15 +17,31 @@ interface FilterSidebarProps {
 
 export const FilterSidebar = ({ isOpen, onClose }: FilterSidebarProps) => {
   const { filters, updateFilters, clearFilters, activeFilterCount } = useFilters();
+  const sidebarRef = useRef<HTMLElement>(null);
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 1023px)').matches);
 
-  // Lock body scroll when sidebar is open on mobile
   useEffect(() => {
-    const isMobile = window.innerWidth < 1024;
+    const mediaQuery = window.matchMedia('(max-width: 1023px)');
+    const handleChange = (event: MediaQueryListEvent) => setIsMobile(event.matches);
+
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
+
+  // Lock body scroll when the mobile sidebar is open.
+  useEffect(() => {
     if (isOpen && isMobile) {
       document.body.style.overflow = 'hidden';
       return () => { document.body.style.overflow = ''; };
     }
-  }, [isOpen]);
+  }, [isOpen, isMobile]);
+
+  useEffect(() => {
+    if (sidebarRef.current) {
+      sidebarRef.current.inert = isMobile && !isOpen;
+    }
+  }, [isOpen, isMobile]);
+
   const { saveFilters, clearSavedFilters, getSavedFilters } = useSavedFilters();
   const hasSavedFilters = Boolean(getSavedFilters());
 
@@ -47,7 +63,9 @@ export const FilterSidebar = ({ isOpen, onClose }: FilterSidebarProps) => {
     <>
       {/* Mobile overlay */}
       {isOpen && (
-        <div
+        <button
+          type="button"
+          aria-label="Close filters"
           className="fixed inset-0 bg-black/20 backdrop-blur-sm z-30 lg:hidden"
           onClick={onClose}
         />
@@ -55,10 +73,12 @@ export const FilterSidebar = ({ isOpen, onClose }: FilterSidebarProps) => {
 
       {/* Sidebar */}
       <aside
+        ref={sidebarRef}
+        aria-hidden={isMobile && !isOpen}
         className={`
           fixed lg:sticky top-0 lg:top-16 left-0 h-[100dvh] lg:h-[calc(100vh-4rem)] w-72 bg-white
           transform transition-all duration-300 ease-out z-40
-          ${isOpen ? 'translate-x-0 shadow-xl lg:shadow-none' : '-translate-x-full'}
+          ${isOpen ? 'translate-x-0 shadow-xl lg:shadow-none' : '-translate-x-full lg:translate-x-0'}
           border-r border-border/40 lg:self-start
         `}
       >
@@ -78,6 +98,7 @@ export const FilterSidebar = ({ isOpen, onClose }: FilterSidebarProps) => {
                 variant="ghost"
                 size="icon"
                 onClick={onClose}
+                aria-label="Close filters"
                 className="lg:hidden -mr-2 hover:bg-gray-100 rounded-lg"
               >
                 <X className="h-4 w-4" />
@@ -156,7 +177,7 @@ export const FilterSidebar = ({ isOpen, onClose }: FilterSidebarProps) => {
             </div>
           </div>
 
-          {/* Footer — save defaults */}
+          {/* Footer - save defaults */}
           <div className="px-6 py-4 border-t border-border/40">
             {activeFilterCount > 0 ? (
               <Button

@@ -26,7 +26,7 @@ export const PageHeader = ({
       // Browser has real history to go back to
       navigate(-1);
     } else {
-      // Direct URL visit — no history, fall back to explore
+      // Direct URL visit - no history, fall back to explore
       navigate("/explore");
     }
   };

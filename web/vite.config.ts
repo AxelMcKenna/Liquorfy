@@ -30,8 +30,7 @@ export default defineConfig({
             return 'map-vendor';
           }
           // UI libraries
-          if (id.includes('node_modules/framer-motion/') ||
-              id.includes('node_modules/lucide-react/')) {
+          if (id.includes('node_modules/lucide-react/')) {
             return 'ui-vendor';
           }
           // Radix UI components

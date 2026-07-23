@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, type ElementType } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Clock, X, TrendingUp, AlertCircle } from 'lucide-react';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -52,6 +53,55 @@ interface PopularProduct {
   image_url?: string | null;
   chain: string;
   view_count: number;
+}
+
+interface ProductResult {
+  id: string;
+  name: string;
+  brand?: string | null;
+  category?: string | null;
+  image_url?: string | null;
+}
+
+interface ProductResultButtonProps {
+  item: ProductResult;
+  active: boolean;
+  fallbackIcon: ElementType;
+  onSelect: () => void;
+}
+
+function ProductResultButton({
+  item,
+  active,
+  fallbackIcon: FallbackIcon,
+  onSelect,
+}: ProductResultButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={cn(
+        'w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-secondary transition-colors',
+        active && 'bg-secondary'
+      )}
+    >
+      {item.image_url ? (
+        <img src={item.image_url} alt="" className="h-8 w-8 object-contain flex-shrink-0 rounded" />
+      ) : (
+        <div className="h-8 w-8 rounded bg-secondary flex items-center justify-center flex-shrink-0">
+          <FallbackIcon className="h-3 w-3 text-muted-foreground" />
+        </div>
+      )}
+      <div className="min-w-0 flex-1">
+        <p className="text-sm text-[hsl(var(--foreground))] truncate">{item.name}</p>
+        {(item.brand || item.category) && (
+          <p className="text-xs text-[hsl(var(--foreground-tertiary))] truncate">
+            {[item.brand, item.category].filter(Boolean).join(' · ')}
+          </p>
+        )}
+      </div>
+    </button>
+  );
 }
 
 interface SearchAutocompleteProps {
@@ -240,7 +290,10 @@ export const SearchAutocomplete = ({
 
       {/* Dropdown */}
       {showDropdown && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg border border-[hsl(var(--border))] shadow-lg z-50 overflow-hidden">
+        <Card
+          variant="flat"
+          className="absolute top-full left-0 right-0 mt-1 rounded-lg shadow-lg z-50 overflow-hidden"
+        >
           {/* Recent searches */}
           {showRecent && (
             <div className="py-1.5">
@@ -256,25 +309,28 @@ export const SearchAutocomplete = ({
                 </button>
               </div>
               {recentSearches.map((search, idx) => (
-                <button
+                <div
                   key={search}
-                  onClick={() => executeSearch(search)}
                   className={cn(
-                    "w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-left hover:bg-secondary transition-colors",
+                    "flex items-center text-sm hover:bg-secondary transition-colors",
                     activeIndex === idx && "bg-secondary"
                   )}
                 >
-                  <div className="flex items-center gap-2 min-w-0">
+                  <button
+                    onClick={() => executeSearch(search)}
+                    className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2 text-left"
+                  >
                     <Clock className="h-3.5 w-3.5 text-[hsl(var(--foreground-tertiary))] flex-shrink-0" />
                     <span className="truncate text-[hsl(var(--foreground))]">{search}</span>
-                  </div>
+                  </button>
                   <button
                     onClick={(e) => handleRemoveRecent(e, search)}
-                    className="text-[hsl(var(--foreground-tertiary))] hover:text-[hsl(var(--foreground))] p-0.5 flex-shrink-0"
+                    className="mr-2 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-[hsl(var(--foreground-tertiary))] hover:bg-background hover:text-[hsl(var(--foreground))]"
+                    aria-label={`Remove ${search} from recent searches`}
                   >
                     <X className="h-3 w-3" />
                   </button>
-                </button>
+                </div>
               ))}
             </div>
           )}
@@ -288,30 +344,13 @@ export const SearchAutocomplete = ({
               {popularProducts.map((item, idx) => {
                 const flatIdx = (showRecent ? recentSearches.length : 0) + idx;
                 return (
-                  <button
+                  <ProductResultButton
                     key={item.id}
-                    onClick={() => navigateToProduct(item.id)}
-                    className={cn(
-                      "w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-secondary transition-colors",
-                      activeIndex === flatIdx && "bg-secondary"
-                    )}
-                  >
-                    {item.image_url ? (
-                      <img src={item.image_url} alt="" className="h-8 w-8 object-contain flex-shrink-0 rounded" />
-                    ) : (
-                      <div className="h-8 w-8 rounded bg-secondary flex items-center justify-center flex-shrink-0">
-                        <TrendingUp className="h-3 w-3 text-muted-foreground" />
-                      </div>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm text-[hsl(var(--foreground))] truncate">{item.name}</p>
-                      {(item.brand || item.category) && (
-                        <p className="text-xs text-[hsl(var(--foreground-tertiary))] truncate">
-                          {[item.brand, item.category].filter(Boolean).join(' · ')}
-                        </p>
-                      )}
-                    </div>
-                  </button>
+                    item={item}
+                    active={activeIndex === flatIdx}
+                    fallbackIcon={TrendingUp}
+                    onSelect={() => navigateToProduct(item.id)}
+                  />
                 );
               })}
             </div>
@@ -330,30 +369,13 @@ export const SearchAutocomplete = ({
           {showSuggestions && (
             <div className="py-1.5">
               {suggestions.map((item, idx) => (
-                <button
+                <ProductResultButton
                   key={item.id}
-                  onClick={() => navigateToProduct(item.id)}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-secondary transition-colors",
-                    activeIndex === idx && "bg-secondary"
-                  )}
-                >
-                  {item.image_url ? (
-                    <img src={item.image_url} alt="" className="h-8 w-8 object-contain flex-shrink-0 rounded" />
-                  ) : (
-                    <div className="h-8 w-8 rounded bg-secondary flex items-center justify-center flex-shrink-0">
-                      <Search className="h-3 w-3 text-muted-foreground" />
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm text-[hsl(var(--foreground))] truncate">{item.name}</p>
-                    {(item.brand || item.category) && (
-                      <p className="text-xs text-[hsl(var(--foreground-tertiary))] truncate">
-                        {[item.brand, item.category].filter(Boolean).join(' · ')}
-                      </p>
-                    )}
-                  </div>
-                </button>
+                  item={item}
+                  active={activeIndex === idx}
+                  fallbackIcon={Search}
+                  onSelect={() => navigateToProduct(item.id)}
+                />
               ))}
               {/* Search all link */}
               <button
@@ -365,7 +387,7 @@ export const SearchAutocomplete = ({
               </button>
             </div>
           )}
-        </div>
+        </Card>
       )}
     </div>
   );

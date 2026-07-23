@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { LogOut, User, Eye, Settings } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
 export const UserMenu = () => {
@@ -24,7 +25,10 @@ export const UserMenu = () => {
       <button
         ref={buttonRef}
         onClick={() => setMenuOpen(!menuOpen)}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors"
+        aria-label="Account menu"
+        aria-haspopup="menu"
+        aria-expanded={menuOpen}
+        className="flex min-h-11 items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors"
       >
         <User className="w-4 h-4 text-white" />
         <span className="text-sm font-medium text-white hidden sm:block max-w-[140px] truncate">
@@ -34,31 +38,37 @@ export const UserMenu = () => {
 
       {menuOpen && createPortal(
         <>
-          <div
+          <button
+            type="button"
+            aria-label="Close account menu"
             className="fixed inset-0 z-[9998]"
             onClick={() => setMenuOpen(false)}
           />
           <div
+            role="menu"
             className="fixed w-48 sm:w-56 bg-white rounded-lg shadow-lg border z-[9999] py-1"
             style={dropdownStyle}
           >
-            <a
-              href="/watchlist"
+            <Link
+              to="/watchlist"
+              role="menuitem"
               className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-gray-50"
               onClick={() => setMenuOpen(false)}
             >
               <Eye className="w-4 h-4" />
               Watchlist
-            </a>
-            <a
-              href="/settings"
+            </Link>
+            <Link
+              to="/settings"
+              role="menuitem"
               className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-gray-50"
               onClick={() => setMenuOpen(false)}
             >
               <Settings className="w-4 h-4" />
               Settings
-            </a>
+            </Link>
             <button
+              role="menuitem"
               onClick={async () => {
                 setMenuOpen(false);
                 await signOut();
