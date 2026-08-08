@@ -69,13 +69,13 @@ uv run --frozen pytest
 (cd web && npm run build)
 ```
 
-For the Capacitor wrapper:
+For the Capacitor Android wrapper:
 
 ```bash
-(cd web && npm run cap:run:ios)
+(cd web && npm run cap:run:android)
 ```
 
-The separate native SwiftUI app is in `ios/` and is opened with Xcode.
+The native iOS app is in `ios/` and is opened with Xcode; there is no Capacitor iOS wrapper.
 
 ## Project map
 

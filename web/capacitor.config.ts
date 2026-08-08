@@ -6,7 +6,6 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   server: {
     androidScheme: 'https',
-    iosScheme: 'https',
     // For development, you can enable live reload:
     // url: 'http://localhost:5173',
     // cleartext: true
@@ -20,19 +19,13 @@ const config: CapacitorConfig = {
       androidScaleType: "CENTER_CROP",
       showSpinner: false,
       androidSpinnerStyle: "large",
-      iosSpinnerStyle: "small",
       spinnerColor: "#ffffff",
       splashFullScreen: true,
       splashImmersive: true,
     },
     Geolocation: {
-      // iOS will prompt for location permission
       // Android requires permissions in AndroidManifest.xml
     },
-  },
-  ios: {
-    contentInset: 'automatic',
-    // Handle safe area for notched devices
   },
   android: {
     buildOptions: {
