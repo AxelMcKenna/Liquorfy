@@ -2,10 +2,26 @@
 
 **A code-grounded guide to explaining, defending, and improving the project**
 
-**Repository snapshot:** committed `main` at `c16e42a` (21 June 2026), inspected 23 July 2026.  
+**Repository snapshot:** committed `main` at `ab07aed` (23 July 2026), re-verified 29 July 2026 against the previous snapshot at `c16e42a` (21 June 2026).  
 **Audience:** the project owner preparing for software engineering, full-stack, backend, mobile, or system-design interviews.
 
 > This handbook prioritises the current code over older repository documentation. Where the working tree contains uncommitted changes, or a guide conflicts with the implementation, that is called out explicitly.
+
+## Refresh log — what changed between `c16e42a` and `ab07aed`
+
+Eleven commits landed between the two snapshots. Two were substantive engineering changes, not just cleanup, and they invalidated several claims the previous edition made with confidence:
+
+| Commit | What it actually did | Handbook claims it invalidated |
+|---|---|---|
+| `2549bc9` Remove dead scraper code and clean API utilities | Deleted four unused Countdown store-list variants (`countdown_stores.py`, `_final.py`, `_network.py`, `_simple.py`, ~516 lines) and trimmed unused imports across scrapers/services | None — this was pure deletion of code the previous handbook never referenced |
+| `0eeefab` Adopt reproducible API quality gates | Replaced Poetry with `uv` in CI and locally; added `ruff check`, `mypy`, and `alembic -c api/alembic.ini check` (a real ORM/migration drift gate) to the test job; pinned `uv==0.11.26` | "CI installs Python 3.11 and Poetry" (§13); "no automated schema-drift check" (§14) |
+| `301bc69` Make ingestion jobs durable | Added a committed `ingestion_jobs` table (leases, heartbeats, retries, cancellation, per-chain dedupe) plus a standalone `scheduler.py` process; `/ingest/run` now enqueues a durable row instead of an in-process `asyncio.create_task` | "Manual ingestion caveat" / Priority 1 item about non-durable in-process jobs (§13, §16) |
+| `6e94f4b` Harden API authentication and user data | Admin login now verifies bcrypt (`ADMIN_PASSWORD_HASH`) when configured, and `Settings` refuses to boot in production without it | "Admin passwords are compared as plaintext… bcrypt helpers exist but are not used" (§12, Q42) |
+| `6e2bec7` Reconcile API schema and money types | Converted `price_nzd`, `promo_price_nzd`, and alert threshold columns from `Float` to `Numeric(10,2)`, and committed real Alembic migrations for `user_preferences` and `price_alerts` (previously described as un-migrated, Supabase-only tables) | "Committed models use floating point" / "uncommitted hardening" (§6, Q18) |
+| `a6866b7` Refactor product search and validation | Split the 647-line `search.py` into `search.py`, `search_support.py`, `discovery.py`, `product_detail.py`, and `product_presenter.py` | File-path references in the code-walkthrough map (§19) |
+| Also present but timezone-relevant | `workers/scheduler.py` now imports `zoneinfo.ZoneInfo("Pacific/Auckland")` directly — the fixed-UTC+13 bug the previous handbook flagged as a red flag is fixed in the code already at this snapshot | "Fixed UTC+13 scheduler" red flag (§13, Q46, §22) |
+
+Each fix is called out again inline, next to the relevant section, as a **Verified vs. documented** note — this handbook is meant to model checking the code rather than trusting the last pass.
 
 ## How to use this handbook
 
@@ -113,6 +129,59 @@ Discord <── run summary <─────────────────
                                             10 retailer sources
 ```
 
+```mermaid
+flowchart LR
+    subgraph Clients
+        WEB["React / Vite web app<br/>(Vercel)"]
+        IOS["Native SwiftUI iOS app"]
+    end
+
+    subgraph Auth
+        SUPA["Supabase Auth<br/>(user JWT, OAuth)"]
+    end
+
+    API["FastAPI API<br/>(search, alerts, ingest trigger)"]
+    REDIS[("Redis 7<br/>cache · rate limit · admin blacklist")]
+    PG[("PostgreSQL + PostGIS + pg_trgm<br/>products · prices · price_history · ingestion_jobs")]
+
+    SCHED["scheduler.py<br/>(enqueues nightly jobs, Pacific/Auckland)"]
+    RUNNER["runner.py<br/>(claims jobs, runs scrapers, alert eval)"]
+
+    subgraph Retailers["10 retailer integrations"]
+        direction TB
+        R1["Black Bull / Thirsty Liquor<br/>Shopify JSON"]
+        R2["Countdown · New World · Pak'nSave<br/>private store-scoped APIs"]
+        R3["Super Liquor / Liquorland<br/>httpx + embedded JSON / HTML"]
+        R4["Liquor Centre / Bottle-O<br/>CityHive Pjax fragments"]
+        R5["Glengarry<br/>Playwright (JS-rendered)"]
+    end
+
+    RESEND["Resend<br/>transactional email"]
+    DISCORD["Discord<br/>run summary webhook"]
+
+    WEB -- HTTPS --> API
+    IOS -- HTTPS --> API
+    WEB -. session .-> SUPA
+    IOS -. session .-> SUPA
+    API -- verify JWT --> SUPA
+    API <--> REDIS
+    API <--> PG
+    API -- enqueue --> PG
+
+    SCHED -- insert ingestion_jobs --> PG
+    RUNNER -- claim/lease/heartbeat --> PG
+    RUNNER --> R1
+    RUNNER --> R2
+    RUNNER --> R3
+    RUNNER --> R4
+    RUNNER --> R5
+    RUNNER -- upsert products/prices/history --> PG
+    RUNNER -- alert email --> RESEND
+    RUNNER -- run summary --> DISCORD
+```
+
+The API and worker never call each other directly — they only meet through PostgreSQL (product/price rows) and, for ingestion triggers, through the `ingestion_jobs` table. That row-based handoff is what let ingestion durability (`301bc69`) be added without touching the read path at all.
+
 ### Component responsibilities
 
 | Component | Responsibility | Key technology |
@@ -146,21 +215,77 @@ The API and worker do not call each other to exchange catalogue data. They meet 
 10. The API reshapes the chosen row, computes display metrics, marks stale prices, and suppresses disallowed promotion display.
 11. The whole JSON response is cached for the configured TTL, currently 600 seconds by default.
 
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as Web/iOS client
+    participant API as FastAPI /products
+    participant R as Redis
+    participant PG as PostgreSQL + PostGIS
+
+    C->>API: GET /products?lat&lon&radius_km&sort=...
+    API->>API: validate_nz_location() (1-10km, NZ bounds)
+    API->>R: cache lookup (rounded lat/lon/radius bucket)
+    alt cache hit
+        R-->>API: cached store IDs / response
+    else cache miss
+        API->>PG: MATERIALIZED CTE: ST_DWithin(store.geog, point, radius_m)
+        PG-->>API: nearby store IDs
+        API->>R: cache nearby store IDs (short TTL)
+    end
+    API->>PG: MATERIALIZED CTE: pg_trgm match on product/brand (if q=)
+    API->>PG: join prices, CASE/COALESCE effective price, window fn dedupe + rank
+    PG-->>API: one row per unique product, price_per_100ml, price_per_standard_drink
+    API->>API: mark is_stale, suppress promo >=25% discount
+    API->>R: cache whole JSON response (600s default TTL)
+    API-->>C: paginated ProductSchema[] with distance_km
+```
+
 ### Flow B - nightly ingestion
 
-1. The worker checks database connectivity and marks abandoned `running` runs as failed.
-2. At the scheduled hour it iterates the registry in a deliberate order: faster API integrations first, slower integrations later.
-3. Each scraper creates an `ingestion_runs` record with status `running`.
-4. It loads stores for its chain.
+1. `scheduler.py` polls every 60 seconds; once the Pacific/Auckland clock passes the configured hour (`LIQUORFY_SCHEDULE_HOUR`, default 02:00), it inserts one durable `ingestion_jobs` row per chain, guarded by a per-chain unique index (`status IN ('queued','running')`) and a `dedupe_key` of `nightly:{date}:{chain}` so restarts and multiple scheduler replicas can't double-enqueue.
+2. `runner.py` claims a queued job under a Postgres advisory lock, sets it to `running`, and heartbeats a lease (`lease_expires_at`) so a crashed runner's job becomes reclaimable rather than stuck.
+3. It also checks database connectivity at startup and reclaims/fails jobs whose lease has expired.
+4. Each scraper creates an `ingestion_runs` telemetry record with status `running` and loads stores for its chain.
 5. It fetches or streams pages, parses them into a shared dictionary shape, and persists each page in its own transaction.
 6. Products are upserted on `(chain, source_product_id)`.
 7. Prices are upserted on `(product_id, store_id)` in chunks of 2,000.
 8. A changed or new product-store price creates a `price_history` row.
 9. `last_seen_at` is refreshed on every observed price; `price_last_changed_at` changes only with meaningful price state.
 10. Missing promotions are swept after successful observation, either chain-wide or store-by-store.
-11. The run is marked completed or failed with counts and an error message.
-12. Failed chains get one retry after a delay.
-13. At the end of the pass, the worker sends a Discord summary and evaluates alerts.
+11. The `ingestion_runs` row is marked completed or failed with counts and an error message; the `ingestion_jobs` row is marked completed/failed/cancelled, with up to `max_attempts` (default 2) retries on failure.
+12. At the end of the pass, the worker sends a Discord summary and evaluates alerts.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant SCHED as scheduler.py
+    participant PG as PostgreSQL
+    participant RUN as runner.py
+    participant SRC as Retailer source
+    participant SWEEP as freshness sweep
+
+    SCHED->>PG: INSERT ingestion_jobs (queued, dedupe_key=nightly:date:chain)
+    RUN->>PG: pg_advisory_xact_lock + claim oldest queued job
+    PG-->>RUN: job (chain, attempt_count, lease)
+    RUN->>PG: INSERT ingestion_runs (status=running)
+    loop per page/store
+        RUN->>SRC: fetch/stream catalogue page
+        SRC-->>RUN: raw HTML/JSON
+        RUN->>RUN: parser_utils: brand/volume/ABV/pack/category
+        RUN->>RUN: compute_canonical_id() (UUID v5)
+        RUN->>PG: upsert products (chain, source_product_id)
+        RUN->>PG: upsert prices in chunks of 2000 (product_id, store_id)
+        RUN->>PG: insert price_history row on change
+        RUN->>PG: heartbeat lease on ingestion_jobs
+    end
+    RUN->>SWEEP: sweep_chain_promos / sweep_store_promos(run_started_at)
+    SWEEP->>PG: NULL promo fields not re-observed this run
+    RUN->>PG: mark ingestion_runs + ingestion_jobs completed/failed
+    RUN->>RUN: evaluate_alerts() + Discord run summary
+```
+
+> **Verified vs. documented:** the previous handbook described `/ingest/run` as spawning an in-process `asyncio.create_task` with status in a Python dict — "not a durable distributed queue." Reading `api/app/routes/ingest.py`, `api/app/workers/tasks.py`, and `api/app/db/models.py` (`IngestionJob`) confirms that's no longer true: ingestion is now a real Postgres-backed queue with leases, heartbeats, retries, and cancellation (commit `301bc69`, "Make ingestion jobs durable"). Priority 1 in §16 and the red-flag list in §22 have been updated accordingly.
 
 ### Flow C - cross-chain product comparison
 
@@ -182,6 +307,33 @@ The API and worker do not call each other to exchange catalogue data. They meet 
 7. It looks up the user’s email through the Supabase Admin API.
 8. Resend sends an escaped HTML email with a signed one-click unsubscribe URL.
 9. The evaluator updates `last_triggered_at` and `last_notified_price`.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant W as worker (post-scrape)
+    participant EVAL as alert_evaluator
+    participant PG as PostgreSQL
+    participant SUPA as Supabase Admin API
+    participant RESEND as Resend
+
+    Note over W: runs once per nightly pass, after ingestion + freshness sweep
+    W->>EVAL: evaluate_alerts()
+    EVAL->>PG: SELECT active price_alerts JOIN best fresh price per product
+    loop each active alert
+        EVAL->>EVAL: effective_price(price) <= threshold_price? OR live promo AND alert_on_promo?
+        alt condition met AND effective_price != last_notified_price
+            EVAL->>SUPA: look up user email by user_id
+            SUPA-->>EVAL: email address
+            EVAL->>RESEND: send HTML email (HMAC-signed unsubscribe link)
+            EVAL->>PG: UPDATE last_triggered_at, last_notified_price
+        else unchanged price or condition not met
+            EVAL->>EVAL: skip (no duplicate send)
+        end
+    end
+```
+
+The stale-price guard matters here: `alert_evaluator` joins to each product's best *fresh* price, so a price that has not been re-observed within the seven-day window should not silently trigger or suppress an alert on old data — see the "Important limitation" callout in §9 for where staleness is, and is not, consistently enforced elsewhere in the read path.
 
 ### Flow E - favourites and recently viewed
 
@@ -288,13 +440,12 @@ An improvement would be to use canonical IDs more consistently once coverage and
 | `prices` | Current product-store offer | unique product/store; price, promo, freshness, FK, expiry indexes |
 | `price_history` | Append-only changes | product+recorded and recorded-time indexes |
 | `ingestion_runs` | Run telemetry | chain/status and chain/start indexes |
+| `ingestion_jobs` | Durable ingestion job queue | one active job per chain; partial index on `dedupe_key`; partial indexes on queued/expired-lease rows |
 | `product_views` | Popularity aggregate | one row per product; view-count index |
+| `user_preferences` | Signed-in defaults | location + radius (1-10km) check constraints |
+| `price_alerts` | Threshold/promo alert state | FK to product, positive-threshold check, user/active and product/active indexes |
 
-The alert and user routes also expect `price_alerts` and `user_preferences`, apparently provisioned in the Supabase-hosted database rather than represented by committed Alembic migrations.
-
-### Current uncommitted hardening observed during inspection
-
-The working tree adds ORM models for `UserPreference` and `PriceAlert`, changes money columns from floating point to `NUMERIC(10,2)`, and adds positive-price and location/radius check constraints. This is good direction, but it is not a complete deployed change until an Alembic migration and compatibility tests exist.
+> **Verified vs. documented:** the previous edition described `price_alerts` and `user_preferences` as living only in the Supabase-hosted database, "apparently provisioned… rather than represented by committed Alembic migrations." Reading `api/app/db/models.py` and `api/alembic/versions/m1n2o3p4q5r6_reconcile_api_schema.py` shows both are now first-class ORM models with real, committed migrations (commit `6e2bec7`, "Reconcile API schema and money types"). CI now also runs `alembic check` (commit `0eeefab`), which fails the build if the ORM and migrations drift apart — closing the "no automated schema-drift check" gap the previous edition raised in §14.
 
 ### Why idempotent upserts matter
 
@@ -310,7 +461,9 @@ The current price table is optimised for serving present state. History is only 
 
 ### Money representation
 
-Committed models use floating point for prices. That is convenient but not ideal for currency because binary floating-point representation can produce equality and rounding surprises. The working-tree conversion to fixed-scale numeric is the correct long-term approach, provided migrations, scraper input conversion, schemas, tests, and arithmetic are updated together.
+`price_nzd`, `promo_price_nzd`, `threshold_price`, and `last_notified_price` are all `Numeric(10, 2)` in the committed ORM (`MONEY_TYPE = Numeric(10, 2, asdecimal=True)` in `api/app/db/models.py`), backed by `Decimal` in Python — not floating point. Positive-price check constraints (`ck_price_positive`, `ck_price_history_positive`, `ck_price_alert_threshold_positive`) enforce `> 0` at the database layer too.
+
+> **Verified vs. documented:** the previous edition said "committed models use floating point for prices… the working-tree conversion to fixed-scale numeric is the correct long-term approach." That conversion has since landed (commit `6e2bec7`) with a real migration, so the float-vs-decimal risk this handbook used to flag as open technical debt is resolved. It's kept here as a worked example of *why* the change mattered, not as a live gap — see §17 Q18 for the "float or decimal" interview answer, updated to describe the resolved state.
 
 ## 7. Retailer ingestion matrix
 
@@ -442,6 +595,8 @@ Redis cache failures are handled as a performance degradation: search continues 
 
 The API marks a price as stale but does not universally filter stale rows out. Older architecture prose says stale prices cannot win, but the current list query does not put staleness into every sort order. Treat that as documentation drift and a potential correctness improvement: exclude stale offers or rank them after fresh offers in SQL.
 
+> **Verified vs. documented:** re-checked at `ab07aed` by reading `api/app/services/search.py`, `search_support.py`, and `discovery.py` (all rewritten in commit `a6866b7`, "Refactor product search and validation") for any `is_stale` or staleness predicate in the list/search path — there isn't one. `STALE_THRESHOLD` (seven days) and the `is_stale` flag live in `api/app/services/product_presenter.py` and are only used to *label* a row in the response, not to filter or re-rank it. This is a real, still-open gap, not something the refactor happened to fix — worth volunteering in an interview rather than letting it be discovered. Contrast this with `alert_evaluator.py`, which *does* filter to `last_seen_at > now() - interval '7 days'` before picking a product's best price — the two code paths handle the same seven-day rule inconsistently.
+
 ## 10. Web client
 
 ### Stack and structure
@@ -529,9 +684,10 @@ The iOS app embeds the Supabase anonymous key. Anonymous client keys are designe
 
 **Admin path**
 
-- Username and password come from environment configuration.
-- A 12-hour HS256 JWT is issued.
-- `/ingest/run` requires the token.
+- Username comes from environment configuration; password is verified against `ADMIN_PASSWORD_HASH` (bcrypt) when set, falling back to a plaintext env-var comparison only when it is not.
+- Production refuses to start without `ADMIN_PASSWORD_HASH` set (`Settings.validate_production_admin_auth`).
+- An HS256 JWT is issued with a configurable TTL (`ADMIN_TOKEN_TTL_SECONDS`, default 3600s / 1 hour, bounded 300s-43200s / 5 minutes to 12 hours).
+- `/ingest/run` and the job-management routes require the token.
 - Logout hashes the token and stores it in Redis until expiry.
 - Revocation checks fail closed.
 
@@ -558,7 +714,7 @@ The iOS app embeds the Supabase anonymous key. Anonymous client keys are designe
 
 ### Honest gaps
 
-- Admin passwords are compared as plaintext environment values; bcrypt helpers exist but are not used by login.
+- Admin login still falls back to a plaintext `hmac.compare_digest` comparison in any environment where `ADMIN_PASSWORD_HASH` is unset — production is guarded against this by a config validator, but local/dev and any misconfigured non-production deploy are not.
 - Admin login is not explicitly decorated with a tighter per-route rate limit.
 - Worker-monitoring endpoints expose operational data publicly.
 - `POST /products/{id}/view` is public and can be inflated.
@@ -566,8 +722,9 @@ The iOS app embeds the Supabase anonymous key. Anonymous client keys are designe
 - The security guide claims all passwords are hashed and SQLAlchemy hides passwords, but the current implementation does not support those claims.
 - The API and Nginx define different CSP policies; the frontend’s inline styles and third-party connections need one tested production policy.
 - A Liquorland SaleFinder credential-like value is committed in scraper source and should be assessed, rotated if sensitive, and moved to configuration if necessary.
-- User alert/preferences tables are not represented by committed migrations, which weakens reproducibility.
 - Account deletion depends on a highly privileged Supabase service-role key and should be carefully isolated and monitored.
+
+> **Verified vs. documented:** the previous edition's top security gap was "admin passwords are compared as plaintext… bcrypt helpers exist but are not used by login." Reading `api/app/core/auth.py::create_token_with_credentials` and `api/app/core/config.py::validate_production_admin_auth` shows this changed in commit `6e94f4b` ("Harden API authentication and user data"): bcrypt verification via `ADMIN_PASSWORD_HASH` is now wired into login, and production boot fails without it. The residual gap — dev/misconfigured environments can still fall back to plaintext comparison — is real but materially smaller than what the last snapshot described, so it's listed above rather than as the headline weakness. The "user alert/preferences tables are not represented by committed migrations" gap from the previous edition is also resolved (see §6) and has been removed from this list rather than left stale.
 
 ### Privacy
 
@@ -580,24 +737,26 @@ Location is used for search and cached for five minutes in local client storage.
 The repository supports:
 
 - local PostgreSQL/PostGIS and Redis;
-- a complete Docker Compose stack;
+- a complete Docker Compose stack with `web`, `api`, `scheduler`, `worker`, `db`, and `redis` services;
 - a Supabase-oriented compose file with only local API, worker, and Redis;
 - a multi-stage Nginx web image;
-- separate non-root API and Playwright-enabled worker images.
+- separate non-root API and Playwright-enabled worker images, plus a standalone scheduler process.
 
 ### CI/CD
 
 GitHub Actions:
 
-1. installs Python 3.11 and Poetry;
-2. starts PostgreSQL and Redis services;
-3. runs backend tests;
+1. installs Python 3.11 and `uv` (pinned to `0.11.26`), then `uv sync --locked`;
+2. starts PostgreSQL/PostGIS and Redis services;
+3. runs `ruff check`, `mypy`, `alembic upgrade head`, and `alembic check` (an ORM/migration drift gate) before pytest;
 4. installs Node 20 dependencies and builds the web app;
-5. attempts a web test command but tolerates its absence;
+5. attempts a web test command but tolerates its absence (`npm test || echo "No tests found"`);
 6. on `main`, builds and pushes API and web images to GHCR;
 7. contains only a placeholder production deployment job.
 
-The workflow does not build the worker image or native iOS app. A mature pipeline should add those artefacts, migration validation, frontend tests, security scanning, and a real deployment/rollback path.
+The workflow still does not build the worker image or native iOS app. A mature pipeline should add those artefacts, frontend tests that actually run, security scanning, and a real deployment/rollback path.
+
+> **Verified vs. documented:** the previous edition described CI as "installs Python 3.11 and Poetry" with "no automated schema-drift check." Reading `.github/workflows/ci-cd.yml` and `pyproject.toml` shows both claims are stale: the toolchain moved to `uv` and the test job gained `ruff`, `mypy`, and `alembic check` (commit `0eeefab`, "Adopt reproducible API quality gates"). `alembic check` specifically fails CI if the SQLAlchemy models and the migration history disagree — a real, enforced schema-drift gate, not just documentation intent.
 
 ### Health and monitoring
 
@@ -607,42 +766,43 @@ The workflow does not build the worker image or native iOS app. A mature pipelin
 - Ingestion runs capture duration, counts, status, and error text.
 - Discord reporting summarises collection results.
 
-### Worker scheduling caveat
+### Worker scheduling — resolved
 
-The scheduler describes New Zealand time but constructs a fixed UTC+13 timezone. New Zealand is UTC+12 outside daylight saving. Use `zoneinfo.ZoneInfo("Pacific/Auckland")` to avoid running an hour early in winter.
+`api/app/workers/scheduler.py` constructs `NZ_TIMEZONE = ZoneInfo("Pacific/Auckland")` and schedules against it directly, correctly following New Zealand's DST transitions between UTC+12 and UTC+13.
 
-### Manual ingestion caveat
+> **Verified vs. documented:** the previous edition's most-repeated red flag was "the scheduler describes New Zealand time but constructs a fixed UTC+13 timezone… running an hour early in winter." That is no longer accurate — `scheduler.py` imports `zoneinfo.ZoneInfo("Pacific/Auckland")`, not a fixed-offset timezone. It isn't clear from the git history alone whether this was fixed as a side effect of `301bc69` ("Make ingestion jobs durable," which introduced `scheduler.py` as a new standalone file) or predates it; either way, the fix is confirmed by reading the current source, and the claim has been removed from the red-flag list in §22 and the interview answer in §17 Q46 rewritten to describe *why* `ZoneInfo` over a fixed offset, since that's now the more useful thing to be able to explain.
 
-`enqueue_ingest` stores status in an in-process dictionary and starts an `asyncio.create_task` inside the API process. It is not a durable distributed queue:
+### Ingestion durability — resolved
 
-- jobs disappear on restart;
-- multiple API workers do not share state;
-- two requests can produce the same `job-{chain}` identifier;
-- the job can compete with serving traffic;
-- failure does not reliably update in-memory status.
+The previous edition's other headline red flag was that `/ingest/run` used an in-process `asyncio.create_task` with status in a Python dict: jobs disappearing on restart, no cross-replica state, colliding job IDs, and status that didn't reliably survive failure. Reading `api/app/db/models.py` (`IngestionJob`), `api/app/workers/tasks.py`, `api/app/routes/ingest.py`, and `api/app/workers/scheduler.py`/`runner.py` (all from commit `301bc69`, "Make ingestion jobs durable") confirms this is now a real Postgres-backed queue:
 
-For production, send a job to a durable queue or have the worker poll a database-backed job table.
+- a committed `ingestion_jobs` table with `status`, `attempt_count`/`max_attempts`, `lease_expires_at`, `heartbeat_at`, `cancel_requested_at`, and a partial-unique `dedupe_key`;
+- `enqueue_ingest` takes a `pg_advisory_xact_lock` per chain before checking for an existing active job, so concurrent API replicas can't double-enqueue;
+- a standalone `scheduler.py` process only inserts jobs; a standalone `runner.py` process claims, leases, heartbeats, and executes them — matching the existing "API and worker meet through the database" boundary in §3;
+- `GET/POST /ingest/jobs` exposes queue state and supports cancellation.
+
+What is *not* yet solved: there is still no cache invalidation tied to job completion, so a completed scrape can sit behind a stale cached response for up to the 600-second TTL. That specific gap remains open and is tracked in §16.
 
 ## 14. Testing and quality
 
 ### Current coverage shape
 
-Approximate repository scale at inspection:
+Approximate repository scale re-measured at `ab07aed` (`find … | xargs wc -l`):
 
-- 15,500 lines of backend application Python, excluding tests;
-- 8,700 lines of Python tests;
-- 522 Python test functions;
-- 8,500 lines of web TypeScript/TSX;
-- 6,300 lines of native Swift;
-- 38 native Swift test functions.
+- ~16,400 lines of backend application Python, excluding tests (up from ~15,500 — net growth despite `2549bc9` deleting ~520 lines of dead Countdown store-list code, because ingestion durability, schema reconciliation, and search-refactor commits added more than that removed);
+- ~8,950 lines of Python tests;
+- ~505 Python test functions;
+- ~8,700 lines of web TypeScript/TSX;
+- ~6,200 lines of native Swift;
+- 38 native Swift test functions (unchanged).
 
 Backend tests cover API routes, auth, schemas, pricing, parsing, canonical matching, search, licensing trusts, middleware, individual scrapers, error handling, and worker integration. Scraper fixtures let parsers be tested without live sites.
 
-### What was verified during handbook creation
+### What was verified during this pass
 
-- `npm run build` completed successfully.
-- Vite produced route and vendor chunks and reported the large map chunk.
-- Backend tests could not be executed in the available local environment because `pytest` was not installed.
+- `git log c16e42a..HEAD --stat` was read in full for all 11 commits, not just their titles.
+- Every claim below marked "Verified vs. documented" was checked by reading the current source file(s) named in that callout, not by re-reading the previous handbook.
+- CI itself was not re-run locally; its behaviour is described from reading `.github/workflows/ci-cd.yml` directly.
 
 ### Testing gaps
 
@@ -650,8 +810,8 @@ Backend tests cover API routes, auth, schemas, pricing, parsing, canonical match
 - CI does not fail when web tests are absent.
 - Live scraper contract tests are inherently difficult and appear mostly manual.
 - The native app is not built in CI.
-- There is no automated schema-drift check between ORM, Alembic, and externally provisioned Supabase tables.
-- Load-testing documentation contains stale example endpoints and a cart scenario that the product does not implement.
+- ~~No automated schema-drift check between ORM, Alembic, and externally provisioned Supabase tables~~ — resolved: `alembic check` runs in CI and `price_alerts`/`user_preferences` now have committed migrations (see §6, §13).
+- Dedicated load-testing documentation no longer exists in the repository (`docs/LOAD_TESTING.md` was deleted in commit `33b72ec`, "Consolidate project documentation," along with several other standalone guides folded into this handbook and `docs/OPERATIONS.md`). There is currently no load-testing guidance at all, which is itself a gap worth naming rather than the previously-documented stale-endpoint version of the same gap.
 
 ### Strong test strategy for this system
 
@@ -696,30 +856,38 @@ It gives instant use without sign-in and avoids backend complexity. The trade-of
 
 Native SwiftUI gives better platform integration and experience, while React gives fast web iteration. The cost is duplicated models, view logic, and feature-parity work. A shared OpenAPI-generated client and contract tests would reduce drift.
 
+### Why a separate worker instead of scraping inline in the API?
+
+Ingestion is slow (a full pass takes hours across ten chains), memory-heavy (Playwright Chromium for Glengarry), and externally fragile (retailer HTML/API changes, throttling, auth expiry). Search must stay fast and available regardless. Splitting them into separate processes — and, since `301bc69`, separate `scheduler.py`/`runner.py` roles talking through a durable `ingestion_jobs` table rather than an in-process task — means a stuck scrape or a Chromium crash cannot take down `/products`. The cost is an eventually-consistent read model: a shopper can see a price that is up to a full nightly cycle old, and the API and worker must agree on schema through migrations rather than a shared in-memory contract.
+
+### Why Supabase for end-user auth instead of a custom auth system?
+
+Registration, password login, OAuth, password recovery, session refresh, and JWKS-based token verification are security-sensitive and easy to get subtly wrong. Supabase provides all of that, plus a Postgres-backed user store and an Admin API the alert evaluator already needs (to resolve a user ID to an email address). The cost is a hard external dependency for every authenticated route, a second identity system to reconcile with the project's own admin JWT (see §12), and reliance on a service-role key for account deletion that has to be handled as carefully as any other superuser credential.
+
 ## 16. Technical debt and the answer to “What would you improve?”
 
 Prioritise the answer by risk and user impact.
 
 ### Priority 0 - correctness and reproducibility
 
-- Add migrations for user preferences, price alerts, and the in-progress numeric money conversion.
-- Make stale-price exclusion/ranking explicit in SQL.
-- Replace fixed UTC+13 scheduling with `Pacific/Auckland`.
-- Reconcile documentation with the current Liquorland, Countdown, native iOS, and deployment architecture.
-- Validate `POST /products/batch` with an explicit maximum of 50 rather than only documenting it.
+- ~~Add migrations for user preferences, price alerts, and the in-progress numeric money conversion~~ — done (`6e2bec7`).
+- Make stale-price exclusion/ranking explicit in SQL (still open — see §9).
+- ~~Replace fixed UTC+13 scheduling with `Pacific/Auckland`~~ — done; `scheduler.py` already uses `ZoneInfo("Pacific/Auckland")`.
+- Reconcile remaining documentation (`docs/ARCHITECTURE.md`) with the current ingestion-queue, auth-hardening, and search-refactor architecture — this handbook is now the more current source.
+- ~~Validate `POST /products/batch` with an explicit maximum of 50~~ — done (`BatchProductsRequest.ids` now has `max_items=50`).
 
 ### Priority 1 - operational robustness
 
-- Replace in-process admin ingestion tasks with a durable queue or database job table.
-- Add cache invalidation or versioned cache keys after ingestion; a ten-minute stale cache may hide a fresh scrape.
-- Build and publish the worker image in CI.
+- ~~Replace in-process admin ingestion tasks with a durable queue or database job table~~ — done (`301bc69`).
+- Add cache invalidation or versioned cache keys after ingestion; a ten-minute stale cache can still hide a fresh scrape even though the scrape itself is now durable — this is the clearest remaining gap in this priority group.
+- Build and publish the worker image in CI (still absent from `.github/workflows/ci-cd.yml`).
 - Add structured logs, metrics, tracing, and alerting for scraper duration, item count deviations, cache hit rate, DB pool saturation, and API latency.
-- Add a real deployment and rollback stage.
+- Add a real deployment and rollback stage (the `deploy` job is still a placeholder).
 
 ### Priority 2 - security
 
-- Replace the single plaintext admin credential with Supabase/admin identities or a properly hashed account store and RBAC.
-- Add route-specific login and ingestion limits.
+- Close the remaining plaintext-fallback path in `create_token_with_credentials` for non-production environments, or require `ADMIN_PASSWORD_HASH` everywhere rather than only in production.
+- Add route-specific login and ingestion rate limits.
 - Restrict worker telemetry if it reveals operational detail.
 - Audit committed third-party credentials and unify CSP at the actual browser-serving layer.
 - Add database-level ownership or RLS strategy for user rows where appropriate.
@@ -800,7 +968,7 @@ Every user sort is followed by price-change time, product name, and price ID tie
 GiST on store geography, GIN trigrams on lowercased product name and brand, product/store foreign-key indexes, unique product-store price, chain filters, freshness, price/promotion, partial canonical ID, and partial promotion-end indexes.
 
 **18. Float or decimal for money?**  
-Use fixed-scale numeric/decimal. The committed float model is technical debt; the worktree is moving toward `NUMERIC(10,2)`. The change needs a migration and end-to-end type tests.
+Fixed-scale numeric/decimal — and that's what's committed now. `price_nzd`, `promo_price_nzd`, and alert threshold columns are `Numeric(10,2)` backed by Python `Decimal`, with positive-value check constraints at the database layer. This used to be open technical debt (a float model with a numeric conversion sitting only in the working tree); it landed with a real migration in commit `6e2bec7`. Good follow-up if asked "how would you validate that kind of change": trace the conversion through scraper input parsing, schemas, and arithmetic, not just the model, since a partial conversion is worse than no conversion.
 
 ### Scraping and ingestion
 
@@ -882,7 +1050,7 @@ Capacitor maximises reuse; SwiftUI gives deeper platform integration and native 
 ### Security and operations
 
 **42. What is the biggest security weakness?**  
-The single admin credential is environment-based and compared as plaintext, even though bcrypt helpers exist. I would replace it with managed identity plus roles, add tighter rate limits and audit logging, and restrict operational endpoints.
+There is still a single environment-based admin credential rather than real RBAC or an admin account store. It's better than it was: production now refuses to boot without a bcrypt `ADMIN_PASSWORD_HASH`, and login verifies it with `bcrypt.checkpw` when set. The residual gap is that a plaintext `hmac.compare_digest` fallback still exists for any environment that doesn't set the hash — worth tightening to "always required," plus adding tighter rate limits, audit logging, and restricting operational endpoints.
 
 **43. Is the Supabase anon key in the iOS app a leaked secret?**  
 No-an anonymous client key is intended to be distributed. Security must come from RLS, JWT validation, and backend authorisation. The service-role key is secret and must never be in a client.
@@ -893,11 +1061,11 @@ Use managed secret storage, version credentials, deploy consumers that accept bo
 **45. What would you monitor?**  
 API p50/p95/p99 latency and errors by route; DB pool use and slow queries; Redis latency/hit rate; scrape duration, item counts, failures and staleness by chain; alert delivery success; and client performance such as Core Web Vitals.
 
-**46. What is wrong with the current scheduler timezone?**  
-It uses fixed UTC+13, but New Zealand moves between UTC+12 and UTC+13. `ZoneInfo("Pacific/Auckland")` is the correct daylight-saving-aware choice.
+**46. Why does the scheduler use `ZoneInfo("Pacific/Auckland")` instead of a fixed offset?**  
+New Zealand moves between UTC+12 and UTC+13 with daylight saving, and a fixed `UTC+13` offset would run the nightly job an hour early for roughly half the year. `zoneinfo.ZoneInfo("Pacific/Auckland")` tracks the IANA tzdata rules directly, so `enqueue_nightly_jobs` compares "has the configured hour passed in Auckland local time" correctly year-round without the scheduler needing to know when DST changes. This is exactly the kind of easy-to-get-wrong, easy-to-miss-in-review bug worth naming proactively — it used to be a real bug in this codebase and was fixed by switching to `ZoneInfo`.
 
 **47. Is the ingestion endpoint production-grade?**  
-Its auth boundary is useful, but job execution is in-process and non-durable. A restart loses status, and multiple API workers do not share job state. Move it to the worker through a durable queue.
+Its auth boundary was always fine; job execution used to be the gap — an in-process `asyncio.create_task` with status in a Python dict. That's since been replaced with a durable, Postgres-backed queue: `ingestion_jobs` rows with per-chain advisory locks, leases, heartbeats, retries, and cancellation, claimed by a standalone `runner.py` process. What I'd still add: cache invalidation tied to job completion, since a completed scrape can sit behind a stale cached `/products` response for up to the 600-second TTL.
 
 ### Testing and delivery
 
@@ -968,15 +1136,17 @@ If asked to share a screen, start with these files:
 | Topic | File |
 |---|---|
 | App composition and middleware | `api/app/main.py` |
-| Search and geospatial query | `api/app/services/search.py` |
+| Search and geospatial query | `api/app/services/search.py`, `search_support.py`, `discovery.py` (split from one 647-line file in commit `a6866b7`) |
+| Response shaping, staleness label, promo suppression | `api/app/services/product_presenter.py` |
 | Data model | `api/app/db/models.py` |
 | Generic ingestion/upsert | `api/app/scrapers/base.py` |
 | Retailer registry | `api/app/scrapers/registry.py` |
-| Scheduler | `api/app/workers/runner.py` |
+| Durable job queue | `api/app/db/models.py` (`IngestionJob`), `api/app/workers/tasks.py` |
+| Scheduler (enqueue) / Runner (claim + execute) | `api/app/workers/scheduler.py`, `api/app/workers/runner.py` |
 | Product parsing | `api/app/services/parser_utils.py` |
 | Cross-chain matching | `api/app/services/canonical.py` |
 | Pricing formula | `api/app/services/pricing.py` |
-| Promotion freshness | `api/app/services/freshness.py`, `api/app/workers/cleanup.py` |
+| Promotion freshness | `api/app/services/freshness.py` (sweep), `api/app/services/product_presenter.py` (stale label), `api/app/workers/cleanup.py` (expiry) |
 | Alert evaluation | `api/app/services/alert_evaluator.py` |
 | React routes | `web/src/main.tsx` |
 | Web state and request control | `web/src/contexts/`, `web/src/hooks/` |
@@ -1048,17 +1218,18 @@ Use real details and your actual role; do not claim work you did not personally 
 
 ### Numbers
 
-- 10 registered retailer scrapers.
-- 1–10 km supported radius; 2 km default.
-- 600-second default API cache TTL.
-- Seven days before a price is stale.
+- 10 registered retailer scrapers (verified against `api/app/scrapers/registry.py`).
+- 1–10 km supported radius; 2 km default (verified against `api/app/schemas/location.py`).
+- 600-second default API cache TTL (verified against `api/app/core/config.py`).
+- Seven days before a price is stale (verified against `api/app/services/product_presenter.py`).
 - 30-day price-history window and retention cleanup default.
-- 2,000 rows per price/history insert chunk.
-- Nightly target at 02:00 New Zealand time.
+- 2,000 rows per price/history insert chunk (verified against `api/app/scrapers/base.py`).
+- Nightly target at 02:00 Pacific/Auckland (verified — `scheduler.py` uses real `ZoneInfo`, not a fixed offset).
 - Two-hour normal scraper timeout; five hours for Liquorland.
-- One scheduler retry.
+- Up to 2 attempts per ingestion job (i.e., one retry) via `IngestionJob.max_attempts`.
 - 60 requests per minute per IP default limit.
-- 12-hour admin JWT.
+- Admin JWT TTL is configurable, default 3600s / 1 hour, bounded 300s-43200s / 5min-12h (verified against `api/app/core/config.py` — the previous "12-hour admin JWT" figure was the outer bound, not the default).
+- 25% discount threshold above which promo pricing is suppressed from API responses (verified against `MAX_PROMO_DISPLAY_DISCOUNT` in `product_presenter.py`).
 
 ### Invariants
 
@@ -1069,6 +1240,7 @@ Use real details and your actual role; do not claim work you did not personally 
 - Canonical key excludes chain, category, and ABV.
 - Per-store pricing must never use the chain-wide fan-out path.
 - History is written on change, not every observation.
+- At most one queued/running `ingestion_jobs` row per chain (partial unique index).
 
 ### Best one-line trade-offs
 
@@ -1077,18 +1249,22 @@ Use real details and your actual role; do not claim work you did not personally 
 - “Deterministic matching optimises for explainability and reproducibility; its main debt is measured recall.”
 - “Per-page commits trade all-or-nothing runs for recoverable partial progress.”
 - “Local favourites lower signup friction; server alerts exist because background work needs identity and durability.”
+- “The API and worker meet through Postgres rows, not RPC — that's what let ingestion durability get added without touching the read path.”
 
 ### Red flags you should volunteer before being caught
 
-- Fixed UTC+13 scheduler.
-- In-process ingestion jobs are not durable.
-- Stale prices are marked but not consistently forced below fresh rows.
-- User tables are missing from committed migrations.
-- Admin login still compares plaintext environment credentials.
-- Frontend tests are absent.
+- Stale prices are marked but not consistently forced below fresh rows in list search (still open — §9).
+- Cache isn't invalidated on ingestion completion, so a fresh scrape can sit behind a stale cached response for up to 600 seconds (still open — §16).
+- Admin login still has a plaintext fallback path outside production (partially fixed — §12).
+- Frontend tests are absent; CI tolerates it silently.
 - Worker and iOS builds are absent from CI.
-- Documentation contains meaningful drift.
-- Money is committed as float; numeric conversion is only in the working tree.
+- `docs/ARCHITECTURE.md` still needs reconciling with the current ingestion-queue and auth architecture (this handbook is the more current source as of `ab07aed`).
+- ~~Fixed UTC+13 scheduler~~ — fixed, uses `ZoneInfo("Pacific/Auckland")`.
+- ~~In-process ingestion jobs are not durable~~ — fixed, durable Postgres-backed queue.
+- ~~User tables are missing from committed migrations~~ — fixed, real migrations for `user_preferences`/`price_alerts`.
+- ~~Money is committed as float~~ — fixed, `Numeric(10,2)`/`Decimal` throughout.
+
+Volunteering the *resolved* items briefly, rather than omitting them, is itself a good interview move: it shows the project moved from those exact gaps to their fixes, and that you know which commit did it.
 
 ## 23. Seven-day revision plan
 
