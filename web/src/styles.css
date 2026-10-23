@@ -15,9 +15,9 @@
 @layer base {
   :root {
     /* Warm off-white palette */
-    --background: 42 18% 97%;
-    --background-secondary: 40 14% 94%;
-    --background-tertiary: 38 10% 91%;
+    --background: 40 20% 94.5%;
+    --background-secondary: 38 16% 91%;
+    --background-tertiary: 36 12% 88%;
 
     --foreground: 0 0% 9%;
     --foreground-secondary: 0 0% 38%;
@@ -33,11 +33,11 @@
     --primary: 158 55% 23%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 38 10% 91%;
+    --secondary: 38 14% 90%;
     --secondary-foreground: 0 0% 9%;
 
-    --muted: 38 10% 91%;
-    --muted-foreground: 0 0% 45%;
+    --muted: 38 14% 90%;
+    --muted-foreground: 30 4% 40%;
 
     --accent: 158 55% 23%;
     --accent-foreground: 0 0% 100%;
@@ -45,8 +45,8 @@
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 38 12% 86%;
-    --input: 38 12% 86%;
+    --border: 36 14% 84%;
+    --input: 36 12% 80%;
     --ring: 158 55% 23%;
 
     /* Semantic: promo kept for urgency */
@@ -65,6 +65,10 @@
 
     /* Tighter radius - professional, not pillowy */
     --radius: 0.5rem;
+
+    /* Layered, warm-tinted elevation */
+    --shadow-card: 0 1px 2px hsl(30 20% 20% / 0.06), 0 1px 3px hsl(30 20% 20% / 0.04);
+    --shadow-card-hover: 0 2px 4px hsl(30 20% 20% / 0.05), 0 10px 24px -6px hsl(30 20% 20% / 0.14);
   }
 }
 
@@ -183,7 +187,7 @@
 }
 
 .animate-card-enter {
-  animation: card-enter 0.35s ease-out both;
+  animation: card-enter 0.35s ease-out backwards;
 }
 
 /* Gold accent rule - visual anchor for headings */
@@ -201,7 +205,7 @@
 }
 .card-lift:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-card-hover);
 }
 
 ::selection {

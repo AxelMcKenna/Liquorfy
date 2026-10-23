@@ -45,7 +45,8 @@ const ProductCardComponent = ({
 
   return (
     <Card
-      className="relative h-full overflow-hidden bg-card group [backface-visibility:hidden] hover:border-primary/20 hover:shadow-md animate-card-enter"
+      variant="interactive"
+      className="relative h-full overflow-hidden group [backface-visibility:hidden] animate-card-enter"
       style={{ animationDelay: `${Math.min(index * 50, 500)}ms` }}
     >
       <Link
@@ -55,12 +56,12 @@ const ProductCardComponent = ({
         aria-label={`View details for ${product.name}, $${(product.price.promo_price_nzd ?? product.price.price_nzd).toFixed(2)}${product.is_cheapest_nearby ? ', cheapest nearby' : ''} at ${product.price.store_name}`}
       >
         {/* Product Image */}
-        <div className="w-full aspect-[4/3] sm:aspect-square relative overflow-hidden border-b bg-white">
+        <div className="w-full aspect-[4/3] sm:aspect-square relative overflow-hidden border-b border-border/60 bg-white">
           {product.image_url && !imageError ? (
             <img
               src={product.image_url}
               alt={product.name}
-              className="w-full h-full object-contain p-3 sm:p-4"
+              className="w-full h-full object-contain p-3 sm:p-4 transition-transform duration-300 group-hover:scale-[1.03]"
               loading="lazy"
               decoding="async"
               onError={() => setImageError(true)}
@@ -74,11 +75,11 @@ const ProductCardComponent = ({
           {/* Sale badge */}
           {hasPromo && savingsPercent > 0 && (
             <div className="absolute top-2 left-2 flex gap-1">
-              <Badge className="bg-primary text-white text-xs">
+              <Badge className="bg-primary text-white text-xs shadow-sm">
                 {savingsPercent}% off
               </Badge>
               {isNewPromo && (
-                <Badge className="bg-amber-500 text-white text-xs">
+                <Badge className="bg-amber-500 text-white text-xs shadow-sm">
                   New
                 </Badge>
               )}
@@ -124,7 +125,7 @@ const ProductCardComponent = ({
 
           {/* Price */}
           <div className="flex items-baseline gap-1.5 sm:gap-2">
-            <span className="text-lg sm:text-xl font-semibold text-primary">
+            <span className="text-lg sm:text-xl font-semibold tracking-tight tabular-nums text-primary">
               ${(product.price.promo_price_nzd ?? product.price.price_nzd).toFixed(2)}
             </span>
             {hasPromo && (

@@ -27,7 +27,7 @@ export const CategoryBrowse = () => {
             <Link
               key={tile.category}
               to={`/explore?category=${tile.category}`}
-              className="group flex flex-col items-center justify-center gap-3 rounded-xl border bg-background p-6 text-center card-lift"
+              className="group flex flex-col items-center justify-center gap-3 rounded-xl border border-border/70 bg-card shadow-card p-6 text-center card-lift"
             >
               <span className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
                 <tile.icon className="h-6 w-6" />

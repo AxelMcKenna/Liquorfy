@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 
 export const Footer = () => {
   return (
-    <footer className="border-t bg-background">
+    <footer className="border-t bg-secondary/50">
       <div className="max-w-6xl mx-auto px-4 py-6 flex items-center justify-between text-xs text-muted-foreground">
         <span>&copy; {new Date().getFullYear()} Liquorfy</span>
         <div className="flex items-center gap-3">
