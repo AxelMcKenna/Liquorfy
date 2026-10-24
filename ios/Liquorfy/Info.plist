@@ -16,8 +16,19 @@
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Liquorfy uses your location to find nearby stores and show you the best deals in your area.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Liquorfy uses your location to find nearby stores and show you the best deals in your area.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>nz.co.liquorfy.auth</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>nz.co.liquorfy</string>
+			</array>
+		</dict>
+	</array>
 	<key>UIAppFonts</key>
 	<array>
 		<string>DMSans-Regular.ttf</string>

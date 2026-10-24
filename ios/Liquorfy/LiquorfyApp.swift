@@ -13,35 +13,41 @@ struct LiquorfyApp: App {
     @State private var locationManager = LocationManager()
     @State private var authManager = AuthManager()
     @State private var navigationPath = NavigationPath()
+    @AppStorage("ageConfirmed") private var ageConfirmed = false
 
     var body: some Scene {
         WindowGroup {
-            NavigationStack(path: $navigationPath) {
-                LandingView()
-                    .navigationDestination(for: AppDestination.self) { destination in
-                        switch destination {
-                        case .explore(let query, let promoOnly):
-                            ExploreView(initialQuery: query, initialPromoOnly: promoOnly)
-                        case .productDetail(let id):
-                            ProductDetailView(productId: id)
-                        case .watchlist:
-                            WatchlistView()
-                        case .account:
-                            AccountView()
-                        case .login:
-                            LoginView()
+            if !ageConfirmed {
+                AgeGateView { ageConfirmed = true }
+                    .preferredColorScheme(.light)
+            } else {
+                NavigationStack(path: $navigationPath) {
+                    LandingView()
+                        .navigationDestination(for: AppDestination.self) { destination in
+                            switch destination {
+                            case .explore(let query, let promoOnly):
+                                ExploreView(initialQuery: query, initialPromoOnly: promoOnly)
+                            case .productDetail(let id):
+                                ProductDetailView(productId: id)
+                            case .watchlist:
+                                WatchlistView()
+                            case .account:
+                                AccountView()
+                            case .login:
+                                LoginView()
+                            }
                         }
-                    }
-            }
-            .environment(locationManager)
-            .environment(authManager)
-            .environment(\.navigate, NavigateAction { destination in
-                navigationPath.append(destination)
-            })
-            .tint(.appPrimary)
-            .preferredColorScheme(.light)
-            .onOpenURL { url in
-                Task { try? await supabase.auth.session(from: url) }
+                }
+                .environment(locationManager)
+                .environment(authManager)
+                .environment(\.navigate, NavigateAction { destination in
+                    navigationPath.append(destination)
+                })
+                .tint(.appPrimary)
+                .preferredColorScheme(.light)
+                .onOpenURL { url in
+                    Task { try? await supabase.auth.session(from: url) }
+                }
             }
         }
     }

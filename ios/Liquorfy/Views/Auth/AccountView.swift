@@ -4,6 +4,7 @@ struct AccountView: View {
     @Environment(AuthManager.self) private var authManager
     @State private var showDeleteConfirm = false
     @State private var isDeleting = false
+    @State private var deleteError: String?
 
     var body: some View {
         List {
@@ -24,9 +25,20 @@ struct AccountView: View {
                     Task { try? await authManager.signOut() }
                 }
 
-                Button("Delete Account", role: .destructive) {
+                Button(role: .destructive) {
                     showDeleteConfirm = true
+                } label: {
+                    if isDeleting {
+                        HStack {
+                            Text("Deleting Account…")
+                            Spacer()
+                            ProgressView()
+                        }
+                    } else {
+                        Text("Delete Account")
+                    }
                 }
+                .disabled(isDeleting)
             }
         }
         .navigationTitle("Account")
@@ -36,11 +48,23 @@ struct AccountView: View {
                 Task {
                     isDeleting = true
                     defer { isDeleting = false }
-                    try? await authManager.deleteAccount()
+                    do {
+                        try await authManager.deleteAccount()
+                    } catch {
+                        deleteError = "We couldn't delete your account. Check your connection and try again, or contact liquorfy@gmail.com."
+                    }
                 }
             }
         } message: {
             Text("This will permanently delete your account and all associated data. This cannot be undone.")
+        }
+        .alert("Account Not Deleted", isPresented: Binding(
+            get: { deleteError != nil },
+            set: { if !$0 { deleteError = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(deleteError ?? "")
         }
     }
 }

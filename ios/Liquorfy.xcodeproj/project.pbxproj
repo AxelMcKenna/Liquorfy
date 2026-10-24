@@ -53,6 +53,7 @@
 		6AA50B829F5CBEFEABE2EF96 /* AsyncProductImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25BDC684664AAFEE835D048B /* AsyncProductImageView.swift */; };
 		F71442C9B5898F844F2DD4DD /* ChainBadgeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F620708BAE0F07430204FB28 /* ChainBadgeView.swift */; };
 		B025DC64E470CD32A17D144E /* DistanceBadgeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFBB382BF06D3EBAC66BE819 /* DistanceBadgeView.swift */; };
+		A6E0A6E0A6E0A6E0A6E0A6E2 /* AgeGateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6E0A6E0A6E0A6E0A6E0A6E1 /* AgeGateView.swift */; };
 		20B5AC03F1C7610945AA90D1 /* ErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A5F67E8C6E6649D01DA387 /* ErrorView.swift */; };
 		8722FF36C1EB17EA577F0238 /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C8B03FB39EC30DB8E0211FC /* LoadingView.swift */; };
 		8320BBD931C42F561E3DDAE6 /* PromoBadgeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C10ACCF6267BE9EBAD91715 /* PromoBadgeView.swift */; };
@@ -155,6 +156,7 @@
 		25BDC684664AAFEE835D048B /* AsyncProductImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncProductImageView.swift; sourceTree = "<group>"; };
 		F620708BAE0F07430204FB28 /* ChainBadgeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChainBadgeView.swift; sourceTree = "<group>"; };
 		DFBB382BF06D3EBAC66BE819 /* DistanceBadgeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DistanceBadgeView.swift; sourceTree = "<group>"; };
+		A6E0A6E0A6E0A6E0A6E0A6E1 /* AgeGateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgeGateView.swift; sourceTree = "<group>"; };
 		54A5F67E8C6E6649D01DA387 /* ErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorView.swift; sourceTree = "<group>"; };
 		9C8B03FB39EC30DB8E0211FC /* LoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingView.swift; sourceTree = "<group>"; };
 		0C10ACCF6267BE9EBAD91715 /* PromoBadgeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromoBadgeView.swift; sourceTree = "<group>"; };
@@ -418,6 +420,7 @@
 		A58D9EE31EE408967551CC22 /* Shared */ = {
 			isa = PBXGroup;
 			children = (
+				A6E0A6E0A6E0A6E0A6E0A6E1 /* AgeGateView.swift */,
 				25BDC684664AAFEE835D048B /* AsyncProductImageView.swift */,
 				F620708BAE0F07430204FB28 /* ChainBadgeView.swift */,
 				DFBB382BF06D3EBAC66BE819 /* DistanceBadgeView.swift */,
@@ -593,6 +596,7 @@
 				6AA50B829F5CBEFEABE2EF96 /* AsyncProductImageView.swift in Sources */,
 				F71442C9B5898F844F2DD4DD /* ChainBadgeView.swift in Sources */,
 				B025DC64E470CD32A17D144E /* DistanceBadgeView.swift in Sources */,
+				A6E0A6E0A6E0A6E0A6E0A6E2 /* AgeGateView.swift in Sources */,
 				20B5AC03F1C7610945AA90D1 /* ErrorView.swift in Sources */,
 				8722FF36C1EB17EA577F0238 /* LoadingView.swift in Sources */,
 				8320BBD931C42F561E3DDAE6 /* PromoBadgeView.swift in Sources */,
@@ -711,6 +715,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Liquorfy/Liquorfy.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Liquorfy/Preview Content\"";
@@ -720,7 +725,6 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -731,7 +735,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -740,6 +744,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Liquorfy/Liquorfy.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Liquorfy/Preview Content\"";
@@ -749,7 +754,6 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -760,7 +764,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
