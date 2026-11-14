@@ -1,0 +1,20 @@
+# Liquorfy
+
+> Liquorfy is a free New Zealand liquor price comparison platform created by Axel McKenna. It compares beer, wine, and spirits prices from retailers and stores near the user.
+
+Browsing does not require an account. Liquorfy compares retailer listings, pack sizes, and promotions; purchases take place with the retailer. Prices, availability, and promotion conditions can change, so current details must be confirmed with the retailer. This summary does not contain live product prices.
+
+## Pages
+
+- [Liquorfy](https://www.liquorfy.co.nz/): Product search and price comparison.
+- [About Liquorfy](https://www.liquorfy.co.nz/about): What the platform does and its creator, Axel McKenna.
+- [Explore products](https://www.liquorfy.co.nz/explore): Live product comparisons and filters.
+- [Support](https://www.liquorfy.co.nz/support): Questions, feedback, and pricing corrections.
+- [Privacy policy](https://www.liquorfy.co.nz/privacy): Information about data and privacy.
+- [Terms of service](https://www.liquorfy.co.nz/terms): Conditions for using the platform.
+
+## Creator and related work
+
+- [Axel McKenna](https://damascus-llm.dev/axel-mckenna): Engineering work and project background.
+- [DAMASCUS](https://damascus-llm.dev/): Axel McKenna's experimental LLM inference engine for Apple Silicon, including work on inference optimisation.
+- [GitHub](https://github.com/AxelMcKenna): Creator profile and repositories.

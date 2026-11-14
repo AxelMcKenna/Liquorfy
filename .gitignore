@@ -46,3 +46,5 @@ ios/generate_project.py
 # Project specific
 api/data/*.json
 !api/data/stores_seed.json
+.vercel
+.env*

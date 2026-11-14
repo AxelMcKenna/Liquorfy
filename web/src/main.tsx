@@ -9,9 +9,11 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./styles.css";
+import { RouteSeo } from '@/components/RouteSeo';
 
 // Lazy load route components for code splitting
 const Landing = lazy(() => import("@/pages/Landing"));
+const About = lazy(() => import("@/pages/About"));
 const Explore = lazy(() => import("@/pages/Explore"));
 const ProductDetail = lazy(() => import("@/pages/ProductDetail"));
 const Privacy = lazy(() => import("@/pages/Privacy"));
@@ -40,12 +42,14 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <ErrorBoundary>
       <BrowserRouter>
+        <RouteSeo />
         <AuthProvider>
           <LocationProvider>
             <Toaster position="top-right" richColors closeButton />
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/" element={<Landing />} />
+                <Route path="/about" element={<About />} />
                 <Route path="/explore" element={<Explore />} />
                 <Route path="/product/:id" element={<ProductDetail />} />
                 <Route path="/privacy" element={<Privacy />} />

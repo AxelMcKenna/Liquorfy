@@ -89,9 +89,9 @@ jobs:
         working-directory: web
         run: npm run build
 
-      - name: Run web tests (if any)
+      - name: Check SEO pages and metadata
         working-directory: web
-        run: npm test || echo "No tests found"
+        run: npm run test:seo
 
   # ============================================================================
   # Build Job - Build and push Docker images

@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/prerender.mjs",
+    "test:seo": "node --test scripts/seo.test.mjs",
+    "test": "npm run test:seo",
     "preview": "vite preview",
     "cap:sync": "npm run build && npx cap sync",
     "cap:open:android": "npx cap open android",
